@@ -48,8 +48,9 @@ export const FREE_TIER_LIMIT = 50;
 export const DAILY_MESSAGE_LIMIT = {
   creator: 150,
   business: 500,
-  free: 50
+  free: 5
 };
 
 // Trial period in days
 export const STUDENT_TRIAL_DAYS = 14;
+
