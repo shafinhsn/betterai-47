@@ -1,138 +1,25 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
-import type { Tables } from '@/integrations/supabase/database.types';
-
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'ai';
-}
-
-interface ChatProps {
-  onSendMessage: (message: string, sender: 'user' | 'ai') => void;
-  messages: Message[];
-  documentContent?: string;
-  onDocumentUpdate: (updatedContent: string) => void;
-}
-
-type SubscriptionPlan = {
-  name: string;
-  price: number;
-  messages: number;
-  features: string[];
-};
-
-const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  {
-    name: 'Basic',
-    price: 10,
-    messages: 1000,
-    features: ['1,000 messages per month', 'Basic support', 'Standard response time']
-  },
-  {
-    name: 'Premium',
-    price: 25,
-    messages: 5000,
-    features: ['5,000 messages per month', 'Priority support', 'Faster response time', 'Advanced document analysis']
-  },
-  {
-    name: 'Enterprise',
-    price: 100,
-    messages: 25000,
-    features: ['25,000 messages per month', '24/7 Support', 'Fastest response time', 'Custom features']
-  }
-];
-
-const FREE_TIER_LIMIT = 100;
+import { SubscriptionDialog } from '@/components/SubscriptionDialog';
+import { useMessageUsage } from '@/hooks/use-message-usage';
+import { FREE_TIER_LIMIT } from '@/constants/subscription';
+import type { ChatProps, Message, SubscriptionPlan } from '@/types/chat';
 
 export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdate }: ChatProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
-  const [messageCount, setMessageCount] = useState(0);
-  const [subscription, setSubscription] = useState<Tables<'subscriptions'> | null>(null);
-  const navigate = useNavigate();
+  const { messageCount, subscription, updateMessageCount } = useMessageUsage();
   const { toast } = useToast();
 
-  useEffect(() => {
-    checkMessageUsage();
-    checkSubscription();
-  }, []);
-
-  const checkMessageUsage = async () => {
-    try {
-      const { data: usage, error } = await supabase
-        .from('message_usage')
-        .select('*')
-        .maybeSingle();
-
-      if (error) throw error;
-      setMessageCount(usage?.message_count || 0);
-    } catch (error) {
-      console.error('Error checking message usage:', error);
-    }
-  };
-
-  const checkSubscription = async () => {
-    try {
-      const { data: sub, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (error) throw error;
-      setSubscription(sub);
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-    }
-  };
-
-  const updateMessageCount = async () => {
-    try {
-      const { data: usage, error: selectError } = await supabase
-        .from('message_usage')
-        .select('*')
-        .maybeSingle();
-
-      if (selectError) throw selectError;
-
-      if (!usage) {
-        const { error: insertError } = await supabase
-          .from('message_usage')
-          .insert([{ 
-            message_count: 1,
-            user_id: (await supabase.auth.getUser()).data.user?.id
-          }]);
-        if (insertError) throw insertError;
-      } else {
-        const { error: updateError } = await supabase
-          .from('message_usage')
-          .update({ 
-            message_count: usage.message_count + 1, 
-            last_message_at: new Date().toISOString() 
-          })
-          .eq('id', usage.id);
-        if (updateError) throw updateError;
-      }
-
-      setMessageCount(prev => prev + 1);
-    } catch (error) {
-      console.error('Error updating message count:', error);
-    }
-  };
-
   const handleSubscribe = async (plan: SubscriptionPlan) => {
-    // In a real implementation, this would integrate with a payment provider like Stripe
     toast({
       description: "This is a demo of the subscription feature. In production, this would integrate with Stripe for payments.",
     });
@@ -140,7 +27,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   };
 
   const checkUsageLimit = async () => {
-    if (subscription) return true; // Subscribed users can send unlimited messages
+    if (subscription) return true;
     
     if (messageCount >= FREE_TIER_LIMIT) {
       setShowSubscriptionDialog(true);
@@ -157,10 +44,8 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
 
       setIsLoading(true);
       
-      // Add user message to chat
       onSendMessage(content, 'user');
       
-      // Make request to chat function
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           message: content,
@@ -172,7 +57,6 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
 
       console.log('Chat response:', data);
 
-      // Handle document update if provided
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
         onDocumentUpdate(data.updatedDocument);
@@ -205,7 +89,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   return (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 p-4">
-        {messages.map((message) => (
+        {messages.map((message: Message) => (
           <div
             key={message.id}
             className={cn(
@@ -245,36 +129,11 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
         </div>
       </form>
 
-      <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Upgrade Your Plan</DialogTitle>
-            <DialogDescription>
-              You've reached the limit of your free tier. Choose a plan to continue using our service.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {SUBSCRIPTION_PLANS.map((plan) => (
-              <div key={plan.name} className="border rounded-lg p-4 flex flex-col">
-                <h3 className="font-bold text-lg">{plan.name}</h3>
-                <p className="text-2xl font-bold my-2">${plan.price}/mo</p>
-                <ul className="text-sm space-y-2 flex-grow">
-                  {plan.features.map((feature, i) => (
-                    <li key={i}>✓ {feature}</li>
-                  ))}
-                </ul>
-                <Button
-                  className="mt-4"
-                  onClick={() => handleSubscribe(plan)}
-                >
-                  Subscribe
-                </Button>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SubscriptionDialog
+        open={showSubscriptionDialog}
+        onOpenChange={setShowSubscriptionDialog}
+        onSubscribe={handleSubscribe}
+      />
     </div>
   );
 };
-
