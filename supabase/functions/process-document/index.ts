@@ -22,6 +22,8 @@ serve(async (req) => {
       throw new Error('No file uploaded')
     }
 
+    console.log('Processing file:', file.name, 'Type:', file.type);
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -32,29 +34,45 @@ serve(async (req) => {
     let extractedText = ''
 
     if (fileType === 'application/pdf') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.skypack.dev/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
-      const loadingTask = pdfjsLib.getDocument({ data: fileBuffer });
-      const pdf = await loadingTask.promise;
+      console.log('Processing PDF file');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.skypack.dev/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
       
-      const textContent = [];
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(' ');
-        textContent.push(pageText);
+      try {
+        const loadingTask = pdfjsLib.getDocument(new Uint8Array(fileBuffer));
+        const pdf = await loadingTask.promise;
+        console.log('PDF loaded successfully, pages:', pdf.numPages);
+        
+        const textContent = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          console.log('Processing page', i);
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const pageText = content.items.map(item => item.str).join(' ');
+          textContent.push(pageText);
+        }
+        extractedText = textContent.join('\n\n');
+      } catch (pdfError) {
+        console.error('PDF processing error:', pdfError);
+        throw new Error(`Failed to process PDF: ${pdfError.message}`);
       }
-      extractedText = textContent.join('\n\n');
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
-      extractedText = result.value;
+      console.log('Processing DOCX file');
+      try {
+        const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
+        extractedText = result.value;
+      } catch (docxError) {
+        console.error('DOCX processing error:', docxError);
+        throw new Error(`Failed to process DOCX: ${docxError.message}`);
+      }
     } else {
       throw new Error('Unsupported file type')
     }
 
-    // Sanitize filename and create storage path
     const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')
     const fileExt = sanitizedFileName.split('.').pop()
     const filePath = `${crypto.randomUUID()}.${fileExt}`
+
+    console.log('Uploading file to storage:', filePath);
 
     const { error: uploadError } = await supabase.storage
       .from('documents')
@@ -64,14 +82,21 @@ serve(async (req) => {
       })
 
     if (uploadError) {
+      console.error('Upload error:', uploadError);
       throw uploadError
     }
 
-    // Clean the extracted text and ensure it's properly encoded
+    console.log('File uploaded successfully');
+
+    // Clean and normalize the extracted text
     const cleanedText = extractedText
       .replace(/\u0000/g, '') // Remove null characters
+      .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove replacement characters
       .replace(/[^\x20-\x7E\n\r\t]/g, ' ') // Replace non-printable characters with spaces
+      .replace(/\s+/g, ' ') // Normalize whitespace
       .trim();
+
+    console.log('Text extraction completed, length:', cleanedText.length);
 
     return new Response(
       JSON.stringify({
@@ -86,7 +111,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error processing document:', error)
+    console.error('Error processing document:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
