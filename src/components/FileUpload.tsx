@@ -14,16 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Set worker source path
-const pdfjsWorker = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
-);
-
-// Initialize PDF.js worker
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-}
+// Initialize PDF.js worker using a local worker file
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'node_modules/pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url
+).toString();
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -56,7 +51,10 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       const arrayBuffer = await file.arrayBuffer();
       
       // Load the PDF document
-      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      const loadingTask = pdfjs.getDocument({ 
+        data: arrayBuffer,
+        standardFontDataUrl: `node_modules/pdfjs-dist/standard_fonts/`
+      });
       console.log('PDF loading task created');
       
       const pdf = await loadingTask.promise;
@@ -162,3 +160,4 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
+
