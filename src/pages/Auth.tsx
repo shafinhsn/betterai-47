@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { LogIn, UserPlus, PenLine } from "lucide-react";
 
 const AuthPage = () => {
   const [email, setEmail] = useState('');
@@ -13,30 +14,27 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent, isSignUp: boolean) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        if (error.message.includes('not found') || error.message.includes('Invalid login')) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-          });
-          
-          if (signUpError) throw signUpError;
-          
-          toast.success("Welcome! Please check your email to verify your account.");
-        } else {
-          throw error;
-        }
+      if (isSignUp) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (signUpError) throw signUpError;
+        
+        toast.success("Welcome! Please check your email to verify your account.");
       } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
         navigate('/');
       }
     } catch (error: any) {
@@ -49,12 +47,16 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold">Welcome</h2>
+        <div className="flex flex-col items-center">
+          <div className="relative mb-4">
+            <PenLine className="w-16 h-16 text-emerald-500" strokeWidth={1.5} />
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse" />
+          </div>
+          <h2 className="text-4xl font-bold font-playfair">WordEdit.ai</h2>
           <p className="mt-2 text-sm text-gray-400">Sign in or create an account to continue</p>
         </div>
         
-        <form onSubmit={handleAuth} className="mt-8 space-y-6">
+        <form onSubmit={(e) => handleAuth(e, false)} className="mt-8 space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -83,13 +85,26 @@ const AuthPage = () => {
             </div>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-700"
-            disabled={isLoading}
-          >
-            {isLoading ? "Please wait..." : "Continue"}
-          </Button>
+          <div className="flex gap-4">
+            <Button
+              type="submit"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              disabled={isLoading}
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In
+            </Button>
+            
+            <Button
+              type="button"
+              onClick={(e) => handleAuth(e, true)}
+              className="flex-1 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-600/30"
+              disabled={isLoading}
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Sign Up
+            </Button>
+          </div>
         </form>
       </div>
     </div>
