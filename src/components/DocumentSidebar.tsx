@@ -2,6 +2,7 @@
 import { FileUpload } from '@/components/FileUpload';
 import { DocumentControls } from '@/components/DocumentControls';
 import { ProcessedDocument } from '@/types/document';
+import { Loader2 } from 'lucide-react';
 
 interface DocumentSidebarProps {
   isProcessing: boolean;
@@ -28,8 +29,16 @@ export const DocumentSidebar = ({
       </div>
       <FileUpload onFileSelect={onFileSelect} />
       {isProcessing && (
-        <div className="mt-4 text-sm text-muted-foreground">
-          Processing document...
+        <div className="mt-4 p-4 border rounded-lg bg-muted/50 animate-fade-in">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Processing document...</span>
+          </div>
+          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+            <p>• Extracting text content</p>
+            <p>• Analyzing document structure</p>
+            <p>• Preparing for chat</p>
+          </div>
         </div>
       )}
       {currentDocument && !isProcessing && (
