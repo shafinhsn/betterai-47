@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 export type TextAlignment = 'left' | 'center' | 'right' | 'justify';
 export type FormatOption = 'bold' | 'italic';
@@ -51,20 +52,59 @@ export const useTextEditor = (): TextEditorHookReturn => {
     setAlignment(value);
   };
 
-  const handleCitationStyleChange = (value: CitationStyle) => {
-    setCitationStyle(value);
-    toast.success(`Applied ${value.toUpperCase()} citation style`);
+  const handleCitationStyleChange = async (value: CitationStyle) => {
+    try {
+      if (value === 'none') {
+        setCitationStyle(value);
+        return;
+      }
+
+      const text = document.querySelector('[contenteditable]')?.textContent || '';
+      
+      const { data, error } = await supabase.functions.invoke('format-citation', {
+        body: { text, style: value },
+      });
+
+      if (error) throw error;
+
+      if (data?.citation) {
+        // Update the editor content with the formatted citation
+        if (document.querySelector('[contenteditable]')) {
+          document.querySelector('[contenteditable]')!.innerHTML = data.citation;
+        }
+        setCitationStyle(value);
+        toast.success(`Applied ${value.toUpperCase()} citation style`);
+      }
+    } catch (error) {
+      console.error('Error formatting citation:', error);
+      toast.error('Failed to format citation');
+    }
   };
 
   const handlePlagiarismCheck = async () => {
     try {
       setIsCheckingPlagiarism(true);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulated delay
-      toast.success("Document checked for plagiarism - No issues found", {
-        description: "Your document appears to be original content.",
-        duration: 5000,
+      const text = document.querySelector('[contenteditable]')?.textContent || '';
+
+      const { data, error } = await supabase.functions.invoke('check-plagiarism', {
+        body: { text },
       });
+
+      if (error) throw error;
+
+      if (data?.isOriginal) {
+        toast.success("Document checked for plagiarism - No issues found", {
+          description: `Similarity score: ${data.similarityScore.toFixed(1)}%`,
+          duration: 5000,
+        });
+      } else {
+        toast.error("Potential plagiarism detected", {
+          description: `Similarity score: ${data.similarityScore.toFixed(1)}%`,
+          duration: 5000,
+        });
+      }
     } catch (error) {
+      console.error('Error checking plagiarism:', error);
       toast.error("Error checking for plagiarism");
     } finally {
       setIsCheckingPlagiarism(false);
