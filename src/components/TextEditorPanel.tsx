@@ -62,7 +62,7 @@ export const TextEditorPanel = ({
   };
 
   return (
-    <div className="mt-4">
+    <div className="flex flex-col h-full">
       <TextEditorHeader onManualUpdate={onManualUpdate} />
       
       <div className="bg-[#242424] rounded-lg p-4 mb-4">
@@ -82,7 +82,7 @@ export const TextEditorPanel = ({
         />
       </div>
 
-      <div className="bg-[#242424] rounded-lg p-4 overflow-auto">
+      <div className="bg-[#242424] rounded-lg p-4 flex-1 overflow-auto">
         <DocumentPreview 
           key={`updated-${previewKey}`} 
           content={updatedContent} 

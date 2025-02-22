@@ -73,7 +73,7 @@ export const MainLayout = ({
           
           <ResizablePanel defaultSize={75}>
             <ResizablePanelGroup direction="horizontal">
-              <ResizablePanel defaultSize={60}>
+              <ResizablePanel defaultSize={50}>
                 <div className="h-full flex flex-col">
                   <div className="flex-1">
                     <Chat
@@ -88,21 +88,27 @@ export const MainLayout = ({
 
               <ResizableHandle withHandle className="bg-[#2a2a2a]" />
 
-              <ResizablePanel defaultSize={40}>
-                <div className="h-full p-4">
-                  <PreviewPanel
-                    content={content}
-                    isProcessing={isProcessing}
-                    previewKey={previewKey}
-                  />
-                  {updatedContent && (
-                    <TextEditorPanel
-                      updatedContent={updatedContent}
-                      content={content}
-                      previewKey={previewKey}
-                      onManualUpdate={onManualUpdate}
-                    />
-                  )}
+              <ResizablePanel defaultSize={50}>
+                <div className="h-full flex flex-col">
+                  <div className="flex-1 p-4">
+                    <div className="h-1/2 mb-4">
+                      <PreviewPanel
+                        content={content}
+                        isProcessing={isProcessing}
+                        previewKey={previewKey}
+                      />
+                    </div>
+                    {updatedContent && (
+                      <div className="h-1/2">
+                        <TextEditorPanel
+                          updatedContent={updatedContent}
+                          content={content}
+                          previewKey={previewKey}
+                          onManualUpdate={onManualUpdate}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
@@ -112,4 +118,3 @@ export const MainLayout = ({
     </div>
   );
 };
-

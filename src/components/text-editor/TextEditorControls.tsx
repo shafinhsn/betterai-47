@@ -21,7 +21,6 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { Button } from '@/components/ui/button';
-import { toast } from "sonner";
 
 interface TextEditorControlsProps {
   font: string;
@@ -62,6 +61,8 @@ export const TextEditorControls = ({
           <SelectItem value="Arial">Arial</SelectItem>
           <SelectItem value="Times New Roman">Times New Roman</SelectItem>
           <SelectItem value="Courier New">Courier New</SelectItem>
+          <SelectItem value="Georgia">Georgia</SelectItem>
+          <SelectItem value="Verdana">Verdana</SelectItem>
         </SelectContent>
       </Select>
       
@@ -75,6 +76,7 @@ export const TextEditorControls = ({
           <SelectItem value="16">16px</SelectItem>
           <SelectItem value="18">18px</SelectItem>
           <SelectItem value="20">20px</SelectItem>
+          <SelectItem value="24">24px</SelectItem>
         </SelectContent>
       </Select>
 
@@ -87,6 +89,7 @@ export const TextEditorControls = ({
           <SelectItem value="apa">APA</SelectItem>
           <SelectItem value="mla">MLA</SelectItem>
           <SelectItem value="chicago">Chicago</SelectItem>
+          <SelectItem value="harvard">Harvard</SelectItem>
         </SelectContent>
       </Select>
 
@@ -95,6 +98,7 @@ export const TextEditorControls = ({
         size="icon" 
         onClick={onPlagiarismCheck}
         disabled={isCheckingPlagiarism}
+        className="hover:bg-emerald-700/20"
       >
         {isCheckingPlagiarism ? (
           <FileStack className="h-4 w-4 animate-pulse" />
@@ -109,10 +113,10 @@ export const TextEditorControls = ({
         onValueChange={onFormatChange}
         className="flex gap-1"
       >
-        <ToggleGroupItem value="bold" aria-label="Toggle bold">
+        <ToggleGroupItem value="bold" aria-label="Toggle bold" className="hover:bg-emerald-700/20">
           <Bold className="h-4 w-4" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="italic" aria-label="Toggle italic">
+        <ToggleGroupItem value="italic" aria-label="Toggle italic" className="hover:bg-emerald-700/20">
           <Italic className="h-4 w-4" />
         </ToggleGroupItem>
       </ToggleGroup>
@@ -123,16 +127,16 @@ export const TextEditorControls = ({
         onValueChange={onAlignmentChange}
         className="flex gap-1"
       >
-        <ToggleGroupItem value="left" aria-label="Align left">
+        <ToggleGroupItem value="left" aria-label="Align left" className="hover:bg-emerald-700/20">
           <AlignLeft className="h-4 w-4" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="center" aria-label="Align center">
+        <ToggleGroupItem value="center" aria-label="Align center" className="hover:bg-emerald-700/20">
           <AlignCenter className="h-4 w-4" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="right" aria-label="Align right">
+        <ToggleGroupItem value="right" aria-label="Align right" className="hover:bg-emerald-700/20">
           <AlignRight className="h-4 w-4" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="justify" aria-label="Align justify">
+        <ToggleGroupItem value="justify" aria-label="Align justify" className="hover:bg-emerald-700/20">
           <AlignJustify className="h-4 w-4" />
         </ToggleGroupItem>
       </ToggleGroup>
