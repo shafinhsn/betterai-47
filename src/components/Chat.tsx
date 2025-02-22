@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { useMessageUsage } from '@/hooks/use-message-usage';
-import { FREE_TIER_LIMIT } from '@/constants/subscription';
+import { FREE_TIER_LIMIT, DAILY_MESSAGE_LIMIT } from '@/constants/subscription';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
 import { TrialBanner } from './chat/TrialBanner';
@@ -16,7 +15,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   const [chatPresets, setChatPresets] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [session, setSession] = useState<boolean>(false);
-  const { messageCount, subscription, updateMessageCount } = useMessageUsage();
+  const { messageCount, dailyMessageCount, subscription, updateMessageCount } = useMessageUsage();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -62,6 +61,15 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
     
     if (messageCount >= FREE_TIER_LIMIT) {
       navigate('/subscription');
+      return false;
+    }
+
+    if (dailyMessageCount >= DAILY_MESSAGE_LIMIT.free) {
+      toast({
+        variant: "destructive",
+        title: "Daily limit reached",
+        description: "You've reached your daily message limit. Try again tomorrow or upgrade to continue.",
+      });
       return false;
     }
     
@@ -130,6 +138,11 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       {messageCount < FREE_TIER_LIMIT && !subscription && (
         <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
           <span className="font-medium">{FREE_TIER_LIMIT - messageCount}</span> messages remaining in free tier
+          {dailyMessageCount < DAILY_MESSAGE_LIMIT.free && (
+            <span className="ml-2">
+              (<span className="font-medium">{DAILY_MESSAGE_LIMIT.free - dailyMessageCount}</span> messages left today)
+            </span>
+          )}
         </div>
       )}
       

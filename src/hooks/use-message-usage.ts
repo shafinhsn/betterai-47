@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/database.types';
 import type { MessageUsage } from '@/types/chat';
+import { DAILY_MESSAGE_LIMIT } from '@/constants/subscription';
 
 export const useMessageUsage = (): MessageUsage & {
   updateMessageCount: () => Promise<void>;
 } => {
   const [messageCount, setMessageCount] = useState(0);
+  const [dailyMessageCount, setDailyMessageCount] = useState(0);
   const [subscription, setSubscription] = useState<Tables<'subscriptions'> | null>(null);
 
   const checkMessageUsage = async () => {
@@ -18,6 +20,32 @@ export const useMessageUsage = (): MessageUsage & {
         .maybeSingle();
 
       if (error) throw error;
+
+      // Check if we need to reset daily count
+      const lastReset = usage?.last_daily_reset ? new Date(usage.last_daily_reset) : null;
+      const now = new Date();
+      const needsReset = lastReset && 
+        (lastReset.getDate() !== now.getDate() || 
+         lastReset.getMonth() !== now.getMonth() || 
+         lastReset.getFullYear() !== now.getFullYear());
+
+      if (needsReset) {
+        // Reset daily count if it's a new day
+        const { error: resetError } = await supabase
+          .from('message_usage')
+          .update({ 
+            daily_message_count: 0,
+            last_daily_reset: now.toISOString()
+          })
+          .eq('id', usage.id);
+
+        if (resetError) throw resetError;
+        
+        setDailyMessageCount(0);
+      } else {
+        setDailyMessageCount(usage?.daily_message_count || 0);
+      }
+
       setMessageCount(usage?.message_count || 0);
     } catch (error) {
       console.error('Error checking message usage:', error);
@@ -53,21 +81,27 @@ export const useMessageUsage = (): MessageUsage & {
           .from('message_usage')
           .insert([{ 
             message_count: 1,
+            daily_message_count: 1,
             user_id: (await supabase.auth.getUser()).data.user?.id
           }]);
         if (insertError) throw insertError;
+        
+        setMessageCount(1);
+        setDailyMessageCount(1);
       } else {
         const { error: updateError } = await supabase
           .from('message_usage')
           .update({ 
-            message_count: usage.message_count + 1, 
-            last_message_at: new Date().toISOString() 
+            message_count: usage.message_count + 1,
+            daily_message_count: usage.daily_message_count + 1,
+            last_message_at: new Date().toISOString()
           })
           .eq('id', usage.id);
         if (updateError) throw updateError;
-      }
 
-      setMessageCount(prev => prev + 1);
+        setMessageCount(prev => prev + 1);
+        setDailyMessageCount(prev => prev + 1);
+      }
     } catch (error) {
       console.error('Error updating message count:', error);
     }
@@ -80,6 +114,7 @@ export const useMessageUsage = (): MessageUsage & {
 
   return {
     messageCount,
+    dailyMessageCount,
     subscription,
     updateMessageCount
   };

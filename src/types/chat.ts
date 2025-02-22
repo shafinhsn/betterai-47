@@ -28,5 +28,6 @@ export interface SubscriptionDialogProps {
 
 export interface MessageUsage {
   messageCount: number;
+  dailyMessageCount: number;
   subscription: Tables<'subscriptions'> | null;
 }
