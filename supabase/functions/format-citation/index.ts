@@ -1,70 +1,117 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { corsHeaders } from "../_shared/cors.ts"
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+interface Source {
+  link: string
+  title: string
+  author?: string
+  publishDate?: string
+}
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+interface RequestBody {
+  text: string
+  style: string
+  sources: Source[]
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { text, style, sources } = await req.json();
+    const { text, style, sources } = await req.json() as RequestBody
 
-    const systemPrompt = `You are a citation expert. Format the given text and create citations for the provided sources in ${style} style. Return both the formatted text with in-text citations and a "Sources Cited" page. The response should be in JSON format with two fields: formattedText and sourcesPage.`;
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { 
-            role: 'system', 
-            content: systemPrompt 
-          },
-          { 
-            role: 'user', 
-            content: JSON.stringify({
-              text,
-              sources,
-              style
-            })
-          }
-        ],
-      }),
-    });
+    let formattedText = text
+    let sourcesPage = ''
 
-    const data = await response.json();
-    let result;
-    try {
-      result = JSON.parse(data.choices[0].message.content);
-    } catch (e) {
-      result = {
-        formattedText: text,
-        sourcesPage: "\n\nSources Cited:\n" + sources.map((s: any) => 
-          `${s.title} - ${s.link}`
-        ).join('\n')
-      };
+    const formatDate = (dateString?: string) => {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     }
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    switch (style) {
+      case 'apa':
+        sourcesPage = '\n\nReferences\n\n'
+        sources.forEach((source) => {
+          const author = source.author ? `${source.author}. ` : ''
+          const date = source.publishDate ? `(${formatDate(source.publishDate)}). ` : ''
+          const citation = `${author}${date}${source.title}. Retrieved from ${source.link}`
+          sourcesPage += `${citation}\n`
+        })
+        break
+
+      case 'mla':
+        sourcesPage = '\n\nWorks Cited\n\n'
+        sources.forEach((source) => {
+          const author = source.author ? `${source.author}. ` : ''
+          const date = source.publishDate ? `${formatDate(source.publishDate)}. ` : ''
+          const citation = `${author}"${source.title}." ${date}Web. ${source.link}`
+          sourcesPage += `${citation}\n`
+        })
+        break
+
+      case 'chicago':
+        sourcesPage = '\n\nBibliography\n\n'
+        sources.forEach((source) => {
+          const author = source.author ? `${source.author}. ` : ''
+          const date = source.publishDate ? `${formatDate(source.publishDate)}. ` : ''
+          const citation = `${author}"${source.title}." ${date}Accessed online at ${source.link}`
+          sourcesPage += `${citation}\n`
+        })
+        break
+
+      case 'harvard':
+        sourcesPage = '\n\nReference List\n\n'
+        sources.forEach((source) => {
+          const author = source.author ? `${source.author} ` : ''
+          const year = source.publishDate ? `(${new Date(source.publishDate).getFullYear()}) ` : ''
+          const citation = `${author}${year}'${source.title}', Available at: ${source.link}`
+          sourcesPage += `${citation}\n`
+        })
+        break
+
+      default:
+        sourcesPage = '\n\nSources\n\n'
+        sources.forEach((source) => {
+          sourcesPage += `${source.title}: ${source.link}\n`
+        })
+    }
+
+    // Format the sources page with proper indentation
+    sourcesPage = sourcesPage.split('\n').map((line, index) => {
+      if (index === 0 || line.trim() === '') return line
+      if (line.includes('References') || line.includes('Works Cited') || 
+          line.includes('Bibliography') || line.includes('Reference List') || 
+          line.includes('Sources')) return line
+      return '    ' + line // Add proper indentation for citation entries
+    }).join('\n')
+
+    return new Response(
+      JSON.stringify({
+        formattedText,
+        sourcesPage
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 200,
+      },
+    )
   } catch (error) {
-    console.error('Error in format-citation function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 400,
+      },
+    )
   }
-});
+})
