@@ -38,7 +38,7 @@ const AuthPage = () => {
           email,
           password,
           options: {
-            persistSession: rememberMe
+            data: { remember_me: rememberMe }
           }
         });
 
