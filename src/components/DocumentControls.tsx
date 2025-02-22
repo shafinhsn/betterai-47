@@ -22,12 +22,14 @@ export const DocumentControls = ({
 
   const handleRemoveDocument = async () => {
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('documents')
-        .remove([currentDocument.filePath]);
+      // Delete from storage if it's a PDF
+      if (currentDocument.fileType === 'application/pdf') {
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove([currentDocument.filePath]);
 
-      if (storageError) throw storageError;
+        if (storageError) throw storageError;
+      }
 
       onDocumentRemoved();
 
@@ -56,7 +58,6 @@ export const DocumentControls = ({
 
           if (error) throw error;
 
-          // Create a download link for the PDF blob
           const url = URL.createObjectURL(data);
           const a = document.createElement('a');
           a.href = url;

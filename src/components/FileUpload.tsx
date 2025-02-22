@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
@@ -23,7 +22,7 @@ if (typeof window !== 'undefined') {
 }
 
 interface FileUploadProps {
-  onFileSelect: (file: File, content: string) => void;
+  onFileSelect: (file: File, content: string, filePath: string) => void;
 }
 
 export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
@@ -52,6 +51,17 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       console.log('Processing PDF file:', file.name);
       const arrayBuffer = await file.arrayBuffer();
       
+      // Upload the file to Supabase storage first
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(`${crypto.randomUUID()}-${file.name}`, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get the file path from the upload response
+      const filePath = uploadData.path;
+      
+      // Now process the PDF for text content
       const loadingTask = pdfjsLib.getDocument({
         data: arrayBuffer,
         verbosity: pdfjsLib.VerbosityLevel.ERRORS
@@ -61,7 +71,6 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       
       const textContent: string[] = [];
       
-      // Process each page
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent();
@@ -71,7 +80,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
         textContent.push(pageText);
       }
       
-      return textContent.join('\n\n');
+      return { text: textContent.join('\n\n'), filePath };
     } catch (error) {
       console.error('Error processing PDF:', error);
       toast({
@@ -88,12 +97,19 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       const file = acceptedFiles[0];
       try {
         let content;
+        let filePath;
+
         if (documentType === 'pdf' && file.type === 'application/pdf') {
           console.log('Processing PDF file:', file.name);
-          content = await processPdf(file);
+          const result = await processPdf(file);
+          content = result.text;
+          filePath = result.filePath;
         } else if (documentType === 'docx' && file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
           console.log('Processing DOCX file:', file.name);
           content = await processDocx(file);
+          
+          // For DOCX, we'll store the text content directly
+          filePath = '';
         } else {
           toast({
             variant: "destructive",
@@ -104,7 +120,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
         }
 
         if (content) {
-          onFileSelect(file, content);
+          onFileSelect(file, content, filePath);
           toast({
             title: "Success",
             description: `${file.name} has been processed successfully.`,
@@ -163,4 +179,3 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
-

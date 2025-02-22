@@ -18,7 +18,7 @@ const Index = () => {
   const [previewKey, setPreviewKey] = useState(0);
   const { toast } = useToast();
 
-  const handleFileSelect = async (selectedFile: File, fileContent: string) => {
+  const handleFileSelect = async (selectedFile: File, fileContent: string, filePath: string = '') => {
     setIsProcessing(true);
     setFile(selectedFile);
     setContent('');
@@ -29,7 +29,7 @@ const Index = () => {
       setContent(fileContent);
       setCurrentDocument({
         content: fileContent,
-        filePath: URL.createObjectURL(selectedFile),
+        filePath: filePath || URL.createObjectURL(selectedFile),
         filename: selectedFile.name,
         fileType: selectedFile.type
       });
