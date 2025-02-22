@@ -31,19 +31,11 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       // Add user message to chat
       onSendMessage(content, 'user');
       
-      // Check if this is an edit request
-      const isEditRequest = content.toLowerCase().includes('edit') || 
-                          content.toLowerCase().includes('update') || 
-                          content.toLowerCase().includes('change') ||
-                          content.toLowerCase().includes('modify') ||
-                          content.toLowerCase().includes('replace');
-
       // Make request to chat function
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           message: content,
           context: documentContent || '',
-          shouldUpdateDocument: isEditRequest,
         },
       });
 

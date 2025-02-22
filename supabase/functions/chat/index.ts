@@ -16,16 +16,11 @@ serve(async (req) => {
   }
 
   try {
-    const { message, context, shouldUpdateDocument } = await req.json();
+    const { message, context } = await req.json();
     
-    console.log('Received request:', { message, shouldUpdateDocument });
+    console.log('Received request:', { message });
     console.log('Document context:', context.substring(0, 100) + '...');
 
-    // Choose appropriate system prompt based on request type
-    const systemPrompt = shouldUpdateDocument
-      ? 'You are a document editor. Your task is to update the given document based on the user\'s request. Output ONLY the modified document content without any explanations or commentary.'
-      : 'You are a helpful document analysis assistant.';
-    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -35,13 +30,16 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: shouldUpdateDocument 
-            ? `Original document:\n${context}\n\nEdit request: ${message}` 
-            : `Document: ${context}\n\nQuestion: ${message}`
+          { 
+            role: 'system', 
+            content: 'You are a document editor. Your task is to update the given document based on the user\'s request. Output ONLY the modified document content without any explanations or commentary.'
+          },
+          { 
+            role: 'user', 
+            content: `Original document:\n${context}\n\nEdit request: ${message}` 
           }
         ],
-        temperature: shouldUpdateDocument ? 0.3 : 0.7, // Lower temperature for more precise edits
+        temperature: 0.3, // Lower temperature for more precise edits
       }),
     });
 
@@ -54,20 +52,12 @@ serve(async (req) => {
 
     const aiReply = data.choices[0].message.content;
 
-    if (shouldUpdateDocument) {
-      return new Response(JSON.stringify({
-        updatedDocument: aiReply,
-        reply: "I've updated the document based on your request. You can see the changes in the preview panel."
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } else {
-      return new Response(JSON.stringify({
-        reply: aiReply
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    return new Response(JSON.stringify({
+      updatedDocument: aiReply,
+      reply: "I've updated the document based on your request. You can see the changes in the preview panel."
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in chat function:', error);
