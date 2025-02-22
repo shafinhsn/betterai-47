@@ -22,6 +22,7 @@ export const TextEditorPanel = ({
   const [editableContent, setEditableContent] = useState(updatedContent || content);
   const editorRef = useRef<HTMLDivElement>(null);
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
+  const [lastCaretPosition, setLastCaretPosition] = useState<number | null>(null);
 
   useEffect(() => {
     setEditableContent(updatedContent || content);
@@ -56,10 +57,11 @@ export const TextEditorPanel = ({
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       setSelectionRange(selection.getRangeAt(0).cloneRange());
+      setLastCaretPosition(selection.getRangeAt(0).startOffset);
     }
   };
 
-  const applyFormattingToSelection = (property: string, value: string) => {
+  const applyFormattingToSelection = (property: string, value: string | null) => {
     const selection = window.getSelection();
     if (!selection || !editorRef.current) return;
 
@@ -67,7 +69,12 @@ export const TextEditorPanel = ({
     if (range.collapsed) return;
 
     const span = document.createElement('span');
-    span.style[property as any] = value;
+    if (value) {
+      span.style[property as any] = value;
+    } else {
+      // Remove formatting
+      span.style[property as any] = '';
+    }
     
     const fragment = range.extractContents();
     span.appendChild(fragment);
@@ -79,9 +86,13 @@ export const TextEditorPanel = ({
     saveSelection();
   };
 
-  const applyFormattingToAll = (property: string, value: string) => {
+  const applyFormattingToAll = (property: string, value: string | null) => {
     if (!editorRef.current) return;
-    editorRef.current.style[property as any] = value;
+    if (value) {
+      editorRef.current.style[property as any] = value;
+    } else {
+      editorRef.current.style[property as any] = '';
+    }
     saveSelection();
   };
 
@@ -101,20 +112,22 @@ export const TextEditorPanel = ({
 
   const handleFormatWithSelection = (formats: string[]) => {
     const selection = window.getSelection();
+    const hasFormatting = format.length > 0;
+    
     if (!selection || selection.toString().length === 0) {
       formats.forEach(format => {
         if (format === 'bold') {
-          applyFormattingToAll('fontWeight', 'bold');
+          applyFormattingToAll('fontWeight', hasFormatting ? null : 'bold');
         } else if (format === 'italic') {
-          applyFormattingToAll('fontStyle', 'italic');
+          applyFormattingToAll('fontStyle', hasFormatting ? null : 'italic');
         }
       });
     } else {
       formats.forEach(format => {
         if (format === 'bold') {
-          applyFormattingToSelection('fontWeight', 'bold');
+          applyFormattingToSelection('fontWeight', hasFormatting ? null : 'bold');
         } else if (format === 'italic') {
-          applyFormattingToSelection('fontStyle', 'italic');
+          applyFormattingToSelection('fontStyle', hasFormatting ? null : 'italic');
         }
       });
     }
@@ -136,22 +149,47 @@ export const TextEditorPanel = ({
     saveSelection();
   };
 
+  const handleUpdate = () => {
+    onManualUpdate();
+    if (editorRef.current) {
+      const content = editorRef.current.innerHTML;
+      setEditableContent(content);
+    }
+  };
+
   useEffect(() => {
     const editor = editorRef.current;
     if (editor) {
       editor.focus();
-      if (selectionRange) {
-        restoreSelection();
+      if (lastCaretPosition !== null) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        
+        // Find the text node to place the cursor
+        let currentNode = editor.firstChild;
+        let currentOffset = 0;
+        
+        while (currentNode && currentOffset + (currentNode.textContent?.length || 0) < lastCaretPosition) {
+          currentOffset += currentNode.textContent?.length || 0;
+          currentNode = currentNode.nextSibling;
+        }
+        
+        if (currentNode) {
+          range.setStart(currentNode, Math.min(lastCaretPosition - currentOffset, currentNode.textContent?.length || 0));
+          range.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
       }
     }
-  }, [format, font, size, alignment]);
+  }, [format, font, size, alignment, lastCaretPosition]);
 
   return (
     <div className="bg-[#1a1a1a] rounded-lg p-4 h-full">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-200">Updated preview</h3>
         <Button 
-          onClick={onManualUpdate}
+          onClick={handleUpdate}
           className="bg-emerald-600 hover:bg-emerald-700"
         >
           Update
@@ -209,3 +247,4 @@ export const TextEditorPanel = ({
     </div>
   );
 };
+
