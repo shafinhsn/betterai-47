@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { ScrollArea } from '../ui/scroll-area';
 import { useTextSelection } from '@/hooks/useTextSelection';
@@ -36,45 +35,37 @@ export const TextEditorContent = ({
       e.preventDefault();
       document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
       saveSelection();
-    } else if (e.key === 'Backspace') {
+    } else if (e.key === 'Backspace' || e.key === 'Enter') {
       const selection = window.getSelection();
-      const range = selection?.getRangeAt(0);
+      if (!selection || !selection.rangeCount) return;
+
+      const range = selection.getRangeAt(0);
+      const currentPosition = range.startOffset;
       
-      if (selection && range) {
-        if (range.collapsed) {
-          // If cursor is at the start of content, let default behavior handle it
-          if (range.startOffset === 0 && range.startContainer === editorRef.current?.firstChild) {
-            return;
+      // Let the default behavior happen
+      setTimeout(() => {
+        if (!selection || !editorRef.current) return;
+        
+        // After the default behavior, restore cursor position if needed
+        try {
+          const newRange = document.createRange();
+          const textNode = editorRef.current.firstChild || editorRef.current;
+          
+          // If the cursor was at the end, keep it at the end
+          if (currentPosition >= textNode.textContent?.length!) {
+            newRange.setStart(textNode, textNode.textContent?.length || 0);
+          } else {
+            newRange.setStart(textNode, currentPosition);
           }
           
-          try {
-            // Only prevent default and handle manually if we're not at the start
-            e.preventDefault();
-            
-            // Safely handle backspace by moving selection back one character
-            if (range.startOffset > 0) {
-              range.setStart(range.startContainer, range.startOffset - 1);
-              range.deleteContents();
-              
-              // Trigger input event to update content
-              const inputEvent = new Event('input', { bubbles: true });
-              editorRef.current?.dispatchEvent(inputEvent);
-            }
-          } catch (error) {
-            console.error('Error handling backspace:', error);
-            // If our manual handling fails, let the default behavior take over
-            return;
-          }
-        } else {
-          // If text is selected, just delete the selection
-          e.preventDefault();
-          range.deleteContents();
-          // Trigger input event to update content
-          const inputEvent = new Event('input', { bubbles: true });
-          editorRef.current?.dispatchEvent(inputEvent);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          saveSelection();
+        } catch (error) {
+          console.error('Error restoring cursor position:', error);
         }
-        saveSelection();
-      }
+      }, 0);
     }
   };
 
@@ -146,4 +137,3 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
-
