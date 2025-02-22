@@ -1,22 +1,23 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { forwardRef, memo, useMemo } from 'react';
+import { forwardRef, memo, useMemo, CSSProperties } from 'react';
 import * as DiffMatchPatch from 'diff-match-patch';
 
 interface DocumentPreviewProps {
   content: string;
   isUpdated?: boolean;
   originalContent?: string;
+  style?: CSSProperties;
 }
 
 const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps>(
-  ({ content, isUpdated = false, originalContent }, ref) => {
+  ({ content, isUpdated = false, originalContent, style }, ref) => {
     const diffs = useMemo(() => {
       if (!isUpdated || !originalContent) return null;
 
       const dmp = new DiffMatchPatch.diff_match_patch();
       const computedDiffs = dmp.diff_main(originalContent, content);
-      dmp.diff_cleanupSemantic(computedDiffs); // This helps clean up the diff output
+      dmp.diff_cleanupSemantic(computedDiffs);
       return computedDiffs;
     }, [content, originalContent, isUpdated]);
 
@@ -31,6 +32,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
             <p 
               key={`${index}-${paragraph.substring(0, 10)}`} 
               className="mb-4 text-emerald-50 whitespace-pre-wrap"
+              style={style}
             >
               {paragraph}
             </p>
@@ -38,7 +40,6 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
         ));
       }
 
-      // Group the diffs by paragraphs for better rendering
       const elements: JSX.Element[] = [];
       let currentParagraph = "";
       let paragraphClass = "";
@@ -65,13 +66,13 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
             paragraphClass = className;
           }
 
-          // If we hit a line break or it's the last line, render the paragraph
           if (lineIndex < lines.length - 1 || index === diffs.length - 1) {
             if (currentParagraph) {
               elements.push(
                 <p 
                   key={`${index}-${lineIndex}-${currentParagraph.substring(0, 10)}`}
                   className={`mb-4 ${paragraphClass}`}
+                  style={style}
                 >
                   {currentParagraph}
                 </p>
