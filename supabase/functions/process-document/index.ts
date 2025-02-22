@@ -54,22 +54,28 @@ serve(async (req) => {
 
     console.log('File uploaded successfully')
 
-    // Get file text content and sanitize it
+    // Get file text content and properly encode it
     let content = ''
     try {
-      const rawContent = await file.text()
-      // Replace any problematic Unicode characters with their closest ASCII equivalent
+      // Read the file content as a Buffer
+      const arrayBuffer = await file.arrayBuffer()
+      const decoder = new TextDecoder('utf-8')
+      const rawContent = decoder.decode(arrayBuffer)
+      
+      // Basic sanitization: replace problematic characters with spaces
       content = rawContent
-        .normalize('NFKD') // Decompose characters into their base form
-        .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
-        .replace(/[^\x00-\x7F]/g, '') // Remove any remaining non-ASCII characters
-      console.log('Content extracted successfully')
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ') // Remove control characters
+        .replace(/\\u[0-9a-fA-F]{4}/g, ' ')            // Remove Unicode escape sequences
+        .replace(/[\uD800-\uDFFF]/g, ' ')              // Remove surrogate pairs
+        .trim()
+
+      console.log('Content extracted and sanitized successfully')
     } catch (error) {
       console.error('Error extracting text content:', error)
       content = 'Unable to extract text content from file'
     }
 
-    // Save document metadata to database
+    // Save document metadata to database using parameterized query
     const { error: dbError } = await supabase
       .from('documents')
       .insert({
