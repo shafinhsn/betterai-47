@@ -4,6 +4,7 @@ import { Download, Trash } from "lucide-react";
 import { ProcessedDocument } from "@/types/document";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 interface DocumentControlsProps {
   currentDocument: ProcessedDocument;
@@ -47,6 +48,52 @@ export const DocumentControls = ({
     }
   };
 
+  const createPDFFromText = async (text: string) => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    
+    const fontSize = 12;
+    const lineHeight = fontSize * 1.2;
+    const margin = 50;
+    const maxWidth = page.getSize().width - (margin * 2);
+    
+    // Split text into lines that fit within the page width
+    const lines: string[] = [];
+    const words = text.split(' ');
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = font.widthOfTextAtSize(testLine, fontSize);
+      
+      if (width > maxWidth) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    // Write lines to the page
+    lines.forEach((line, index) => {
+      const y = page.getSize().height - margin - (index * lineHeight);
+      if (y > margin) { // Only write if we're still within page bounds
+        page.drawText(line, {
+          x: margin,
+          y,
+          size: fontSize,
+          font,
+        });
+      }
+    });
+    
+    return await pdfDoc.save();
+  };
+
   const handleDownload = async (content: string, type: 'original' | 'updated') => {
     try {
       if (type === 'original') {
@@ -79,12 +126,13 @@ export const DocumentControls = ({
           document.body.removeChild(a);
         }
       } else {
-        // Updated content is always downloaded as text
-        const blob = new Blob([content], { type: 'text/plain' });
+        // For updated content, always generate a PDF
+        const pdfBytes = await createPDFFromText(content);
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${currentDocument.filename.replace(/\.[^/.]+$/, '')}_updated.txt`;
+        a.download = `${currentDocument.filename.replace(/\.[^/.]+$/, '')}_updated.pdf`;
         document.body.appendChild(a);
         a.click();
         URL.revokeObjectURL(url);
@@ -150,3 +198,4 @@ export const DocumentControls = ({
     </div>
   );
 };
+
