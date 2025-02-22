@@ -111,7 +111,6 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           {products.map((product) => {
             const isPlanProcessing = processingPlanId === product.name;
-            const price = parseFloat(product.stripe_price_id.split('_')[1]) || 0;
             
             return (
               <div 
@@ -126,7 +125,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
                   )}
                   <h3 className="font-bold text-lg">{product.name}</h3>
                 </div>
-                <p className="text-3xl font-bold my-4">${price}<span className="text-sm font-normal">/mo</span></p>
+                <p className="text-3xl font-bold my-4">${product.price}<span className="text-sm font-normal">/mo</span></p>
                 <ul className="text-sm space-y-3 flex-grow mb-6">
                   {getFeatures(product.name).map((feature, i) => (
                     <li key={i} className="flex items-center gap-2">
@@ -157,4 +156,3 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     </Dialog>
   );
 };
-
