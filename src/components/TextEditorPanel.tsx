@@ -71,8 +71,6 @@ export const TextEditorPanel = ({
             size={textEditor.size}
             alignment={textEditor.alignment}
             format={textEditor.format}
-            citationStyle={textEditor.citationStyle}
-            isLoading={textEditor.isLoading}
             onFormatChange={(formats) => {
               formats.forEach(format => handleFormatWithSelection(format));
             }}
@@ -88,8 +86,6 @@ export const TextEditorPanel = ({
               textEditor.handleAlignmentChange(value);
               applyFormattingToAll('textAlign', value);
             }}
-            onCitationStyleChange={textEditor.handleCitationStyleChange}
-            onAddSourceLink={textEditor.handleAddSourceLink}
           />
         </div>
 
