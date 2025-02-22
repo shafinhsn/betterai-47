@@ -38,6 +38,7 @@ export const TextEditorPanel = ({
     handleSizeChange,
     handleAlignmentChange,
     handleCitationStyleChange,
+    handleAddSourceLink,
   } = useTextEditor();
 
   const handleFormatWithSelection = (formatType: string) => {
@@ -100,9 +101,7 @@ export const TextEditorPanel = ({
               applyFormattingToAll('textAlign', value);
             }}
             onCitationStyleChange={handleCitationStyleChange}
-            onAddSourceLink={(sourceLink, sourceTitle) => {
-              handleCitationStyleChange(citationStyle);
-            }}
+            onAddSourceLink={handleAddSourceLink}
           />
         </div>
 
@@ -119,3 +118,4 @@ export const TextEditorPanel = ({
     </div>
   );
 };
+
