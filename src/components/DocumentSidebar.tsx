@@ -8,6 +8,7 @@ interface DocumentSidebarProps {
   isProcessing: boolean;
   currentDocument: ProcessedDocument | null;
   content: string;
+  updatedContent?: string;
   onFileSelect: (file: File) => void;
   onDocumentRemoved: () => void;
 }
@@ -16,6 +17,7 @@ export const DocumentSidebar = ({
   isProcessing,
   currentDocument,
   content,
+  updatedContent,
   onFileSelect,
   onDocumentRemoved,
 }: DocumentSidebarProps) => {
@@ -42,11 +44,14 @@ export const DocumentSidebar = ({
         </div>
       )}
       {currentDocument && !isProcessing && (
-        <DocumentControls
-          currentDocument={currentDocument}
-          content={content}
-          onDocumentRemoved={onDocumentRemoved}
-        />
+        <div className="space-y-4">
+          <DocumentControls
+            currentDocument={currentDocument}
+            content={content}
+            updatedContent={updatedContent}
+            onDocumentRemoved={onDocumentRemoved}
+          />
+        </div>
       )}
     </div>
   );

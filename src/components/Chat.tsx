@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,9 +17,10 @@ interface ChatProps {
   onSendMessage: (message: string) => void;
   messages: Message[];
   documentContent?: string;
+  onDocumentUpdate: (updatedContent: string) => void;
 }
 
-export const Chat = ({ onSendMessage, messages, documentContent }: ChatProps) => {
+export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdate }: ChatProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,12 +33,17 @@ export const Chat = ({ onSendMessage, messages, documentContent }: ChatProps) =>
         body: {
           message: content,
           context: documentContent || '',
+          shouldUpdateDocument: content.toLowerCase().includes('edit') || 
+                              content.toLowerCase().includes('update') || 
+                              content.toLowerCase().includes('change'),
         },
       });
 
       if (error) throw error;
 
-      if (data?.reply) {
+      if (data?.updatedDocument) {
+        onDocumentUpdate(data.updatedDocument);
+      } else if (data?.reply) {
         onSendMessage(data.reply);
       }
     } catch (error) {
@@ -66,7 +72,7 @@ export const Chat = ({ onSendMessage, messages, documentContent }: ChatProps) =>
               'mb-4 p-4 rounded-lg',
               message.sender === 'user'
                 ? 'bg-primary text-primary-foreground ml-auto max-w-[80%]'
-                : 'bg-muted text-muted-foreground mr-auto max-w-[80%]'
+                : 'bg-muted/70 text-muted-foreground mr-auto max-w-[80%]'
             )}
           >
             {message.content}
@@ -83,7 +89,11 @@ export const Chat = ({ onSendMessage, messages, documentContent }: ChatProps) =>
             disabled={isLoading}
           />
           <Button type="submit" size="icon" disabled={isLoading}>
-            <Send className="h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </form>

@@ -8,10 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 interface DocumentControlsProps {
   currentDocument: ProcessedDocument;
   content: string;
+  updatedContent?: string;
   onDocumentRemoved: () => void;
 }
 
-export const DocumentControls = ({ currentDocument, content, onDocumentRemoved }: DocumentControlsProps) => {
+export const DocumentControls = ({ 
+  currentDocument, 
+  content, 
+  updatedContent, 
+  onDocumentRemoved 
+}: DocumentControlsProps) => {
   const { toast } = useToast();
 
   const handleRemoveDocument = async () => {
@@ -38,15 +44,13 @@ export const DocumentControls = ({ currentDocument, content, onDocumentRemoved }
     }
   };
 
-  const handleDownloadDocument = () => {
-    if (!content) return;
-
+  const handleDownload = (content: string, suffix: string) => {
     try {
       const blob = new Blob([content], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `processed_${currentDocument.filename}.txt`;
+      a.download = `${currentDocument.filename.replace(/\.[^/.]+$/, '')}_${suffix}.txt`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -54,7 +58,7 @@ export const DocumentControls = ({ currentDocument, content, onDocumentRemoved }
 
       toast({
         title: "Document downloaded",
-        description: "Successfully downloaded the processed document",
+        description: `Successfully downloaded the ${suffix} document`,
       });
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -72,17 +76,32 @@ export const DocumentControls = ({ currentDocument, content, onDocumentRemoved }
         <p className="font-medium">Current document:</p>
         <p className="text-muted-foreground">{currentDocument.filename}</p>
       </div>
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownloadDocument}
-          className="w-full"
-          disabled={!content}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Download
-        </Button>
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDownload(content, 'original')}
+            className="w-full"
+            disabled={!content}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download Original
+          </Button>
+        </div>
+        {updatedContent && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDownload(updatedContent, 'updated')}
+              className="w-full"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Updated
+            </Button>
+          </div>
+        )}
         <Button
           variant="destructive"
           size="sm"
