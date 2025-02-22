@@ -23,7 +23,11 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
 
     if (!content) {
       console.log('No content to render');
-      return null;
+      return (
+        <div className="flex items-center justify-center h-full text-gray-400">
+          No content available
+        </div>
+      );
     }
 
     const renderContent = () => {
@@ -41,53 +45,31 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
         ));
       }
 
-      const elements: JSX.Element[] = [];
-      let currentParagraph = "";
-      let paragraphClass = "";
-
-      diffs.forEach((diff, index) => {
+      return diffs.map((diff, index) => {
         const [type, text] = diff;
-        const lines = text.split('\n');
+        let className = "mb-4 whitespace-pre-wrap ";
+        
+        switch (type) {
+          case 1: // Insertion
+            className += "bg-emerald-900/50 text-emerald-200";
+            break;
+          case -1: // Deletion
+            className += "bg-red-900/50 text-red-200 line-through opacity-50";
+            break;
+          default: // No change
+            className += "text-emerald-50";
+        }
 
-        lines.forEach((line, lineIndex) => {
-          let className = "whitespace-pre-wrap ";
-          switch (type) {
-            case 1: // Insertion
-              className += "bg-emerald-900/50 text-emerald-200";
-              break;
-            case -1: // Deletion
-              className += "bg-red-900/50 text-red-200 line-through opacity-50";
-              break;
-            default: // No change
-              className += "text-emerald-50";
-          }
-
-          if (line) {
-            currentParagraph += line;
-            paragraphClass = className;
-          }
-
-          if (lineIndex < lines.length - 1 || index === diffs.length - 1) {
-            if (currentParagraph) {
-              elements.push(
-                <p 
-                  key={`${index}-${lineIndex}-${currentParagraph.substring(0, 10)}`}
-                  className={`mb-4 ${paragraphClass}`}
-                  style={style}
-                >
-                  {currentParagraph}
-                </p>
-              );
-              currentParagraph = "";
-            }
-            if (!line) {
-              elements.push(<br key={`${index}-${lineIndex}-br`} />);
-            }
-          }
-        });
-      });
-
-      return elements;
+        return text ? (
+          <p 
+            key={`${index}-${text.substring(0, 10)}`}
+            className={className}
+            style={style}
+          >
+            {text}
+          </p>
+        ) : null;
+      }).filter(Boolean);
     };
 
     return (
@@ -105,4 +87,3 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
 DocumentPreviewComponent.displayName = 'DocumentPreview';
 
 export const DocumentPreview = memo(DocumentPreviewComponent);
-

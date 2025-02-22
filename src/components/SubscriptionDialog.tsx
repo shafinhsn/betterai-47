@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Briefcase, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -124,6 +124,14 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
           <DialogDescription>
             Select the plan that best fits your needs. Student plan includes a {STUDENT_TRIAL_DAYS}-day free trial.
           </DialogDescription>
+          <Button
+            variant="ghost"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+            onClick={handleClose}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </Button>
         </DialogHeader>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -170,17 +178,6 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
             )}
           )}
         </div>
-
-        <DialogClose asChild>
-          <Button
-            variant="ghost"
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-            onClick={handleClose}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
-        </DialogClose>
       </DialogContent>
     </Dialog>
   );
