@@ -38,6 +38,8 @@ export type Database = {
           user_id: string
           created_at: string | null
           last_message_at: string | null
+          daily_message_count: number | null
+          last_daily_reset: string | null
         }
         Insert: {
           message_count?: number | null
@@ -45,6 +47,8 @@ export type Database = {
           user_id: string
           created_at?: string | null
           last_message_at?: string | null
+          daily_message_count?: number | null
+          last_daily_reset?: string | null
         }
         Update: {
           message_count?: number | null
@@ -52,6 +56,8 @@ export type Database = {
           user_id?: string
           created_at?: string | null
           last_message_at?: string | null
+          daily_message_count?: number | null
+          last_daily_reset?: string | null
         }
       }
       profiles: {
@@ -135,15 +141,40 @@ export type Database = {
           created_at?: string | null
         }
       }
+      user_roles: {
+        Row: {
+          id: string
+          user_id: string
+          role: 'admin' | 'user'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          role?: 'admin' | 'user'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          role?: 'admin' | 'user'
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: 'admin' | 'user'
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: 'admin' | 'user'
     }
     CompositeTypes: {
       [_ in never]: never
