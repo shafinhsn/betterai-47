@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
@@ -15,7 +16,9 @@ import {
 
 // Initialize PDF.js worker
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  // Use a more reliable worker initialization approach
+  const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
+  pdfjsLib.GlobalWorkerOptions.workerPort = new pdfjsWorker.default();
 }
 
 interface FileUploadProps {
@@ -48,8 +51,12 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       console.log('Processing PDF file:', file.name);
       const arrayBuffer = await file.arrayBuffer();
       
-      // Load the PDF document
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      // Load the PDF document with explicit worker configuration
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        verbosity: pdfjsLib.VerbosityLevel.ERRORS
+      });
+      const pdf = await loadingTask.promise;
       console.log('PDF loaded successfully with', pdf.numPages, 'pages');
       
       const textContent: string[] = [];
