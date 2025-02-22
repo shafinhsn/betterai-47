@@ -48,23 +48,32 @@ export const DocumentControls = ({
   const handleDownload = async (content: string, type: 'original' | 'updated') => {
     try {
       if (type === 'original') {
-        // Download original file from storage
-        const { data, error } = await supabase.storage
-          .from('documents')
-          .download(currentDocument.filePath);
-
-        if (error) throw error;
-
-        const url = URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = currentDocument.filename;
-        document.body.appendChild(a);
-        a.click();
-        URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // For PDF files, download the original PDF file
+        if (currentDocument.fileType === 'application/pdf') {
+          const response = await fetch(currentDocument.filePath);
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = currentDocument.filename;
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          // For non-PDF files, download as text
+          const blob = new Blob([content], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${currentDocument.filename.replace(/\.[^/.]+$/, '')}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }
       } else {
-        // Download updated content as text file
+        // Updated content is always downloaded as text
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -135,3 +144,4 @@ export const DocumentControls = ({
     </div>
   );
 };
+
