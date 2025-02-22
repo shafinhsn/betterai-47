@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Briefcase, Loader2 } from 'lucide-react';
+import { GraduationCap, Briefcase, Loader2, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { SubscriptionDialogProps } from '@/types/chat';
@@ -17,6 +17,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
   const handleClose = () => {
     queryClient.removeQueries({ queryKey: ['stripe-products'] });
     onOpenChange(false);
+    window.location.reload(); // Force refresh to prevent freezing
   };
 
   const { data: products } = useQuery({
@@ -103,6 +104,14 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[600px]">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute right-4 top-4" 
+            onClick={handleClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
           </div>
@@ -114,6 +123,14 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute right-4 top-4" 
+          onClick={handleClose}
+        >
+          <X className="h-4 w-4" />
+        </Button>
         <DialogHeader>
           <DialogTitle>Choose Your Plan</DialogTitle>
           <DialogDescription>

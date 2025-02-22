@@ -6,6 +6,8 @@ import { Message, ProcessedDocument } from '@/types/document';
 import { supabase } from '@/integrations/supabase/client';
 import { MainLayout } from '@/components/MainLayout';
 
+const STORAGE_KEY = 'document_data';
+
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [content, setContent] = useState('');
@@ -17,6 +19,30 @@ const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Load document from local storage on mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      setContent(parsedData.content || '');
+      setUpdatedContent(parsedData.updatedContent || '');
+      setCurrentDocument(parsedData.currentDocument || null);
+      setMessages(parsedData.messages || []);
+    }
+  }, []);
+
+  // Save document to local storage whenever it changes
+  useEffect(() => {
+    if (currentDocument) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        content,
+        updatedContent,
+        currentDocument,
+        messages
+      }));
+    }
+  }, [content, updatedContent, currentDocument, messages]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -47,12 +73,13 @@ const Index = () => {
     
     try {
       setContent(fileContent);
-      setCurrentDocument({
+      const newDocument: ProcessedDocument = {
         content: fileContent,
-        filePath: filePath || URL.createObjectURL(selectedFile),
+        filePath: URL.createObjectURL(selectedFile),
         filename: selectedFile.name,
         fileType: selectedFile.type
-      });
+      };
+      setCurrentDocument(newDocument);
       
       toast({
         title: "Document uploaded",
@@ -129,7 +156,10 @@ const Index = () => {
       messages={messages}
       previewKey={previewKey}
       onFileSelect={handleFileSelect}
-      onDocumentRemoved={handleDocumentRemoved}
+      onDocumentRemoved={() => {
+        handleDocumentRemoved();
+        localStorage.removeItem(STORAGE_KEY);
+      }}
       onSendMessage={handleSendMessage}
       onDocumentUpdate={handleDocumentUpdate}
       onManualUpdate={handleManualUpdate}
