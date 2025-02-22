@@ -7,11 +7,12 @@ import { GraduationCap, Briefcase, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { SubscriptionDialogProps } from '@/types/chat';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: products } = useQuery({
     queryKey: ['stripe-products'],
@@ -24,8 +25,19 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
       if (error) throw error;
       return data;
     },
-    enabled: open // Only fetch when dialog is open
+    enabled: open,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    onSettled: () => {
+      if (!open) {
+        queryClient.removeQueries({ queryKey: ['stripe-products'] });
+      }
+    }
   });
+
+  const handleClose = () => {
+    queryClient.removeQueries({ queryKey: ['stripe-products'] });
+    onOpenChange(false);
+  };
 
   const handleSubscribe = async (productId: string, planName: string) => {
     try {
@@ -57,7 +69,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     } finally {
       setIsLoading(false);
       setProcessingPlanId(null);
-      onOpenChange(false);
+      handleClose();
     }
   };
 
@@ -91,12 +103,20 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     ];
   };
 
-  if (!products) {
-    return null;
+  if (!products && open) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-[600px]">
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Choose Your Plan</DialogTitle>
@@ -105,7 +125,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-          {products.map((product) => {
+          {products?.map((product) => {
             const isPlanProcessing = processingPlanId === product.name;
             
             return (
@@ -145,11 +165,10 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
                   )}
                 </Button>
               </div>
-            );
-          })}
+            )}
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 };
-
