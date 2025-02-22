@@ -4,7 +4,6 @@ import { Chat } from '@/components/Chat';
 import { DocumentPreview } from '@/components/DocumentPreview';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Message, ProcessedDocument } from '@/types/document';
 
 const Index = () => {
@@ -16,7 +15,7 @@ const Index = () => {
   const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | null>(null);
   const { toast } = useToast();
 
-  const handleFileSelect = async (selectedFile: File) => {
+  const handleFileSelect = async (selectedFile: File, fileContent: string) => {
     setIsProcessing(true);
     setFile(selectedFile);
     setContent('');
@@ -24,27 +23,17 @@ const Index = () => {
     setCurrentDocument(null);
     
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      
-      const { data, error } = await supabase.functions.invoke('process-document', {
-        body: formData,
+      setContent(fileContent);
+      setCurrentDocument({
+        content: fileContent,
+        filePath: URL.createObjectURL(selectedFile),
+        filename: selectedFile.name,
+        fileType: selectedFile.type
       });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data || !data.content) {
-        throw new Error('No content received from document processing');
-      }
-
-      setContent(data.content);
-      setCurrentDocument(data);
       
       toast({
         title: "Document uploaded",
-        description: `Successfully processed ${data.filename}`,
+        description: `Successfully processed ${selectedFile.name}`,
       });
     } catch (error) {
       console.error('Error processing document:', error);
