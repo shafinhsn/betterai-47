@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,19 +10,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Upload, User, CreditCard, Settings, DollarSign } from "lucide-react";
+import { LogOut, User, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { SubscriptionDialog } from "./SubscriptionDialog";
 
 export const ProfileMenu = () => {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
   const navigate = useNavigate();
 
   const { data: subscription } = useQuery({
@@ -51,42 +47,12 @@ export const ProfileMenu = () => {
     }
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        localStorage.setItem('userAvatar', base64String);
-        setAvatarUrl(base64String);
-        setIsSettingsOpen(false);
-        toast.success("Profile picture updated!");
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubscribe = async (plan: any) => {
-    // This would integrate with your payment provider (e.g., Stripe)
-    toast.info("This would redirect to payment processing");
-    setIsSubscriptionOpen(false);
-  };
-
-  // Load avatar from localStorage on component mount
-  useState(() => {
-    const savedAvatar = localStorage.getItem('userAvatar');
-    if (savedAvatar) {
-      setAvatarUrl(savedAvatar);
-    }
-  });
-
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={avatarUrl} />
               <AvatarFallback>
                 <User className="h-6 w-6" />
               </AvatarFallback>
@@ -96,10 +62,6 @@ export const ProfileMenu = () => {
         <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Change Profile Picture
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsSubscriptionOpen(true)}>
             <CreditCard className="mr-2 h-4 w-4" />
             Subscription
@@ -116,33 +78,9 @@ export const ProfileMenu = () => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Profile Picture</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex justify-center">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={avatarUrl} />
-                <AvatarFallback>
-                  <User className="h-12 w-12" />
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <SubscriptionDialog 
         open={isSubscriptionOpen} 
         onOpenChange={setIsSubscriptionOpen}
-        onSubscribe={handleSubscribe}
       />
     </>
   );

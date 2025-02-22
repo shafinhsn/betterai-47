@@ -53,9 +53,10 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     } catch (error: any) {
       console.error('Subscription error:', error);
       toast.error('Failed to start checkout: ' + (error.message || 'Unknown error occurred'));
+    } finally {
       setIsLoading(false);
       setProcessingPlanId(null);
-      onOpenChange(true);
+      onOpenChange(false);
     }
   };
 
@@ -70,8 +71,6 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
         'Essay structure improvements',
         'Plagiarism checker',
         'Smart formatting',
-        'Google Docs integration',
-        'Real-time collaborative editing',
         'Email support',
         '150 messages per day'
       ];
@@ -96,11 +95,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
   }
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
-      if (!isLoading) {
-        onOpenChange(newOpen);
-      }
-    }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Choose Your Plan</DialogTitle>
