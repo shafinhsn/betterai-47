@@ -46,6 +46,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       // Handle document update if provided
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
+        // Clear any previous updates and set the new content
         onDocumentUpdate(data.updatedDocument);
         onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai');
       } else if (data?.reply) {
@@ -106,3 +107,4 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
     </div>
   );
 };
+

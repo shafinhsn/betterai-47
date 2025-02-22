@@ -79,6 +79,7 @@ const Index = () => {
   };
 
   const handleDocumentUpdate = (newContent: string) => {
+    // Clear previous updates and set new content
     setUpdatedContent(newContent);
     toast({
       title: "Document updated",
@@ -147,3 +148,4 @@ const Index = () => {
 };
 
 export default Index;
+

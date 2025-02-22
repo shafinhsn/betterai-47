@@ -21,7 +21,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
     }
 
     return (
-      <div className="document-preview h-full" ref={scrollRef}>
+      <div className="document-preview h-full" ref={ref}>
         <ScrollArea className="h-[calc(100vh-2rem)]">
           <div className="prose max-w-none">
             {content.split('\n').map((paragraph, index) => (
@@ -41,3 +41,4 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
 DocumentPreviewComponent.displayName = 'DocumentPreview';
 
 export const DocumentPreview = memo(DocumentPreviewComponent);
+
