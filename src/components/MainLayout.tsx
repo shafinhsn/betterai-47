@@ -5,6 +5,7 @@ import { PreviewPanel } from '@/components/PreviewPanel';
 import { TextEditorPanel } from '@/components/TextEditorPanel';
 import { DocumentControls } from '@/components/DocumentControls';
 import { FileUpload } from '@/components/FileUpload';
+import { DocumentPreview } from '@/components/DocumentPreview';
 import { ProcessedDocument, Message } from '@/types/document';
 
 interface MainLayoutProps {
@@ -61,23 +62,20 @@ export const MainLayout = ({
           onNavigate={onNavigate}
         />
         
-        <div className="flex-1 grid grid-cols-2 gap-4 p-4 overflow-hidden">
+        <div className="flex-1 grid grid-cols-3 gap-4 p-4 overflow-hidden">
           {currentDocument ? (
             <>
-              <div className="flex flex-col space-y-4 overflow-hidden">
-                <TextEditorPanel
-                  updatedContent={updatedContent}
-                  content={content}
-                  previewKey={previewKey}
-                  onManualUpdate={onManualUpdate}
-                />
-                <Chat
-                  messages={messages}
-                  onSendMessage={onSendMessage}
-                  onDocumentUpdate={onDocumentUpdate}
-                />
-              </div>
-              
+              <TextEditorPanel
+                updatedContent={updatedContent}
+                content={content}
+                previewKey={previewKey}
+                onManualUpdate={onManualUpdate}
+              />
+              <Chat
+                messages={messages}
+                onSendMessage={onSendMessage}
+                onDocumentUpdate={onDocumentUpdate}
+              />
               <div className="flex flex-col space-y-4 overflow-hidden">
                 <PreviewPanel
                   content={content}
@@ -100,10 +98,13 @@ export const MainLayout = ({
               </div>
             </>
           ) : (
-            <FileUpload onFileSelect={onFileSelect} />
+            <div className="col-start-3">
+              <FileUpload onFileSelect={onFileSelect} />
+            </div>
           )}
         </div>
       </div>
     </div>
   );
 };
+
