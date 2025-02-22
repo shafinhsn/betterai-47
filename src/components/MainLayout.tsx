@@ -47,6 +47,8 @@ export const MainLayout = ({
         updatedContent={updatedContent}
         onFileSelect={onFileSelect}
         onDocumentRemoved={onDocumentRemoved}
+        isAuthenticated={isAuthenticated}
+        onNavigate={onNavigate}
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -60,17 +62,9 @@ export const MainLayout = ({
         />
         
         <div className="flex-1 grid grid-cols-2 gap-4 p-4 overflow-hidden">
-          <div className="flex flex-col overflow-hidden">
-            <PreviewPanel
-              content={content}
-              isProcessing={isProcessing}
-              previewKey={previewKey}
-            />
-          </div>
-          
-          <div className="flex flex-col space-y-4 overflow-hidden">
-            {currentDocument ? (
-              <>
+          {currentDocument ? (
+            <>
+              <div className="flex flex-col space-y-4 overflow-hidden">
                 <TextEditorPanel
                   updatedContent={updatedContent}
                   content={content}
@@ -82,11 +76,32 @@ export const MainLayout = ({
                   onSendMessage={onSendMessage}
                   onDocumentUpdate={onDocumentUpdate}
                 />
-              </>
-            ) : (
-              <FileUpload onFileSelect={onFileSelect} />
-            )}
-          </div>
+              </div>
+              
+              <div className="flex flex-col space-y-4 overflow-hidden">
+                <PreviewPanel
+                  content={content}
+                  isProcessing={isProcessing}
+                  previewKey={previewKey}
+                />
+                {updatedContent && (
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document Preview</h3>
+                    <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
+                      <DocumentPreview 
+                        key={`updated-${previewKey}`} 
+                        content={updatedContent}
+                        isUpdated={true}
+                        originalContent={content}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <FileUpload onFileSelect={onFileSelect} />
+          )}
         </div>
       </div>
     </div>
