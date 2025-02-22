@@ -13,11 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Initialize PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+// Initialize PDF.js worker using the CDN version since the local version isn't working
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
