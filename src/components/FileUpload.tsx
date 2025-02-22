@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
-import * as pdfjs from 'pdfjs-dist';
+import pdfParse from 'pdf-parse';
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -13,12 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-// Initialize PDF.js worker using a local worker file
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'node_modules/pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url
-).toString();
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -47,33 +41,11 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
 
   const processPdf = async (file: File) => {
     try {
-      console.log('Starting PDF processing...');
+      console.log('Processing PDF file:', file.name);
       const arrayBuffer = await file.arrayBuffer();
-      
-      // Load the PDF document
-      const loadingTask = pdfjs.getDocument({ 
-        data: arrayBuffer,
-        standardFontDataUrl: `node_modules/pdfjs-dist/standard_fonts/`
-      });
-      console.log('PDF loading task created');
-      
-      const pdf = await loadingTask.promise;
-      console.log('PDF loaded successfully with', pdf.numPages, 'pages');
-      
-      // Extract text from all pages
-      const textContent = [];
-      
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        console.log('Processing page', pageNum);
-        const page = await pdf.getPage(pageNum);
-        const content = await page.getTextContent();
-        const pageText = content.items
-          .map((item: any) => item.str)
-          .join(' ');
-        textContent.push(pageText);
-      }
-      
-      return textContent.join('\n\n');
+      const data = new Uint8Array(arrayBuffer);
+      const result = await pdfParse(data);
+      return result.text;
     } catch (error) {
       console.error('Error processing PDF:', error);
       toast({
