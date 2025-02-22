@@ -2,7 +2,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import * as mammoth from 'https://esm.sh/mammoth@1.6.0'
-import { parse as parsePdf } from 'https://deno.land/x/pdfparser@v1.0.3/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,18 +32,7 @@ serve(async (req) => {
     const fileType = file.type
     let extractedText = ''
 
-    if (fileType === 'application/pdf') {
-      console.log('Processing PDF file');
-      try {
-        const pdfData = new Uint8Array(fileBuffer);
-        const result = await parsePdf(pdfData);
-        extractedText = result.text;
-        console.log('PDF processed successfully, text length:', extractedText.length);
-      } catch (pdfError) {
-        console.error('PDF processing error:', pdfError);
-        throw new Error(`Failed to process PDF: ${pdfError.message}`);
-      }
-    } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       console.log('Processing DOCX file');
       try {
         const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer });
@@ -54,7 +42,7 @@ serve(async (req) => {
         throw new Error(`Failed to process DOCX: ${docxError.message}`);
       }
     } else {
-      throw new Error('Unsupported file type')
+      throw new Error('Only DOCX files are supported')
     }
 
     const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')

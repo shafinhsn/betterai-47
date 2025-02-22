@@ -21,7 +21,6 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
     },
     maxFiles: 1
@@ -42,7 +41,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
           <p className="text-lg font-medium">Drop your document here</p>
           <p className="text-sm text-muted-foreground">or click to select</p>
         </div>
-        <p className="text-xs text-muted-foreground">Supports PDF and DOCX files</p>
+        <p className="text-xs text-muted-foreground">Supports DOCX files</p>
       </div>
     </div>
   );
