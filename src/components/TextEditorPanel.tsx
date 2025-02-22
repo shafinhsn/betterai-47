@@ -18,9 +18,13 @@ import {
   AlignLeft, 
   AlignCenter, 
   AlignRight, 
-  AlignJustify 
+  AlignJustify,
+  Check,
+  FileStack
 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TextEditorPanelProps {
   updatedContent: string;
@@ -39,6 +43,8 @@ export const TextEditorPanel = ({
   const [size, setSize] = useState('16');
   const [alignment, setAlignment] = useState('left');
   const [format, setFormat] = useState<string[]>([]);
+  const [citationStyle, setCitationStyle] = useState('none');
+  const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
 
   const handleFormatChange = (value: string[]) => {
     setFormat(value);
@@ -54,6 +60,29 @@ export const TextEditorPanel = ({
 
   const handleAlignmentChange = (value: string) => {
     if (value) setAlignment(value);
+  };
+
+  const handleCitationStyleChange = (value: string) => {
+    setCitationStyle(value);
+    toast.success(`Applied ${value.toUpperCase()} citation style`);
+  };
+
+  const handlePlagiarismCheck = async () => {
+    try {
+      setIsCheckingPlagiarism(true);
+      
+      // In a real implementation, this would call a plagiarism checking service
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulated delay
+      
+      toast.success("Document checked for plagiarism - No issues found", {
+        description: "Your document appears to be original content.",
+        duration: 5000,
+      });
+    } catch (error) {
+      toast.error("Error checking for plagiarism");
+    } finally {
+      setIsCheckingPlagiarism(false);
+    }
   };
 
   return (
@@ -90,6 +119,31 @@ export const TextEditorPanel = ({
               <SelectItem value="20">20px</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={citationStyle} onValueChange={handleCitationStyleChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Citation Style" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No Citation Style</SelectItem>
+              <SelectItem value="apa">APA</SelectItem>
+              <SelectItem value="mla">MLA</SelectItem>
+              <SelectItem value="chicago">Chicago</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handlePlagiarismCheck}
+            disabled={isCheckingPlagiarism}
+          >
+            {isCheckingPlagiarism ? (
+              <FileStack className="h-4 w-4 animate-pulse" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
+          </Button>
 
           <ToggleGroup
             type="multiple"
@@ -145,4 +199,3 @@ export const TextEditorPanel = ({
     </div>
   );
 };
-

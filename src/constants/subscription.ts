@@ -15,8 +15,6 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Essay structure improvements',
       'Plagiarism checker',
       'Smart formatting',
-      'Google Docs integration',
-      'Real-time collaborative editing',
       'Email support',
       '150 messages per day'
     ]
@@ -35,6 +33,8 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Advanced document analysis',
       'Custom document templates',
       'Team collaboration features',
+      'Google Docs integration',
+      'Real-time collaborative editing',
       'API access',
       '500 messages per day'
     ]
