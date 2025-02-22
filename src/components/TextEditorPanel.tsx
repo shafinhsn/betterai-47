@@ -32,14 +32,24 @@ export const TextEditorPanel = ({
     const selection = window.getSelection();
     if (!selection || !editorRef.current) return;
 
-    document.execCommand(formatType === 'bold' ? 'bold' : 'italic', false);
+    if (selection.toString().length === 0) {
+      // If no text is selected, apply to the entire content
+      applyFormattingToAll(formatType, '');
+    } else {
+      // If text is selected, apply only to the selection
+      document.execCommand(formatType === 'bold' ? 'bold' : 'italic', false);
+    }
   };
 
   const handleStyleWithSelection = (property: string, value: string) => {
     const selection = window.getSelection();
-    if (!selection || selection.toString().length === 0) {
+    if (!selection || !editorRef.current) return;
+
+    if (selection.toString().length === 0) {
+      // If no text is selected, apply to the entire content
       applyFormattingToAll(property, value);
     } else {
+      // If text is selected, apply only to the selection
       applyFormattingToSelection(property, value);
     }
   };

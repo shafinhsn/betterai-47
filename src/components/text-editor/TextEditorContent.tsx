@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import { ScrollArea } from '../ui/scroll-area';
 import { useTextSelection } from '@/hooks/useTextSelection';
@@ -35,42 +36,7 @@ export const TextEditorContent = ({
       e.preventDefault();
       document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
       saveSelection();
-    } else if (e.key === 'Backspace' || e.key === 'Enter') {
-      const selection = window.getSelection();
-      if (!selection || !selection.rangeCount) return;
-
-      const range = selection.getRangeAt(0);
-      const currentPosition = range.startOffset;
-      
-      // Let the default behavior happen
-      setTimeout(() => {
-        if (!selection || !editorRef.current) return;
-        
-        // After the default behavior, restore cursor position if needed
-        try {
-          const newRange = document.createRange();
-          const textNode = editorRef.current.firstChild || editorRef.current;
-          
-          // If the cursor was at the end, keep it at the end
-          if (currentPosition >= textNode.textContent?.length!) {
-            newRange.setStart(textNode, textNode.textContent?.length || 0);
-          } else {
-            newRange.setStart(textNode, currentPosition);
-          }
-          
-          newRange.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(newRange);
-          saveSelection();
-        } catch (error) {
-          console.error('Error restoring cursor position:', error);
-        }
-      }, 0);
     }
-  };
-
-  const handleBeforeInput = (e: React.FormEvent<HTMLDivElement>) => {
-    saveSelection();
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -80,26 +46,13 @@ export const TextEditorContent = ({
     saveSelection();
   };
 
-  const handlePointerDown = () => {
+  const handleSelect = () => {
     saveSelection();
   };
 
-  useEffect(() => {
-    const handleSelectionChange = () => {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        if (editorRef.current?.contains(range.commonAncestorContainer)) {
-          saveSelection();
-        }
-      }
-    };
-
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
-    };
-  }, []);
+  const handleBlur = () => {
+    saveSelection();
+  };
 
   useEffect(() => {
     if (editorRef.current) {
@@ -119,9 +72,9 @@ export const TextEditorContent = ({
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        onBeforeInput={handleBeforeInput}
         onPaste={handlePaste}
-        onPointerDown={handlePointerDown}
+        onSelect={handleSelect}
+        onBlur={handleBlur}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',
