@@ -37,24 +37,43 @@ export const TextEditorContent = ({
       document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
       saveSelection();
     } else if (e.key === 'Backspace') {
-      // Prevent default behavior for backspace to handle it manually
-      e.preventDefault();
       const selection = window.getSelection();
       const range = selection?.getRangeAt(0);
       
       if (selection && range) {
         if (range.collapsed) {
-          // If no text is selected, delete one character
-          range.setStart(range.startContainer, range.startOffset - 1);
-          range.deleteContents();
+          // If cursor is at the start of content, let default behavior handle it
+          if (range.startOffset === 0 && range.startContainer === editorRef.current?.firstChild) {
+            return;
+          }
+          
+          try {
+            // Only prevent default and handle manually if we're not at the start
+            e.preventDefault();
+            
+            // Safely handle backspace by moving selection back one character
+            if (range.startOffset > 0) {
+              range.setStart(range.startContainer, range.startOffset - 1);
+              range.deleteContents();
+              
+              // Trigger input event to update content
+              const inputEvent = new Event('input', { bubbles: true });
+              editorRef.current?.dispatchEvent(inputEvent);
+            }
+          } catch (error) {
+            console.error('Error handling backspace:', error);
+            // If our manual handling fails, let the default behavior take over
+            return;
+          }
         } else {
-          // If text is selected, delete the selection
+          // If text is selected, just delete the selection
+          e.preventDefault();
           range.deleteContents();
+          // Trigger input event to update content
+          const inputEvent = new Event('input', { bubbles: true });
+          editorRef.current?.dispatchEvent(inputEvent);
         }
         saveSelection();
-        // Trigger input event to update content
-        const inputEvent = new Event('input', { bubbles: true });
-        editorRef.current?.dispatchEvent(inputEvent);
       }
     }
   };
