@@ -85,7 +85,7 @@ export const TextEditorContent = ({
     <ScrollArea className="h-[calc(100%-5rem)]">
       <div 
         ref={editorRef}
-        className="bg-[#242424] rounded p-4 min-h-[200px] w-full"
+        className="bg-[#242424] rounded p-6 min-h-[200px] w-full"
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
@@ -96,8 +96,11 @@ export const TextEditorContent = ({
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word',
+          lineHeight: '1.5',
           outline: 'none',
-          overflowWrap: 'break-word'
+          maxWidth: '100%'
         }}
       />
     </ScrollArea>
