@@ -9,7 +9,7 @@ interface DocumentSidebarProps {
   currentDocument: ProcessedDocument | null;
   content: string;
   updatedContent?: string;
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: File, content: string) => void;
   onDocumentRemoved: () => void;
 }
 
