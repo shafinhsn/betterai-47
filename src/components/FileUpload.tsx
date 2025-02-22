@@ -5,6 +5,7 @@ import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
 import * as pdfjs from 'pdfjs-dist';
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -13,8 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Initialize PDF.js worker using the CDN version since the local version isn't working
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker using HTTPS CDN
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -23,6 +24,7 @@ interface FileUploadProps {
 export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const [documentType, setDocumentType] = useState<'docx' | 'pdf'>('docx');
   const [isDragging, setIsDragging] = useState(false);
+  const { toast } = useToast();
 
   const processDocx = async (file: File) => {
     try {
@@ -31,6 +33,11 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       return result.value;
     } catch (error) {
       console.error('Error processing DOCX:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process DOCX file. Please try again.",
+      });
       throw new Error('Failed to process DOCX file');
     }
   };
@@ -38,7 +45,8 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const processPdf = async (file: File) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
       
       // Extract text from all pages
       const maxPages = pdf.numPages;
@@ -54,6 +62,11 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       return textContent.join('\n\n');
     } catch (error) {
       console.error('Error processing PDF:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process PDF file. Please try again.",
+      });
       throw new Error('Failed to process PDF file');
     }
   };
@@ -63,24 +76,35 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       const file = acceptedFiles[0];
       try {
         let content;
-        if (file.type === 'application/pdf') {
+        // Check if file type matches selected document type
+        if (documentType === 'pdf' && file.type === 'application/pdf') {
           content = await processPdf(file);
-        } else {
+        } else if (documentType === 'docx' && file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
           content = await processDocx(file);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: `Please upload a ${documentType.toUpperCase()} file.`,
+          });
+          return;
         }
         onFileSelect(file, content);
+        toast({
+          title: "Success",
+          description: `${file.name} has been processed successfully.`,
+        });
       } catch (error) {
         console.error('Error processing file:', error);
       }
     }
-  }, [onFileSelect]);
+  }, [onFileSelect, documentType, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/pdf': ['.pdf']
-    },
+    accept: documentType === 'pdf' 
+      ? { 'application/pdf': ['.pdf'] }
+      : { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] },
     maxFiles: 1
   });
 
