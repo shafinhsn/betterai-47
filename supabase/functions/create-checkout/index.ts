@@ -39,37 +39,42 @@ serve(async (req) => {
 
     console.log('Found product:', products);
 
-    // Get or create Stripe customer
-    let { data: customerData, error: customerError } = await supabase
-      .from('customers')
-      .select('stripe_customer_id')
-      .eq('id', userId)
-      .maybeSingle();
+    // First try to find if the customer already exists in Stripe
+    const customersResponse = await stripe.customers.list({
+      email: email,
+      limit: 1
+    });
 
-    if (customerError) {
-      console.error('Error fetching customer:', customerError);
-      throw new Error('Failed to fetch customer data');
+    let stripeCustomerId;
+
+    if (customersResponse.data.length > 0) {
+      // Use existing customer
+      stripeCustomerId = customersResponse.data[0].id;
+      console.log('Using existing Stripe customer:', stripeCustomerId);
+    } else {
+      // Create new customer
+      console.log('Creating new Stripe customer for:', email);
+      const customer = await stripe.customers.create({ 
+        email,
+        metadata: {
+          supabase_user_id: userId
+        }
+      });
+      stripeCustomerId = customer.id;
     }
 
-    let stripeCustomerId = customerData?.stripe_customer_id;
+    // Update or create customer record in Supabase
+    const { error: updateError } = await supabase
+      .from('customers')
+      .upsert({ 
+        id: userId,
+        email,
+        stripe_customer_id: stripeCustomerId 
+      });
 
-    if (!stripeCustomerId) {
-      console.log('Creating new Stripe customer for:', email);
-      const customer = await stripe.customers.create({ email });
-      stripeCustomerId = customer.id;
-
-      const { error: updateError } = await supabase
-        .from('customers')
-        .upsert({ 
-          id: userId,
-          email,
-          stripe_customer_id: stripeCustomerId 
-        });
-
-      if (updateError) {
-        console.error('Error updating customer:', updateError);
-        throw new Error('Failed to update customer data');
-      }
+    if (updateError) {
+      console.error('Error updating customer in Supabase:', updateError);
+      throw new Error('Failed to update customer data');
     }
 
     if (!products.stripe_price_id) {
@@ -86,7 +91,10 @@ serve(async (req) => {
       success_url: `${req.headers.get('origin')}/`,
       cancel_url: `${req.headers.get('origin')}/`,
       automatic_tax: { enabled: true },
-      client_reference_id: userId
+      client_reference_id: userId,
+      metadata: {
+        supabase_user_id: userId
+      }
     });
 
     if (!session.url) {
