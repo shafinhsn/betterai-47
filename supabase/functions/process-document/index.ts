@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
@@ -20,18 +21,52 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    // Read the file content as text
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Sanitize filename and generate storage path
+    const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '');
+    const fileExt = sanitizedFileName.split('.').pop();
+    const filePath = `${crypto.randomUUID()}.${fileExt}`;
+
+    // Upload file to storage
+    const { data: storageData, error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload file: ${uploadError.message}`);
+    }
+
+    // Extract text content from file
     const content = await file.text();
 
-    // For now, we'll just return the raw text content
-    // In a real implementation, you might want to:
-    // 1. Parse different file formats (PDF, DOCX, etc.)
-    // 2. Clean and format the text
-    // 3. Extract key information
-    // 4. Store the content in Supabase
+    // Save document metadata to database
+    const { error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        filename: sanitizedFileName,
+        file_path: filePath,
+        content_type: file.type,
+        content: content
+      });
+
+    if (dbError) {
+      throw new Error(`Failed to save document metadata: ${dbError.message}`);
+    }
 
     return new Response(
-      JSON.stringify({ content }),
+      JSON.stringify({ 
+        content,
+        filePath,
+        filename: sanitizedFileName
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

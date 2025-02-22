@@ -4,6 +4,7 @@ import { FileUpload } from '@/components/FileUpload';
 import { Chat } from '@/components/Chat';
 import { DocumentPreview } from '@/components/DocumentPreview';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Message {
   id: string;
@@ -11,11 +12,19 @@ interface Message {
   sender: 'user' | 'ai';
 }
 
+interface ProcessedDocument {
+  content: string;
+  filePath: string;
+  filename: string;
+}
+
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [content, setContent] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | null>(null);
+  const { toast } = useToast();
 
   const handleFileSelect = async (selectedFile: File) => {
     setIsProcessing(true);
@@ -34,11 +43,22 @@ const Index = () => {
         throw new Error('Failed to process document');
       }
 
-      const data = await response.json();
+      const data: ProcessedDocument = await response.json();
       setContent(data.content);
+      setCurrentDocument(data);
+      
+      toast({
+        title: "Document uploaded",
+        description: `Successfully processed ${data.filename}`,
+      });
     } catch (error) {
       console.error('Error processing document:', error);
       setContent('Error processing document. Please try again.');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process document. Please try again.",
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -68,6 +88,12 @@ const Index = () => {
             {isProcessing && (
               <div className="mt-4 text-sm text-muted-foreground">
                 Processing document...
+              </div>
+            )}
+            {currentDocument && !isProcessing && (
+              <div className="mt-4 text-sm">
+                <p className="font-medium">Current document:</p>
+                <p className="text-muted-foreground">{currentDocument.filename}</p>
               </div>
             )}
           </div>
