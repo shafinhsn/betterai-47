@@ -1,7 +1,13 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,32 +17,39 @@ serve(async (req) => {
   try {
     const { text } = await req.json();
 
-    // Using Copyleaks API for plagiarism checking (you would need to set up an account)
-    const response = await fetch('https://api.copyleaks.com/v3/scans/submit', {
+    const systemPrompt = `You are a plagiarism detection expert. Analyze the following text and provide:
+    1. A similarity score (0-100) indicating how likely this content is plagiarized
+    2. Whether the content appears to be original (true/false)
+    
+    Return ONLY a JSON object with these two values, nothing else.`;
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAIApiKey}`, // We'll reuse OpenAI key for this example
       },
       body: JSON.stringify({
-        text: text,
-        properties: {
-          scanning: {
-            internetSearch: true,
-            repositories: ['internet'],
-          },
-        },
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: text }
+        ],
       }),
     });
 
-    // For now, return a simulated check result while we wait for the API to process
-    const simulatedResult = {
-      similarityScore: Math.random() * 30, // Random score between 0-30%
-      matches: [],
-      isOriginal: true,
-    };
+    const data = await response.json();
+    const analysis = JSON.parse(data.choices[0].message.content);
 
-    return new Response(JSON.stringify(simulatedResult), {
+    console.log('Plagiarism check completed:', { 
+      textLength: text.length, 
+      similarityScore: analysis.similarityScore 
+    });
+
+    return new Response(JSON.stringify({
+      similarityScore: analysis.similarityScore,
+      isOriginal: analysis.isOriginal
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
