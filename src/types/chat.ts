@@ -24,7 +24,6 @@ export type SubscriptionPlan = {
 export interface SubscriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubscribe: (plan: SubscriptionPlan) => void;
 }
 
 export interface MessageUsage {
