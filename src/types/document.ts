@@ -9,4 +9,5 @@ export interface ProcessedDocument {
   content: string;
   filePath: string;
   filename: string;
+  fileType: string;
 }

@@ -29,14 +29,6 @@ export const DocumentControls = ({
 
       if (storageError) throw storageError;
 
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('documents')
-        .delete()
-        .match({ file_path: currentDocument.filePath });
-
-      if (dbError) throw dbError;
-
       onDocumentRemoved();
 
       toast({
@@ -53,21 +45,40 @@ export const DocumentControls = ({
     }
   };
 
-  const handleDownload = (content: string, suffix: string) => {
+  const handleDownload = async (content: string, type: 'original' | 'updated') => {
     try {
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${currentDocument.filename.replace(/\.[^/.]+$/, '')}_${suffix}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (type === 'original') {
+        // Download original file from storage
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .download(currentDocument.filePath);
+
+        if (error) throw error;
+
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = currentDocument.filename;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        // Download updated content as text file
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentDocument.filename.replace(/\.[^/.]+$/, '')}_updated.txt`;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
 
       toast({
         title: "Document downloaded",
-        description: `Successfully downloaded the ${suffix} document`,
+        description: `Successfully downloaded the ${type} document`,
       });
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -124,4 +135,3 @@ export const DocumentControls = ({
     </div>
   );
 };
-
