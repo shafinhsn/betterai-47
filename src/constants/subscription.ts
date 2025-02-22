@@ -3,23 +3,37 @@ import { SubscriptionPlan } from '@/types/chat';
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    name: 'Student Basic',
+    name: 'Student Plan',
     price: 5,
     messages: Infinity,
-    features: ['Unlimited messages', 'Basic support', 'Standard response time']
+    features: [
+      'Unlimited messages',
+      '1 week free trial',
+      'Ideal for academic use',
+      'Email support'
+    ]
   },
   {
-    name: 'Student Plus',
+    name: 'Professional',
     price: 10,
-    messages: Infinity,
-    features: ['Unlimited messages', 'Priority support', 'Faster response time', 'Advanced document analysis']
-  },
-  {
-    name: 'Student Pro',
-    price: 20,
-    messages: Infinity,
-    features: ['Unlimited messages', 'Priority support', 'Custom chat presets', 'Advanced document analysis', 'Premium features']
+    messages: 1000, // Monthly message limit to control API costs
+    features: [
+      '1,000 messages per month',
+      'Priority support',
+      'Advanced document analysis',
+      'Business usage allowed'
+    ]
   }
 ];
 
-export const FREE_TIER_LIMIT = 50;
+// Free tier limits
+export const FREE_TIER_LIMIT = 20; // Reduced to control API costs
+
+// API usage limits (messages per day) to prevent abuse
+export const DAILY_MESSAGE_LIMIT = {
+  student: 100,    // Student plan daily limit
+  professional: 50  // Professional plan daily limit
+};
+
+// Trial period in days for student accounts
+export const STUDENT_TRIAL_DAYS = 7;
