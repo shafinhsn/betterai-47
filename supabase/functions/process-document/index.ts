@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import * as pdfjsLib from 'https://cdn.skypack.dev/pdfjs-dist@3.11.174/build/pdf.min.js'
+import { parse as parsePdf } from 'npm:pdf-parse@1.1.1'
 import * as mammoth from 'https://esm.sh/mammoth@1.6.0'
 
 const corsHeaders = {
@@ -35,22 +35,11 @@ serve(async (req) => {
 
     if (fileType === 'application/pdf') {
       console.log('Processing PDF file');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.skypack.dev/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-      
       try {
-        const loadingTask = pdfjsLib.getDocument(new Uint8Array(fileBuffer));
-        const pdf = await loadingTask.promise;
-        console.log('PDF loaded successfully, pages:', pdf.numPages);
-        
-        const textContent = [];
-        for (let i = 1; i <= pdf.numPages; i++) {
-          console.log('Processing page', i);
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          const pageText = content.items.map(item => item.str).join(' ');
-          textContent.push(pageText);
-        }
-        extractedText = textContent.join('\n\n');
+        const pdfData = new Uint8Array(fileBuffer);
+        const data = await parsePdf(pdfData);
+        extractedText = data.text;
+        console.log('PDF processed successfully, text length:', extractedText.length);
       } catch (pdfError) {
         console.error('PDF processing error:', pdfError);
         throw new Error(`Failed to process PDF: ${pdfError.message}`);
