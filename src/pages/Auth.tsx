@@ -21,13 +21,16 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
+      // Set the session persistence based on rememberMe
+      await supabase.auth.setSession({
+        access_token: '',
+        refresh_token: '',
+      });
+      
       if (isSignUp) {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: { remember_me: rememberMe }
-          }
         });
         
         if (signUpError) throw signUpError;
@@ -37,12 +40,15 @@ const AuthPage = () => {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
-          options: {
-            data: { remember_me: rememberMe }
-          }
         });
 
         if (error) throw error;
+
+        // If remember me is not checked, we'll clear the session when the browser closes
+        if (!rememberMe) {
+          localStorage.removeItem('supabase.auth.token');
+        }
+
         navigate('/');
       }
     } catch (error: any) {
