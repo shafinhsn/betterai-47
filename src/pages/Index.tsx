@@ -87,9 +87,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={25} minSize={20}>
+    <div className="h-screen bg-[#121212] text-white overflow-hidden">
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel defaultSize={25} minSize={20} className="bg-[#1a1a1a] border-r border-[#2a2a2a]">
           <DocumentSidebar
             isProcessing={isProcessing}
             currentDocument={currentDocument}
@@ -100,10 +100,10 @@ const Index = () => {
           />
         </ResizablePanel>
         
-        <ResizableHandle withHandle />
+        <ResizableHandle withHandle className="bg-[#2a2a2a]" />
         
         <ResizablePanel defaultSize={40}>
-          <div className="h-screen border-x">
+          <div className="h-full border-x border-[#2a2a2a] bg-[#1a1a1a]">
             <Chat
               messages={messages}
               onSendMessage={handleSendMessage}
@@ -113,25 +113,29 @@ const Index = () => {
           </div>
         </ResizablePanel>
         
-        <ResizableHandle withHandle />
+        <ResizableHandle withHandle className="bg-[#2a2a2a]" />
         
         <ResizablePanel defaultSize={35}>
-          <div className="h-screen p-4">
+          <div className="h-full p-4 bg-[#1a1a1a]">
             <div className="flex flex-col h-full gap-4">
               <div className="flex-1">
-                <h3 className="text-sm font-medium mb-2">Original Document</h3>
+                <h3 className="text-sm font-medium mb-2 text-gray-200">Original Document</h3>
                 {content ? (
-                  <DocumentPreview content={content} />
+                  <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
+                    <DocumentPreview content={content} />
+                  </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <div className="flex items-center justify-center h-full text-gray-400">
                     {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
                   </div>
                 )}
               </div>
               {updatedContent && (
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium mb-2">Updated Document</h3>
-                  <DocumentPreview content={updatedContent} />
+                  <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
+                  <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
+                    <DocumentPreview content={updatedContent} />
+                  </div>
                 </div>
               )}
             </div>
