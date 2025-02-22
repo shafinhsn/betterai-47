@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { DocumentSidebar } from '@/components/DocumentSidebar';
 import { Chat } from '@/components/Chat';
@@ -111,24 +110,6 @@ const Index = () => {
     setUpdatedContent(event.target.value);
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([updatedContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const filename = currentDocument?.filename.replace(/\.[^/.]+$/, '') || 'document';
-    a.href = url;
-    a.download = `${filename}_updated.txt`;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-
-    toast({
-      title: "Document downloaded",
-      description: "The updated document has been downloaded.",
-    });
-  };
-
   return (
     <div className="h-screen bg-[#121212] text-white overflow-hidden">
       <ResizablePanelGroup direction="horizontal" className="h-full">
@@ -183,14 +164,9 @@ const Index = () => {
                     <div className="h-full">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium text-gray-200">Updated Document</h3>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={handleManualUpdate}>
-                            Update
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={handleDownload}>
-                            Download
-                          </Button>
-                        </div>
+                        <Button variant="outline" size="sm" onClick={handleManualUpdate}>
+                          Update
+                        </Button>
                       </div>
                       <TextEditor
                         onFormatChange={handleFormatChange}
