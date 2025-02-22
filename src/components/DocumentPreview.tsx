@@ -21,7 +21,7 @@ export const DocumentPreview = ({ content }: DocumentPreviewProps) => {
         <div className="prose max-w-none">
           {content.split('\n').map((paragraph, index) => (
             paragraph ? (
-              <p key={index} className="mb-4 text-emerald-50">
+              <p key={index} className="mb-4">
                 {paragraph}
               </p>
             ) : <br key={index} />
