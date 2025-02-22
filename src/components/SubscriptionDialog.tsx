@@ -14,6 +14,11 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  const handleClose = () => {
+    queryClient.removeQueries({ queryKey: ['stripe-products'] });
+    onOpenChange(false);
+  };
+
   const { data: products } = useQuery({
     queryKey: ['stripe-products'],
     queryFn: async () => {
@@ -27,17 +32,8 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     },
     enabled: open,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    onSettled: () => {
-      if (!open) {
-        queryClient.removeQueries({ queryKey: ['stripe-products'] });
-      }
-    }
+    gcTime: 1000 * 60 * 5
   });
-
-  const handleClose = () => {
-    queryClient.removeQueries({ queryKey: ['stripe-products'] });
-    onOpenChange(false);
-  };
 
   const handleSubscribe = async (productId: string, planName: string) => {
     try {
