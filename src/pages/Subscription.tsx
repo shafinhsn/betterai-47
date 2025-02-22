@@ -1,27 +1,19 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Briefcase, Loader2, X } from 'lucide-react';
+import { GraduationCap, Briefcase, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { SubscriptionDialogProps } from '@/types/chat';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
-export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogProps) => {
+export const SubscriptionPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const handleClose = () => {
-    setIsLoading(false);
-    setProcessingPlanId(null);
-    queryClient.removeQueries({ queryKey: ['stripe-products'] });
-    onOpenChange(false);
-  };
-
-  const { data: products } = useQuery({
+  const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['stripe-products'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -32,7 +24,6 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
       if (error) throw error;
       return data;
     },
-    enabled: open,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 5
   });
@@ -45,6 +36,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Please sign in to subscribe');
+        navigate('/auth');
         return;
       }
 
@@ -67,7 +59,6 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     } finally {
       setIsLoading(false);
       setProcessingPlanId(null);
-      handleClose();
     }
   };
 
@@ -101,40 +92,25 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     ];
   };
 
-  if (!products && open) {
+  if (isLoadingProducts) {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Loading Plans...</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Choose Your Plan</DialogTitle>
-          <DialogDescription>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
+          <p className="text-muted-foreground">
             Select the plan that best fits your needs. Student plan includes a {STUDENT_TRIAL_DAYS}-day free trial.
-          </DialogDescription>
-          <Button
-            variant="ghost"
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-            onClick={handleClose}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </Button>
-        </DialogHeader>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {products?.map((product) => {
             const isPlanProcessing = processingPlanId === product.name;
             
@@ -178,7 +154,18 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
             )}
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <div className="mt-8 text-center">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+          >
+            Go Back
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
+
+export default SubscriptionPage;

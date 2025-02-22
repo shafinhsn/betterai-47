@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, User, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { SubscriptionDialog } from "./SubscriptionDialog";
 
 export const ProfileMenu = () => {
-  const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
   const navigate = useNavigate();
 
   const { data: subscription } = useQuery({
@@ -48,40 +45,33 @@ export const ProfileMenu = () => {
   };
 
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>
-                <User className="h-6 w-6" />
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsSubscriptionOpen(true)}>
-            <CreditCard className="mr-2 h-4 w-4" />
-            Subscription
-            {subscription && (
-              <span className="ml-auto text-xs opacity-60">
-                {subscription.plan_type}
-              </span>
-            )}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <SubscriptionDialog 
-        open={isSubscriptionOpen} 
-        onOpenChange={setIsSubscriptionOpen}
-      />
-    </>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <Avatar className="h-10 w-10">
+            <AvatarFallback>
+              <User className="h-6 w-6" />
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end">
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/subscription')}>
+          <CreditCard className="mr-2 h-4 w-4" />
+          Subscription
+          {subscription && (
+            <span className="ml-auto text-xs opacity-60">
+              {subscription.plan_type}
+            </span>
+          )}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSignOut}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
