@@ -40,7 +40,7 @@ serve(async (req) => {
     console.log('Uploading file:', filePath)
 
     // Upload file to storage
-    const { data: storageData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('documents')
       .upload(filePath, file, {
         contentType: file.type,
@@ -54,28 +54,32 @@ serve(async (req) => {
 
     console.log('File uploaded successfully')
 
-    // Get file text content and properly encode it
+    // Read and process the file content
     let content = ''
     try {
-      // Read the file content as a Buffer
+      // Read the file content
       const arrayBuffer = await file.arrayBuffer()
-      const decoder = new TextDecoder('utf-8')
-      const rawContent = decoder.decode(arrayBuffer)
+      const buffer = new Uint8Array(arrayBuffer)
       
-      // Basic sanitization: replace problematic characters with spaces
-      content = rawContent
-        .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ') // Remove control characters
-        .replace(/\\u[0-9a-fA-F]{4}/g, ' ')            // Remove Unicode escape sequences
-        .replace(/[\uD800-\uDFFF]/g, ' ')              // Remove surrogate pairs
+      // Use TextDecoder to properly decode the content
+      const decoder = new TextDecoder('utf-8')
+      content = decoder.decode(buffer)
+      
+      // Basic text cleanup
+      content = content
+        .replace(/\u0000/g, '') // Remove null bytes
+        .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove replacement characters and BOM
+        .replace(/\r\n/g, '\n') // Normalize line endings
         .trim()
 
-      console.log('Content extracted and sanitized successfully')
+      console.log('Content extracted successfully, length:', content.length)
+      console.log('First 100 characters:', content.substring(0, 100))
     } catch (error) {
       console.error('Error extracting text content:', error)
-      content = 'Unable to extract text content from file'
+      throw new Error(`Failed to extract text content: ${error.message}`)
     }
 
-    // Save document metadata to database using parameterized query
+    // Save document metadata to database
     const { error: dbError } = await supabase
       .from('documents')
       .insert({
