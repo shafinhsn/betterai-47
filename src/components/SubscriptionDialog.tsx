@@ -1,5 +1,5 @@
 
-import { SUBSCRIPTION_PLANS } from '@/constants/subscription';
+import { SUBSCRIPTION_PLANS, STUDENT_TRIAL_DAYS } from '@/constants/subscription';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Briefcase } from 'lucide-react';
