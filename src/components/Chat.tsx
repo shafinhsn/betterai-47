@@ -27,32 +27,38 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   const handleSendMessage = async (content: string) => {
     try {
       setIsLoading(true);
+      
+      // Add user message to chat
       onSendMessage(content);
       
+      // Check if this is an edit request
+      const isEditRequest = content.toLowerCase().includes('edit') || 
+                          content.toLowerCase().includes('update') || 
+                          content.toLowerCase().includes('change') ||
+                          content.toLowerCase().includes('modify') ||
+                          content.toLowerCase().includes('replace');
+
+      // Make request to chat function
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           message: content,
           context: documentContent || '',
-          shouldUpdateDocument: content.toLowerCase().includes('edit') || 
-                              content.toLowerCase().includes('update') || 
-                              content.toLowerCase().includes('change') ||
-                              content.toLowerCase().includes('modify') ||
-                              content.toLowerCase().includes('replace'),
+          shouldUpdateDocument: isEditRequest,
         },
       });
 
       if (error) throw error;
 
+      console.log('Chat response:', data);
+
+      // Handle document update if provided
       if (data?.updatedDocument) {
+        console.log('Updating document with new content');
         onDocumentUpdate(data.updatedDocument);
       }
       
+      // Add AI response to chat
       if (data?.reply) {
-        const aiMessage: Message = {
-          id: Date.now().toString(),
-          content: data.reply,
-          sender: 'ai'
-        };
         onSendMessage(data.reply);
       }
 

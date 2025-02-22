@@ -21,12 +21,11 @@ serve(async (req) => {
     console.log('Received request:', { message, shouldUpdateDocument });
     console.log('Document context:', context.substring(0, 100) + '...');
 
-    let systemPrompt = 'You are a helpful document analysis assistant.';
+    // Choose appropriate system prompt based on request type
+    const systemPrompt = shouldUpdateDocument
+      ? 'You are a document editor. Your task is to update the given document based on the user\'s request. Output ONLY the modified document content without any explanations or commentary.'
+      : 'You are a helpful document analysis assistant.';
     
-    if (shouldUpdateDocument) {
-      systemPrompt = 'You are a document editor. Given a document and an edit request, output ONLY the updated document content with the requested changes. Do not include any explanations or commentary.';
-    }
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -37,27 +36,34 @@ serve(async (req) => {
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: shouldUpdateDocument ? 
-            `Original document:\n${context}\n\nEdit request: ${message}` :
-            `Document: ${context}\n\nQuestion: ${message}` 
+          { role: 'user', content: shouldUpdateDocument 
+            ? `Original document:\n${context}\n\nEdit request: ${message}` 
+            : `Document: ${context}\n\nQuestion: ${message}`
           }
         ],
+        temperature: shouldUpdateDocument ? 0.3 : 0.7, // Lower temperature for more precise edits
       }),
     });
 
     const data = await response.json();
     console.log('OpenAI response:', data);
 
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from OpenAI');
+    }
+
+    const aiReply = data.choices[0].message.content;
+
     if (shouldUpdateDocument) {
-      return new Response(JSON.stringify({ 
-        updatedDocument: data.choices[0].message.content,
+      return new Response(JSON.stringify({
+        updatedDocument: aiReply,
         reply: "I've updated the document based on your request. You can see the changes in the preview panel."
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      return new Response(JSON.stringify({ 
-        reply: data.choices[0].message.content 
+      return new Response(JSON.stringify({
+        reply: aiReply
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
