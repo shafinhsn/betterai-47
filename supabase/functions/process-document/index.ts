@@ -15,10 +15,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing document request received');
     const formData = await req.formData();
     const file = formData.get('file');
 
     if (!file || !(file instanceof File)) {
+      console.error('No valid file provided in request');
       throw new Error('No file provided');
     }
 
@@ -50,6 +52,8 @@ serve(async (req) => {
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
+    console.log('File uploaded successfully, extracting content');
+
     // Extract text content from file
     let content = '';
     try {
@@ -59,7 +63,7 @@ serve(async (req) => {
       content = 'Unable to extract text content from file';
     }
 
-    console.log('Saving document metadata to database');
+    console.log('Content extracted, saving to database');
 
     // Save document metadata to database
     const { error: dbError } = await supabase
@@ -75,6 +79,8 @@ serve(async (req) => {
       console.error('Database error:', dbError);
       throw new Error(`Failed to save document metadata: ${dbError.message}`);
     }
+
+    console.log('Document processed successfully');
 
     return new Response(
       JSON.stringify({ 
