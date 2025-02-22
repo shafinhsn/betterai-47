@@ -21,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/manage-subscription" element={<SubscriptionPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
@@ -29,3 +30,4 @@ const App = () => (
 );
 
 export default App;
+

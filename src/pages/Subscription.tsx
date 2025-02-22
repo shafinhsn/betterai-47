@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Briefcase, Loader2 } from 'lucide-react';
@@ -12,6 +12,28 @@ export const SubscriptionPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // If we're on /manage-subscription, fetch current subscription details
+  const isManagingSubscription = location.pathname === '/manage-subscription';
+
+  const { data: subscription } = useQuery({
+    queryKey: ['active-subscription'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+      
+      return data;
+    },
+    enabled: isManagingSubscription
+  });
 
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['stripe-products'],
@@ -62,6 +84,21 @@ export const SubscriptionPage = () => {
     }
   };
 
+  const handleManageSubscription = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { url }, error } = await supabase.functions.invoke('create-portal-session', {});
+      if (error) throw error;
+      if (!url) throw new Error('No portal URL returned');
+      window.location.href = url;
+    } catch (error: any) {
+      console.error('Portal session error:', error);
+      toast.error('Failed to open subscription portal: ' + (error.message || 'Unknown error occurred'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getFeatures = (planType: string) => {
     if (planType === 'Student Plan') {
       return [
@@ -96,6 +133,57 @@ export const SubscriptionPage = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  if (isManagingSubscription) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold mb-2">Manage Your Subscription</h1>
+            <p className="text-muted-foreground">
+              View and manage your current subscription settings
+            </p>
+          </div>
+
+          <div className="bg-card rounded-lg p-6 mb-6">
+            {subscription ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold">{subscription.plan_type}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Status: {subscription.status}
+                    </p>
+                  </div>
+                  <Button onClick={handleManageSubscription} disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      'Manage Plan'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground mb-4">You don't have an active subscription</p>
+                <Button onClick={() => navigate('/subscription')}>View Plans</Button>
+              </div>
+            )}
+          </div>
+
+          <div className="text-center">
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              Return to Editor
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -158,9 +246,9 @@ export const SubscriptionPage = () => {
         <div className="mt-8 text-center">
           <Button
             variant="ghost"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
           >
-            Go Back
+            Return to Editor
           </Button>
         </div>
       </div>
@@ -169,3 +257,4 @@ export const SubscriptionPage = () => {
 };
 
 export default SubscriptionPage;
+

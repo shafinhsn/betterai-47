@@ -58,9 +58,9 @@ export const ProfileMenu = () => {
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel>My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/subscription')}>
+        <DropdownMenuItem onClick={() => navigate('/manage-subscription')}>
           <CreditCard className="mr-2 h-4 w-4" />
-          Subscription
+          Manage Subscription
           {subscription && (
             <span className="ml-auto text-xs opacity-60">
               {subscription.plan_type}
@@ -75,3 +75,4 @@ export const ProfileMenu = () => {
     </DropdownMenu>
   );
 };
+
