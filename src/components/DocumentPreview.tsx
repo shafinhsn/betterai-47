@@ -1,88 +1,75 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect, useRef, forwardRef, memo } from 'react';
+import { forwardRef, memo, useMemo } from 'react';
+import * as DiffMatchPatch from 'diff-match-patch';
 
 interface DocumentPreviewProps {
   content: string;
   isUpdated?: boolean;
+  originalContent?: string;
 }
 
 const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps>(
-  ({ content, isUpdated = false }, ref) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const typingRef = useRef<string>('');
-    const intervalRef = useRef<NodeJS.Timeout>();
+  ({ content, isUpdated = false, originalContent }, ref) => {
+    const diffs = useMemo(() => {
+      if (!isUpdated || !originalContent) return null;
 
-    useEffect(() => {
-      // Reset scroll position when content changes
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = 0;
-      }
-
-      // Clear any existing interval
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-
-      // If there's no content, reset everything
-      if (!content) {
-        typingRef.current = '';
-        return;
-      }
-
-      // For non-updated content, display it immediately
-      if (!isUpdated) {
-        typingRef.current = content;
-        return;
-      }
-
-      // For updated content, animate it
-      typingRef.current = '';
-      let currentIndex = 0;
-      
-      intervalRef.current = setInterval(() => {
-        if (currentIndex <= content.length) {
-          typingRef.current = content.slice(0, currentIndex);
-          // Force re-render
-          scrollRef.current?.setAttribute('data-content', typingRef.current);
-          currentIndex++;
-        } else {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-          }
-        }
-      }, 20);
-
-      // Cleanup
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
-      };
-    }, [content, isUpdated]);
+      const dmp = new DiffMatchPatch.diff_match_patch();
+      return dmp.diff_main(originalContent, content);
+    }, [content, originalContent, isUpdated]);
 
     if (!content) {
       return null;
     }
 
-    const displayContent = isUpdated ? typingRef.current : content;
+    const renderContent = () => {
+      if (!isUpdated || !diffs) {
+        return content.split('\n').map((paragraph, index) => (
+          paragraph ? (
+            <p 
+              key={`${index}-${paragraph.substring(0, 10)}`} 
+              className="mb-4 text-emerald-50 whitespace-pre-wrap"
+            >
+              {paragraph}
+            </p>
+          ) : <br key={index} />
+        ));
+      }
+
+      return diffs.map((diff, index) => {
+        const [type, text] = diff;
+        const key = `${index}-${text.substring(0, 10)}`;
+
+        let className = "whitespace-pre-wrap ";
+        switch (type) {
+          case 1: // Insertion
+            className += "bg-emerald-900/50 text-emerald-200";
+            break;
+          case -1: // Deletion
+            className += "bg-red-900/50 text-red-200 line-through";
+            break;
+          default: // No change
+            className += "text-emerald-50";
+        }
+
+        return text.split('\n').map((line, lineIndex) => (
+          line ? (
+            <p 
+              key={`${key}-${lineIndex}`} 
+              className={`mb-4 ${className}`}
+            >
+              {line}
+            </p>
+          ) : <br key={`${key}-${lineIndex}`} />
+        ));
+      });
+    };
 
     return (
       <div className="document-preview h-full" ref={ref}>
         <ScrollArea className="h-[calc(100vh-2rem)]">
-          <div className="prose max-w-none" ref={scrollRef}>
-            {displayContent.split('\n').map((paragraph, index) => (
-              paragraph ? (
-                <p 
-                  key={`${index}-${paragraph.substring(0, 10)}`} 
-                  className={`mb-4 text-emerald-50 whitespace-pre-wrap ${
-                    isUpdated && typingRef.current !== content ? 'border-r-2 border-emerald-400 animate-pulse' : ''
-                  }`}
-                >
-                  {paragraph}
-                </p>
-              ) : <br key={index} />
-            ))}
+          <div className="prose max-w-none">
+            {renderContent()}
           </div>
         </ScrollArea>
       </div>

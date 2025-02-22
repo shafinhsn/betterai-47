@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { DocumentSidebar } from '@/components/DocumentSidebar';
 import { Chat } from '@/components/Chat';
@@ -122,7 +123,11 @@ const Index = () => {
                 <div className="flex-1">
                   <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
                   <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                    <DocumentPreview content={updatedContent} isUpdated={true} />
+                    <DocumentPreview 
+                      content={updatedContent} 
+                      isUpdated={true} 
+                      originalContent={content}
+                    />
                   </div>
                 </div>
               )}
