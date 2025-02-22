@@ -76,31 +76,34 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          expires_at: string | null
           started_at: string | null
           user_id: string
           id: string
-          created_at: string | null
+          trial_end_at: string | null
           plan_type: string
           status: string
-          expires_at: string | null
+          created_at: string | null
         }
         Insert: {
+          expires_at?: string | null
           started_at?: string | null
           user_id: string
           id?: string
-          created_at?: string | null
+          trial_end_at?: string | null
           plan_type: string
           status: string
-          expires_at?: string | null
+          created_at?: string | null
         }
         Update: {
+          expires_at?: string | null
           started_at?: string | null
           user_id?: string
           id?: string
-          created_at?: string | null
+          trial_end_at?: string | null
           plan_type?: string
           status?: string
-          expires_at?: string | null
+          created_at?: string | null
         }
       }
     }
@@ -122,3 +125,4 @@ export type Database = {
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
 export type Insertables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
 export type Updateables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+
