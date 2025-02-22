@@ -1,4 +1,3 @@
-
 import { useTextEditor } from '@/hooks/useTextEditor';
 import { Button } from './ui/button';
 import { useState, useEffect, useRef } from 'react';
@@ -42,25 +41,11 @@ export const TextEditorPanel = ({
     handlePlagiarismCheck,
   } = useTextEditor();
 
-  const handleFormatWithSelection = (format: string) => {
+  const handleFormatWithSelection = (formatType: string) => {
     const selection = window.getSelection();
-    const hasFormatting = format === 'bold' ? 
-      editorRef.current?.style.fontWeight === 'bold' : 
-      editorRef.current?.style.fontStyle === 'italic';
-    
-    if (!selection || selection.toString().length === 0) {
-      if (format === 'bold') {
-        applyFormattingToAll('fontWeight', hasFormatting ? null : 'bold');
-      } else if (format === 'italic') {
-        applyFormattingToAll('fontStyle', hasFormatting ? null : 'italic');
-      }
-    } else {
-      if (format === 'bold') {
-        applyFormattingToSelection('fontWeight', hasFormatting ? null : 'bold');
-      } else if (format === 'italic') {
-        applyFormattingToSelection('fontStyle', hasFormatting ? null : 'italic');
-      }
-    }
+    if (!selection || !editorRef.current) return;
+
+    document.execCommand(formatType === 'bold' ? 'bold' : 'italic', false);
   };
 
   const handleStyleWithSelection = (property: string, value: string) => {
@@ -134,4 +119,3 @@ export const TextEditorPanel = ({
     </div>
   );
 };
-

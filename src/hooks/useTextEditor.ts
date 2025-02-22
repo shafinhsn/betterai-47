@@ -52,6 +52,12 @@ export const useTextEditor = (): TextEditorHookReturn => {
     setAlignment(value);
   };
 
+  const extractQuotes = (text: string): string[] => {
+    const quoteRegex = /"([^"]*)"|'([^']*)'|"([^"]*)"|'([^']*)'|"([^"]*)"|'([^']*)'/g;
+    const matches = text.match(quoteRegex);
+    return matches ? matches.map(quote => quote.slice(1, -1)) : [];
+  };
+
   const handleCitationStyleChange = async (value: CitationStyle) => {
     try {
       if (value === 'none') {
@@ -59,25 +65,45 @@ export const useTextEditor = (): TextEditorHookReturn => {
         return;
       }
 
-      const text = document.querySelector('[contenteditable]')?.textContent || '';
-      
+      const editorContent = document.querySelector('[contenteditable]');
+      if (!editorContent) return;
+
+      const text = editorContent.textContent || '';
+      const quotes = extractQuotes(text);
+
+      if (quotes.length === 0) {
+        toast.error("No quotes found in the text");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('format-citation', {
-        body: { text, style: value },
+        body: { 
+          quotes,
+          style: value,
+          fullText: text // Send full text for context
+        },
       });
 
       if (error) throw error;
 
-      if (data?.citation) {
-        // Update the editor content with the formatted citation
-        if (document.querySelector('[contenteditable]')) {
-          document.querySelector('[contenteditable]')!.innerHTML = data.citation;
+      if (data?.citations) {
+        // Replace each quote with its cited version
+        let newContent = text;
+        quotes.forEach((quote, index) => {
+          const citation = data.citations[index];
+          newContent = newContent.replace(`"${quote}"`, `"${quote}" ${citation}`);
+          newContent = newContent.replace(`'${quote}'`, `'${quote}' ${citation}`);
+        });
+
+        if (editorContent) {
+          editorContent.innerHTML = newContent;
         }
         setCitationStyle(value);
-        toast.success(`Applied ${value.toUpperCase()} citation style`);
+        toast.success(`Applied ${value.toUpperCase()} citations to quotes`);
       }
     } catch (error) {
-      console.error('Error formatting citation:', error);
-      toast.error('Failed to format citation');
+      console.error('Error formatting citations:', error);
+      toast.error('Failed to format citations');
     }
   };
 

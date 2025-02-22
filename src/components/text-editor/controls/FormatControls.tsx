@@ -13,8 +13,7 @@ export const FormatControls = ({
   onFormatChange,
 }: FormatControlsProps) => {
   const handleFormatClick = (formatType: FormatOption) => {
-    const command = formatType === 'bold' ? 'bold' : 'italic';
-    document.execCommand(command, false);
+    onFormatChange([formatType]);
   };
 
   return (
