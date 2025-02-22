@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import type { Tables } from '@/integrations/supabase/database.types';
 
 interface Message {
   id: string;
@@ -58,7 +59,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   const [isLoading, setIsLoading] = useState(false);
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
-  const [subscription, setSubscription] = useState<any>(null);
+  const [subscription, setSubscription] = useState<Tables<'subscriptions'> | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,8 +71,8 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
     try {
       const { data: usage, error } = await supabase
         .from('message_usage')
-        .select('message_count')
-        .single();
+        .select('*')
+        .maybeSingle();
 
       if (error) throw error;
       setMessageCount(usage?.message_count || 0);
@@ -86,9 +87,9 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
         .from('subscriptions')
         .select('*')
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       setSubscription(sub);
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -100,19 +101,25 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       const { data: usage, error: selectError } = await supabase
         .from('message_usage')
         .select('*')
-        .single();
+        .maybeSingle();
 
-      if (selectError && selectError.code !== 'PGRST116') throw selectError;
+      if (selectError) throw selectError;
 
       if (!usage) {
         const { error: insertError } = await supabase
           .from('message_usage')
-          .insert([{ message_count: 1 }]);
+          .insert([{ 
+            message_count: 1,
+            user_id: (await supabase.auth.getUser()).data.user?.id
+          }]);
         if (insertError) throw insertError;
       } else {
         const { error: updateError } = await supabase
           .from('message_usage')
-          .update({ message_count: usage.message_count + 1, last_message_at: new Date().toISOString() })
+          .update({ 
+            message_count: usage.message_count + 1, 
+            last_message_at: new Date().toISOString() 
+          })
           .eq('id', usage.id);
         if (updateError) throw updateError;
       }
