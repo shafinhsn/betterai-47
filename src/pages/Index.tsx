@@ -7,6 +7,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { useToast } from "@/hooks/use-toast";
 import { Message, ProcessedDocument } from '@/types/document';
 import { TextEditor } from '@/components/TextEditor';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -78,6 +79,14 @@ const Index = () => {
     });
   };
 
+  const handleManualUpdate = () => {
+    setPreviewKey(prev => prev + 1);
+    toast({
+      title: "Document updated",
+      description: "The document has been manually updated.",
+    });
+  };
+
   const handleFormatChange = (format: string) => {
     // Implementation for text formatting
     console.log('Format changed:', format);
@@ -96,6 +105,28 @@ const Index = () => {
   const handleAlignmentChange = (alignment: string) => {
     // Implementation for alignment changes
     console.log('Alignment changed:', alignment);
+  };
+
+  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setUpdatedContent(event.target.value);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([updatedContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const filename = currentDocument?.filename.replace(/\.[^/.]+$/, '') || 'document';
+    a.href = url;
+    a.download = `${filename}_updated.txt`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    toast({
+      title: "Document downloaded",
+      description: "The updated document has been downloaded.",
+    });
   };
 
   return (
@@ -150,7 +181,17 @@ const Index = () => {
                   <ResizableHandle withHandle className="bg-[#2a2a2a]" />
                   <ResizablePanel defaultSize={50}>
                     <div className="h-full">
-                      <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-gray-200">Updated Document</h3>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={handleManualUpdate}>
+                            Update
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleDownload}>
+                            Download
+                          </Button>
+                        </div>
+                      </div>
                       <TextEditor
                         onFormatChange={handleFormatChange}
                         onFontChange={handleFontChange}
@@ -158,11 +199,10 @@ const Index = () => {
                         onAlignmentChange={handleAlignmentChange}
                       />
                       <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-6rem)] overflow-auto">
-                        <DocumentPreview 
-                          key={`updated-${previewKey}`}
-                          content={updatedContent} 
-                          isUpdated={true} 
-                          originalContent={content}
+                        <textarea
+                          value={updatedContent}
+                          onChange={handleContentChange}
+                          className="w-full h-full bg-transparent text-emerald-50 focus:outline-none resize-none whitespace-pre-wrap"
                         />
                       </div>
                     </div>
