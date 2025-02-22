@@ -14,11 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Initialize PDF.js worker using the worker from the package
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
-).toString();
+// Initialize PDF.js worker using CDN
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -49,17 +46,24 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     try {
       console.log('Processing PDF file:', file.name);
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      // Load the PDF document
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      console.log('PDF loading task created');
+      
+      const pdf = await loadingTask.promise;
       console.log('PDF loaded successfully with', pdf.numPages, 'pages');
       
       const textContent: string[] = [];
+      
+      // Process each page
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const content = await page.getTextContent();
-        const text = content.items
+        const pageText = content.items
           .map((item: any) => item.str)
           .join(' ');
-        textContent.push(text);
+        textContent.push(pageText);
       }
       
       return textContent.join('\n\n');
@@ -68,7 +72,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process PDF file. Please try again.",
+        description: "Failed to process PDF file. Please check if the file is valid and try again.",
       });
       throw new Error('Failed to process PDF file');
     }
@@ -103,6 +107,11 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
         }
       } catch (error) {
         console.error('Error processing file:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to process ${documentType.toUpperCase()} file. Please try again.`,
+        });
       }
     }
   }, [onFileSelect, documentType, toast]);
