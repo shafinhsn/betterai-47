@@ -4,6 +4,7 @@ import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface Message {
   id: string;
@@ -34,8 +35,10 @@ export const Chat = ({ onSendMessage, messages }: ChatProps) => {
           <div
             key={message.id}
             className={cn(
-              'chat-message',
-              message.sender === 'user' ? 'chat-message-user' : 'chat-message-ai'
+              'mb-4 p-4 rounded-lg',
+              message.sender === 'user'
+                ? 'bg-primary text-primary-foreground ml-auto max-w-[80%]'
+                : 'bg-muted text-muted-foreground mr-auto max-w-[80%]'
             )}
           >
             {message.content}
