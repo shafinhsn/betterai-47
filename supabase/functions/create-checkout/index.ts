@@ -52,12 +52,19 @@ serve(async (req) => {
       stripeCustomerId = customersResponse.data[0].id;
       console.log('Using existing Stripe customer:', stripeCustomerId);
     } else {
-      // Create new customer
+      // Create new customer with automatic tax calculation enabled
       console.log('Creating new Stripe customer for:', email);
       const customer = await stripe.customers.create({ 
         email,
         metadata: {
           supabase_user_id: userId
+        },
+        address: {
+          country: 'US', // Default to US, will be updated during checkout
+          postal_code: '00000' // Temporary postal code, will be updated during checkout
+        },
+        tax: {
+          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip')
         }
       });
       stripeCustomerId = customer.id;
@@ -90,7 +97,16 @@ serve(async (req) => {
       mode: 'subscription',
       success_url: `${req.headers.get('origin')}/`,
       cancel_url: `${req.headers.get('origin')}/`,
-      automatic_tax: { enabled: true },
+      customer_update: {
+        address: 'auto'
+      },
+      tax_id_collection: {
+        enabled: true
+      },
+      automatic_tax: { 
+        enabled: true 
+      },
+      billing_address_collection: 'required',
       client_reference_id: userId,
       metadata: {
         supabase_user_id: userId
