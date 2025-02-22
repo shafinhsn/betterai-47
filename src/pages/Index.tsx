@@ -4,7 +4,8 @@ import { FileUpload } from '@/components/FileUpload';
 import { Chat } from '@/components/Chat';
 import { DocumentPreview } from '@/components/DocumentPreview';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -34,16 +35,18 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       
-      const response = await fetch('/api/supabase/functions/v1/process-document', {
-        method: 'POST',
-        body: formData
+      const { data, error } = await supabase.functions.invoke('process-document', {
+        body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to process document');
+      if (error) {
+        throw error;
       }
 
-      const data: ProcessedDocument = await response.json();
+      if (!data) {
+        throw new Error('No data received from function');
+      }
+
       setContent(data.content);
       setCurrentDocument(data);
       
@@ -53,7 +56,7 @@ const Index = () => {
       });
     } catch (error) {
       console.error('Error processing document:', error);
-      setContent('Error processing document. Please try again.');
+      setContent('');
       toast({
         variant: "destructive",
         title: "Error",
