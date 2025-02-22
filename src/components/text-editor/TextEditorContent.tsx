@@ -47,28 +47,17 @@ export const TextEditorContent = ({
   };
 
   useEffect(() => {
-    const editor = editorRef.current;
-    if (editor && lastCaretPosition !== null) {
-      editor.focus();
+    if (editorRef.current) {
       const selection = window.getSelection();
-      const range = document.createRange();
-      
-      let currentNode = editor.firstChild;
-      let currentOffset = 0;
-      
-      while (currentNode && currentOffset + (currentNode.textContent?.length || 0) < lastCaretPosition) {
-        currentOffset += currentNode.textContent?.length || 0;
-        currentNode = currentNode.nextSibling;
-      }
-      
-      if (currentNode) {
-        range.setStart(currentNode, Math.min(lastCaretPosition - currentOffset, currentNode.textContent?.length || 0));
-        range.collapse(true);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const savedRange = range.cloneRange();
+        editorRef.current.focus();
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
       }
     }
-  }, [format, font, size, alignment, lastCaretPosition]);
+  }, [format, font, size, alignment]);
 
   return (
     <ScrollArea className="h-[calc(100%-5rem)]">
@@ -90,3 +79,4 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
+

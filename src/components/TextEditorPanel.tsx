@@ -42,26 +42,24 @@ export const TextEditorPanel = ({
     handlePlagiarismCheck,
   } = useTextEditor();
 
-  const handleFormatWithSelection = (formats: string[]) => {
+  const handleFormatWithSelection = (format: string) => {
     const selection = window.getSelection();
-    const hasFormatting = format.length > 0;
+    const hasFormatting = format === 'bold' ? 
+      editorRef.current?.style.fontWeight === 'bold' : 
+      editorRef.current?.style.fontStyle === 'italic';
     
     if (!selection || selection.toString().length === 0) {
-      formats.forEach(format => {
-        if (format === 'bold') {
-          applyFormattingToAll('fontWeight', hasFormatting ? null : 'bold');
-        } else if (format === 'italic') {
-          applyFormattingToAll('fontStyle', hasFormatting ? null : 'italic');
-        }
-      });
+      if (format === 'bold') {
+        applyFormattingToAll('fontWeight', hasFormatting ? null : 'bold');
+      } else if (format === 'italic') {
+        applyFormattingToAll('fontStyle', hasFormatting ? null : 'italic');
+      }
     } else {
-      formats.forEach(format => {
-        if (format === 'bold') {
-          applyFormattingToSelection('fontWeight', hasFormatting ? null : 'bold');
-        } else if (format === 'italic') {
-          applyFormattingToSelection('fontStyle', hasFormatting ? null : 'italic');
-        }
-      });
+      if (format === 'bold') {
+        applyFormattingToSelection('fontWeight', hasFormatting ? null : 'bold');
+      } else if (format === 'italic') {
+        applyFormattingToSelection('fontStyle', hasFormatting ? null : 'italic');
+      }
     }
   };
 
@@ -85,7 +83,7 @@ export const TextEditorPanel = ({
   return (
     <div className="bg-[#1a1a1a] rounded-lg p-4 h-full">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-200">Updated preview</h3>
+        <h3 className="text-sm font-medium text-gray-200">Updated Preview</h3>
         <Button 
           onClick={handleUpdate}
           className="bg-emerald-600 hover:bg-emerald-700"
@@ -103,9 +101,8 @@ export const TextEditorPanel = ({
             format={format}
             citationStyle={citationStyle}
             isCheckingPlagiarism={isCheckingPlagiarism}
-            onFormatChange={(value) => {
-              handleFormatChange(value);
-              handleFormatWithSelection(value);
+            onFormatChange={(formats) => {
+              formats.forEach(format => handleFormatWithSelection(format));
             }}
             onFontChange={(value) => {
               handleFontChange(value);
@@ -137,3 +134,4 @@ export const TextEditorPanel = ({
     </div>
   );
 };
+
