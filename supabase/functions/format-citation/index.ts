@@ -15,9 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    const { text, style } = await req.json();
+    const { text, style, sources } = await req.json();
 
-    const systemPrompt = `You are a citation expert. Format the given text in ${style} citation style. Only return the formatted citation, nothing else.`;
+    const systemPrompt = `You are a citation expert. Format the given text and create citations for the provided sources in ${style} style. Return both the formatted text with in-text citations and a "Sources Cited" page. The response should be in JSON format with two fields: formattedText and sourcesPage.`;
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -28,18 +28,36 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
+          { 
+            role: 'system', 
+            content: systemPrompt 
+          },
+          { 
+            role: 'user', 
+            content: JSON.stringify({
+              text,
+              sources,
+              style
+            })
+          }
         ],
       }),
     });
 
     const data = await response.json();
-    const formattedCitation = data.choices[0].message.content;
+    let result;
+    try {
+      result = JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+      result = {
+        formattedText: text,
+        sourcesPage: "\n\nSources Cited:\n" + sources.map((s: any) => 
+          `${s.title} - ${s.link}`
+        ).join('\n')
+      };
+    }
 
-    console.log('Citation formatted successfully:', { style, originalLength: text.length });
-
-    return new Response(JSON.stringify({ citation: formattedCitation }), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

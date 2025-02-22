@@ -8,13 +8,18 @@ export type FormatOption = 'bold' | 'italic';
 export type CitationStyle = 'none' | 'apa' | 'mla' | 'chicago' | 'harvard';
 export type FontFamily = 'Arial' | 'Times New Roman' | 'Courier New' | 'Georgia' | 'Verdana';
 
+interface Source {
+  link: string;
+  title: string;
+}
+
 export interface TextEditorState {
   font: FontFamily;
   size: string;
   alignment: TextAlignment;
   format: FormatOption[];
   citationStyle: CitationStyle;
-  isCheckingPlagiarism: boolean;
+  sources: Source[];
 }
 
 export interface TextEditorActions {
@@ -23,7 +28,7 @@ export interface TextEditorActions {
   handleSizeChange: (value: string) => void;
   handleAlignmentChange: (value: TextAlignment) => void;
   handleCitationStyleChange: (value: CitationStyle) => void;
-  handlePlagiarismCheck: () => Promise<void>;
+  handleAddSourceLink: (sourceLink: string, sourceTitle: string) => void;
 }
 
 export type TextEditorHookReturn = TextEditorState & TextEditorActions;
@@ -34,7 +39,7 @@ export const useTextEditor = (): TextEditorHookReturn => {
   const [alignment, setAlignment] = useState<TextAlignment>('left');
   const [format, setFormat] = useState<FormatOption[]>([]);
   const [citationStyle, setCitationStyle] = useState<CitationStyle>('none');
-  const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
+  const [sources, setSources] = useState<Source[]>([]);
 
   const handleFormatChange = (value: FormatOption[]) => {
     setFormat(value);
@@ -52,10 +57,9 @@ export const useTextEditor = (): TextEditorHookReturn => {
     setAlignment(value);
   };
 
-  const extractQuotes = (text: string): string[] => {
-    const quoteRegex = /"([^"]*)"|'([^']*)'|"([^"]*)"|'([^']*)'|"([^"]*)"|'([^']*)'/g;
-    const matches = text.match(quoteRegex);
-    return matches ? matches.map(quote => quote.slice(1, -1)) : [];
+  const handleAddSourceLink = (sourceLink: string, sourceTitle: string) => {
+    setSources(prev => [...prev, { link: sourceLink, title: sourceTitle }]);
+    toast.success("Source added successfully");
   };
 
   const handleCitationStyleChange = async (value: CitationStyle) => {
@@ -66,74 +70,31 @@ export const useTextEditor = (): TextEditorHookReturn => {
       }
 
       const editorContent = document.querySelector('[contenteditable]');
-      if (!editorContent) return;
-
-      const text = editorContent.textContent || '';
-      const quotes = extractQuotes(text);
-
-      if (quotes.length === 0) {
-        toast.error("No quotes found in the text");
+      if (!editorContent || sources.length === 0) {
+        toast.error("Please add sources before applying citations");
         return;
       }
 
+      const text = editorContent.textContent || '';
+
       const { data, error } = await supabase.functions.invoke('format-citation', {
         body: { 
-          quotes,
+          text,
           style: value,
-          fullText: text // Send full text for context
+          sources
         },
       });
 
       if (error) throw error;
 
-      if (data?.citations) {
-        // Replace each quote with its cited version
-        let newContent = text;
-        quotes.forEach((quote, index) => {
-          const citation = data.citations[index];
-          newContent = newContent.replace(`"${quote}"`, `"${quote}" ${citation}`);
-          newContent = newContent.replace(`'${quote}'`, `'${quote}' ${citation}`);
-        });
-
-        if (editorContent) {
-          editorContent.innerHTML = newContent;
-        }
+      if (data?.formattedText && data?.sourcesPage) {
+        editorContent.innerHTML = `${data.formattedText}\n\n${data.sourcesPage}`;
         setCitationStyle(value);
-        toast.success(`Applied ${value.toUpperCase()} citations to quotes`);
+        toast.success(`Applied ${value.toUpperCase()} citations`);
       }
     } catch (error) {
       console.error('Error formatting citations:', error);
       toast.error('Failed to format citations');
-    }
-  };
-
-  const handlePlagiarismCheck = async () => {
-    try {
-      setIsCheckingPlagiarism(true);
-      const text = document.querySelector('[contenteditable]')?.textContent || '';
-
-      const { data, error } = await supabase.functions.invoke('check-plagiarism', {
-        body: { text },
-      });
-
-      if (error) throw error;
-
-      if (data?.isOriginal) {
-        toast.success("Document checked for plagiarism - No issues found", {
-          description: `Similarity score: ${data.similarityScore.toFixed(1)}%`,
-          duration: 5000,
-        });
-      } else {
-        toast.error("Potential plagiarism detected", {
-          description: `Similarity score: ${data.similarityScore.toFixed(1)}%`,
-          duration: 5000,
-        });
-      }
-    } catch (error) {
-      console.error('Error checking plagiarism:', error);
-      toast.error("Error checking for plagiarism");
-    } finally {
-      setIsCheckingPlagiarism(false);
     }
   };
 
@@ -143,12 +104,12 @@ export const useTextEditor = (): TextEditorHookReturn => {
     alignment,
     format,
     citationStyle,
-    isCheckingPlagiarism,
+    sources,
     handleFormatChange,
     handleFontChange,
     handleSizeChange,
     handleAlignmentChange,
     handleCitationStyleChange,
-    handlePlagiarismCheck,
+    handleAddSourceLink,
   };
 };

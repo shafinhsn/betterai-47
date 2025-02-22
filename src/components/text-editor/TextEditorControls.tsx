@@ -11,13 +11,12 @@ export interface TextEditorControlsProps {
   alignment: TextAlignment;
   format: FormatOption[];
   citationStyle: CitationStyle;
-  isCheckingPlagiarism: boolean;
   onFormatChange: (value: FormatOption[]) => void;
   onFontChange: (value: FontFamily) => void;
   onSizeChange: (value: string) => void;
   onAlignmentChange: (value: TextAlignment) => void;
   onCitationStyleChange: (value: CitationStyle) => void;
-  onPlagiarismCheck: () => void;
+  onAddSourceLink: (sourceLink: string, sourceTitle: string) => void;
 }
 
 export const TextEditorControls = ({
@@ -26,13 +25,12 @@ export const TextEditorControls = ({
   alignment,
   format,
   citationStyle,
-  isCheckingPlagiarism,
   onFormatChange,
   onFontChange,
   onSizeChange,
   onAlignmentChange,
   onCitationStyleChange,
-  onPlagiarismCheck,
+  onAddSourceLink,
 }: TextEditorControlsProps) => {
   return (
     <div className="flex flex-wrap gap-4 mb-4">
@@ -45,9 +43,8 @@ export const TextEditorControls = ({
       
       <CitationControls
         citationStyle={citationStyle}
-        isCheckingPlagiarism={isCheckingPlagiarism}
         onCitationStyleChange={onCitationStyleChange}
-        onPlagiarismCheck={onPlagiarismCheck}
+        onAddSourceLink={onAddSourceLink}
       />
 
       <FormatControls
@@ -62,4 +59,3 @@ export const TextEditorControls = ({
     </div>
   );
 };
-
