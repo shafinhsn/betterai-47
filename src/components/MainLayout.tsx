@@ -64,6 +64,8 @@ export const MainLayout = ({
               updatedContent={updatedContent}
               onFileSelect={onFileSelect}
               onDocumentRemoved={onDocumentRemoved}
+              isAuthenticated={isAuthenticated || false}
+              onNavigate={onNavigate}
             />
           </ResizablePanel>
           
@@ -106,3 +108,4 @@ export const MainLayout = ({
     </div>
   );
 };
+

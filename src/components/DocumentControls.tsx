@@ -8,23 +8,32 @@ import { DocumentInfo } from "./DocumentInfo";
 import { downloadOriginalDocument, downloadUpdatedDocument } from "@/utils/document";
 
 interface DocumentControlsProps {
-  currentDocument: ProcessedDocument;
+  currentDocument: ProcessedDocument | null;
   content: string;
   updatedContent?: string;
   onDocumentRemoved: () => void;
+  isAuthenticated: boolean;
+  onNavigate: () => void;
 }
 
 export const DocumentControls = ({ 
   currentDocument, 
   content, 
   updatedContent, 
-  onDocumentRemoved 
+  onDocumentRemoved,
+  isAuthenticated,
+  onNavigate
 }: DocumentControlsProps) => {
   const { toast } = useToast();
 
   const handleRemoveDocument = async () => {
+    if (!isAuthenticated) {
+      onNavigate();
+      return;
+    }
+
     try {
-      if (currentDocument.fileType === 'application/pdf') {
+      if (currentDocument?.fileType === 'application/pdf') {
         const { error: storageError } = await supabase.storage
           .from('documents')
           .remove([currentDocument.filePath]);
@@ -49,6 +58,20 @@ export const DocumentControls = ({
   };
 
   const handleDownload = async (content: string, type: 'original' | 'updated') => {
+    if (!isAuthenticated) {
+      onNavigate();
+      return;
+    }
+
+    if (!currentDocument) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No document selected for download.",
+      });
+      return;
+    }
+
     try {
       if (type === 'original') {
         await downloadOriginalDocument(currentDocument, content);
@@ -69,6 +92,10 @@ export const DocumentControls = ({
       });
     }
   };
+
+  if (!currentDocument) {
+    return null;
+  }
 
   return (
     <div className="mt-4">
@@ -112,3 +139,4 @@ export const DocumentControls = ({
     </div>
   );
 };
+

@@ -11,6 +11,8 @@ interface DocumentSidebarProps {
   updatedContent?: string;
   onFileSelect: (file: File, content: string) => void;
   onDocumentRemoved: () => void;
+  isAuthenticated: boolean;
+  onNavigate: () => void;
 }
 
 export const DocumentSidebar = ({
@@ -20,6 +22,8 @@ export const DocumentSidebar = ({
   updatedContent,
   onFileSelect,
   onDocumentRemoved,
+  isAuthenticated,
+  onNavigate,
 }: DocumentSidebarProps) => {
   return (
     <div className="h-screen p-4">
@@ -50,9 +54,12 @@ export const DocumentSidebar = ({
             content={content}
             updatedContent={updatedContent}
             onDocumentRemoved={onDocumentRemoved}
+            isAuthenticated={isAuthenticated}
+            onNavigate={onNavigate}
           />
         </div>
       )}
     </div>
   );
 };
+
