@@ -1,6 +1,6 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect, useRef, forwardRef, memo, useState } from 'react';
+import { useEffect, useRef, forwardRef, memo } from 'react';
 
 interface DocumentPreviewProps {
   content: string;
@@ -10,57 +10,73 @@ interface DocumentPreviewProps {
 const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps>(
   ({ content, isUpdated = false }, ref) => {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [displayedContent, setDisplayedContent] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
+    const typingRef = useRef<string>('');
+    const intervalRef = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
+      // Reset scroll position when content changes
       if (scrollRef.current) {
         scrollRef.current.scrollTop = 0;
       }
-    }, [content]);
 
-    useEffect(() => {
+      // Clear any existing interval
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+
+      // If there's no content, reset everything
       if (!content) {
-        setDisplayedContent('');
+        typingRef.current = '';
         return;
       }
 
+      // For non-updated content, display it immediately
       if (!isUpdated) {
-        setDisplayedContent(content);
+        typingRef.current = content;
         return;
       }
 
-      setIsTyping(true);
+      // For updated content, animate it
+      typingRef.current = '';
       let currentIndex = 0;
-      const contentLength = content.length;
       
-      const typingInterval = setInterval(() => {
-        if (currentIndex <= contentLength) {
-          setDisplayedContent(content.slice(0, currentIndex));
+      intervalRef.current = setInterval(() => {
+        if (currentIndex <= content.length) {
+          typingRef.current = content.slice(0, currentIndex);
+          // Force re-render
+          scrollRef.current?.setAttribute('data-content', typingRef.current);
           currentIndex++;
         } else {
-          clearInterval(typingInterval);
-          setIsTyping(false);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
         }
-      }, 20); // Adjust speed by changing this value (milliseconds)
+      }, 20);
 
-      return () => clearInterval(typingInterval);
+      // Cleanup
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+      };
     }, [content, isUpdated]);
 
     if (!content) {
       return null;
     }
 
+    const displayContent = isUpdated ? typingRef.current : content;
+
     return (
       <div className="document-preview h-full" ref={ref}>
         <ScrollArea className="h-[calc(100vh-2rem)]">
-          <div className="prose max-w-none">
-            {displayedContent.split('\n').map((paragraph, index) => (
+          <div className="prose max-w-none" ref={scrollRef}>
+            {displayContent.split('\n').map((paragraph, index) => (
               paragraph ? (
                 <p 
                   key={`${index}-${paragraph.substring(0, 10)}`} 
                   className={`mb-4 text-emerald-50 whitespace-pre-wrap ${
-                    isTyping ? 'border-r-2 border-emerald-400 animate-pulse' : ''
+                    isUpdated && typingRef.current !== content ? 'border-r-2 border-emerald-400 animate-pulse' : ''
                   }`}
                 >
                   {paragraph}
