@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
-import pdfParse from 'pdf-parse';
+import * as pdfjs from 'pdfjs-dist';
 import {
   Select,
   SelectContent,
@@ -12,6 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+
+// Initialize pdf.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -35,8 +38,20 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const processPdf = async (file: File) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const data = await pdfParse(new Uint8Array(arrayBuffer));
-      return data.text;
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      
+      // Extract text from all pages
+      const maxPages = pdf.numPages;
+      const textContent = [];
+      
+      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const text = await page.getTextContent();
+        const pageText = text.items.map((item: any) => item.str).join(' ');
+        textContent.push(pageText);
+      }
+      
+      return textContent.join('\n\n');
     } catch (error) {
       console.error('Error processing PDF:', error);
       throw new Error('Failed to process PDF file');
