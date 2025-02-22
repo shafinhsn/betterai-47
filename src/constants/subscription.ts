@@ -18,7 +18,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: 'Student Pro',
     price: 20,
     messages: Infinity,
-    features: ['Unlimited messages', 'Priority support', 'Custom chat presets', 'Create custom presets']
+    features: ['Unlimited messages', 'Priority support', 'Custom chat presets', 'Advanced document analysis', 'Premium features']
   }
 ];
 
