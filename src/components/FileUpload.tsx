@@ -4,6 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
+import pdfParse from 'pdf-parse';
 import {
   Select,
   SelectContent,
@@ -33,8 +34,9 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
 
   const processPdf = async (file: File) => {
     try {
-      // For now, return a placeholder message
-      return "PDF support coming soon. This is a placeholder for PDF content.";
+      const arrayBuffer = await file.arrayBuffer();
+      const data = await pdfParse(new Uint8Array(arrayBuffer));
+      return data.text;
     } catch (error) {
       console.error('Error processing PDF:', error);
       throw new Error('Failed to process PDF file');
@@ -101,4 +103,3 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
-
