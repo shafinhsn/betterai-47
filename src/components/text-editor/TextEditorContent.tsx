@@ -23,7 +23,7 @@ export const TextEditorContent = ({
   lastCaretPosition
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const { saveSelection } = useTextSelection(editorRef);
+  const { saveSelection, restoreSelection } = useTextSelection(editorRef);
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     const content = e.currentTarget.innerHTML;
@@ -39,6 +39,10 @@ export const TextEditorContent = ({
     }
   };
 
+  const handleBeforeInput = (e: React.FormEvent<HTMLDivElement>) => {
+    saveSelection();
+  };
+
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const text = e.clipboardData.getData('text/plain');
@@ -47,15 +51,22 @@ export const TextEditorContent = ({
   };
 
   useEffect(() => {
+    const handleSelectionChange = () => {
+      saveSelection();
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, []);
+
+  useEffect(() => {
     if (editorRef.current) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const savedRange = range.cloneRange();
-        editorRef.current.focus();
-        selection.removeAllRanges();
-        selection.addRange(savedRange);
-      }
+      editorRef.current.style.fontFamily = font;
+      editorRef.current.style.fontSize = `${size}px`;
+      editorRef.current.style.textAlign = alignment;
+      restoreSelection();
     }
   }, [format, font, size, alignment]);
 
@@ -68,6 +79,7 @@ export const TextEditorContent = ({
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
+        onBeforeInput={handleBeforeInput}
         onPaste={handlePaste}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
@@ -79,4 +91,3 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
-

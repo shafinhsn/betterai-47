@@ -23,43 +23,41 @@ export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
     }
   };
 
-  const applyFormattingToSelection = (property: string, value: string | null) => {
+  const toggleFormat = (format: string) => {
     const selection = window.getSelection();
     if (!selection || !editorRef.current) return;
 
+    // Save the current selection
     const range = selection.getRangeAt(0);
+    const savedRange = range.cloneRange();
+
+    // If no text is selected, return
     if (range.collapsed) return;
 
-    const span = document.createElement('span');
-    if (value) {
-      span.style[property as any] = value;
-    } else {
-      span.style[property as any] = '';
-    }
+    // Get the selected text
+    const selectedText = range.toString();
     
-    const fragment = range.extractContents();
-    span.appendChild(fragment);
-    range.insertNode(span);
+    // Create a temporary element to check if the selected text is already formatted
+    const temp = document.createElement('div');
+    temp.innerHTML = selectedText;
+    
+    // Check if the format is already applied
+    const isFormatApplied = document.queryCommandState(format);
 
+    // Execute the command to toggle the format
+    document.execCommand(format, false);
+
+    // Restore the selection
     selection.removeAllRanges();
-    selection.addRange(range);
-    saveSelection();
-  };
+    selection.addRange(savedRange);
 
-  const applyFormattingToAll = (property: string, value: string | null) => {
-    if (!editorRef.current) return;
-    if (value) {
-      editorRef.current.style[property as any] = value;
-    } else {
-      editorRef.current.style[property as any] = '';
-    }
+    // Save the new selection state
     saveSelection();
   };
 
   return {
     lastCaretPosition,
-    applyFormattingToSelection,
-    applyFormattingToAll,
+    toggleFormat,
     saveSelection,
     restoreSelection
   };
