@@ -1,4 +1,7 @@
 
+// Trial period in days
+export const STUDENT_TRIAL_DAYS = 14;
+
 import { SubscriptionPlan } from '@/types/chat';
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
@@ -29,5 +32,3 @@ export const DAILY_MESSAGE_LIMIT = {
   free: 5
 };
 
-// Trial period in days
-export const STUDENT_TRIAL_DAYS = 14;
