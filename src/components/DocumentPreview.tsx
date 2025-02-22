@@ -1,12 +1,12 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 
 interface DocumentPreviewProps {
   content: string;
 }
 
-export const DocumentPreview = ({ content }: DocumentPreviewProps) => {
+export const DocumentPreview = memo(({ content }: DocumentPreviewProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -15,13 +15,17 @@ export const DocumentPreview = ({ content }: DocumentPreviewProps) => {
     }
   }, [content]);
 
+  if (!content) {
+    return null;
+  }
+
   return (
     <div className="document-preview h-full" ref={scrollRef}>
       <ScrollArea className="h-[calc(100vh-2rem)]">
         <div className="prose max-w-none">
           {content.split('\n').map((paragraph, index) => (
             paragraph ? (
-              <p key={index} className="mb-4 text-emerald-50 whitespace-pre-wrap">
+              <p key={`${index}-${paragraph.substring(0, 10)}`} className="mb-4 text-emerald-50 whitespace-pre-wrap">
                 {paragraph}
               </p>
             ) : <br key={index} />
@@ -30,4 +34,6 @@ export const DocumentPreview = ({ content }: DocumentPreviewProps) => {
       </ScrollArea>
     </div>
   );
-};
+});
+
+DocumentPreview.displayName = 'DocumentPreview';
