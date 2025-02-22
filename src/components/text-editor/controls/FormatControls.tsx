@@ -14,25 +14,15 @@ export const FormatControls = ({
 }: FormatControlsProps) => {
   const isFormatActive = (formatType: FormatOption) => {
     if (typeof document === 'undefined') return false;
-    const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return format.includes(formatType);
-    
-    if (selection.toString().length === 0) {
-      return format.includes(formatType);
-    }
-
-    switch (formatType) {
-      case 'bold':
-        return document.queryCommandState('bold');
-      case 'italic':
-        return document.queryCommandState('italic');
-      default:
-        return false;
-    }
+    return document.queryCommandState(formatType);
   };
 
   const handleFormatClick = (formatType: FormatOption) => {
-    onFormatChange([formatType]);
+    document.execCommand(formatType, false);
+    const newFormat = isFormatActive(formatType) 
+      ? format.filter(f => f !== formatType)
+      : [...format, formatType];
+    onFormatChange(newFormat);
   };
 
   return (
