@@ -10,7 +10,7 @@ const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -24,6 +24,20 @@ serve(async (req) => {
     console.log(`Creating checkout session for user ${userId} with plan ${planType}`);
     
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // Get product and price info from Supabase
+    const { data: products, error: productsError } = await supabase
+      .from('stripe_products')
+      .select('*')
+      .eq('name', planType === 'student' ? 'Student Plan' : 'Business Pro Plan')
+      .single();
+
+    if (productsError || !products) {
+      console.error('Error fetching product:', productsError);
+      throw new Error(`Failed to fetch product for plan type: ${planType}`);
+    }
+
+    console.log('Found product:', products);
 
     // Get or create Stripe customer
     let { data: customerData, error: customerError } = await supabase
@@ -58,20 +72,16 @@ serve(async (req) => {
       }
     }
 
-    const priceId = planType === 'student' 
-      ? Deno.env.get('STRIPE_STUDENT_PRICE_ID')
-      : Deno.env.get('STRIPE_BUSINESS_PRICE_ID');
-
-    if (!priceId) {
-      console.error('Missing price ID for plan type:', planType);
+    if (!products.stripe_price_id) {
+      console.error('Missing price ID for plan:', products);
       throw new Error(`Invalid price ID for plan type: ${planType}`);
     }
 
-    console.log(`Creating checkout session with price ID ${priceId}`);
+    console.log(`Creating checkout session with price ID ${products.stripe_price_id}`);
     
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: products.stripe_price_id, quantity: 1 }],
       mode: 'subscription',
       success_url: `${req.headers.get('origin')}/`,
       cancel_url: `${req.headers.get('origin')}/`,
