@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DocumentSidebar } from '@/components/DocumentSidebar';
@@ -181,7 +182,11 @@ const Index = () => {
               <h3 className="text-sm font-medium mb-2 text-gray-200">Document Preview</h3>
               {content ? (
                 <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                  <DocumentPreview key={`original-${previewKey}`} content={content} isUpdated={false} />
+                  <DocumentPreview 
+                    key={`original-${previewKey}`} 
+                    content={content} 
+                    isUpdated={false}
+                  />
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-400">
@@ -202,11 +207,12 @@ const Index = () => {
                     onSizeChange={() => {}}
                     onAlignmentChange={() => {}}
                   />
-                  <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-6rem)] overflow-auto">
-                    <textarea
-                      value={updatedContent}
-                      onChange={handleContentChange}
-                      className="w-full h-full bg-transparent text-emerald-50 focus:outline-none resize-none whitespace-pre-wrap"
+                  <div className="bg-[#242424] rounded-lg p-4 overflow-auto">
+                    <DocumentPreview 
+                      key={`updated-${previewKey}`} 
+                      content={updatedContent} 
+                      isUpdated={true}
+                      originalContent={content}
                     />
                   </div>
                 </div>
