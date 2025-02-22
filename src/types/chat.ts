@@ -12,6 +12,7 @@ export interface ChatProps {
   messages: Message[];
   documentContent?: string;
   onDocumentUpdate: (updatedContent: string) => void;
+  isAdmin?: boolean;
 }
 
 export type SubscriptionPlan = {
@@ -31,3 +32,4 @@ export interface MessageUsage {
   dailyMessageCount: number;
   subscription: Tables<'subscriptions'> | null;
 }
+

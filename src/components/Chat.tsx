@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,13 +10,19 @@ import { ChatInput } from './chat/ChatInput';
 import { TrialBanner } from './chat/TrialBanner';
 import type { ChatProps } from '@/types/chat';
 
-export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdate }: ChatProps) => {
+export const Chat = ({ 
+  onSendMessage, 
+  messages, 
+  documentContent, 
+  onDocumentUpdate,
+  isAdmin = false 
+}: ChatProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatPresets, setChatPresets] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [session, setSession] = useState<boolean>(false);
-  const { messageCount, dailyMessageCount, subscription, updateMessageCount } = useMessageUsage();
+  const { messageCount, dailyMessageCount, subscription, updateMessageCount } = useMessageUsage(isAdmin);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -51,20 +58,21 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       }
     };
 
-    if (subscription?.plan_type === 'Student Pro') {
+    if (subscription?.plan_type === 'Business Pro' || isAdmin) {
       loadChatPresets();
     }
-  }, [subscription]);
+  }, [subscription, isAdmin]);
 
   const checkUsageLimit = async () => {
-    if (subscription) return true;
+    if (subscription || isAdmin) return true;
     
     if (messageCount >= FREE_TIER_LIMIT) {
       navigate('/subscription');
       return false;
     }
 
-    if (dailyMessageCount >= DAILY_MESSAGE_LIMIT.free) {
+    // Only apply daily limit after free tier is used up
+    if (messageCount >= FREE_TIER_LIMIT && dailyMessageCount >= DAILY_MESSAGE_LIMIT.free) {
       toast({
         variant: "destructive",
         title: "Daily limit reached",
@@ -132,17 +140,18 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
 
   return (
     <div className="flex flex-col h-full">
-      {subscription && <TrialBanner subscription={subscription} />}
+      {subscription && !isAdmin && <TrialBanner subscription={subscription} />}
       <MessageList messages={messages} />
       
-      {messageCount < FREE_TIER_LIMIT && !subscription && (
+      {!isAdmin && messageCount < FREE_TIER_LIMIT && !subscription && (
         <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
           <span className="font-medium">{FREE_TIER_LIMIT - messageCount}</span> messages remaining in free tier
-          {dailyMessageCount < DAILY_MESSAGE_LIMIT.free && (
-            <span className="ml-2">
-              (<span className="font-medium">{DAILY_MESSAGE_LIMIT.free - dailyMessageCount}</span> messages left today)
-            </span>
-          )}
+        </div>
+      )}
+      
+      {!isAdmin && messageCount >= FREE_TIER_LIMIT && !subscription && (
+        <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
+          <span className="font-medium">{DAILY_MESSAGE_LIMIT.free - dailyMessageCount}</span> free messages remaining today
         </div>
       )}
       
@@ -159,3 +168,4 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
     </div>
   );
 };
+

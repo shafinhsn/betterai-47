@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/database.types';
 import type { MessageUsage } from '@/types/chat';
-import { DAILY_MESSAGE_LIMIT } from '@/constants/subscription';
+import { DAILY_MESSAGE_LIMIT, FREE_TIER_LIMIT } from '@/constants/subscription';
 
-export const useMessageUsage = (): MessageUsage & {
+export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   updateMessageCount: () => Promise<void>;
 } => {
   const [messageCount, setMessageCount] = useState(0);
@@ -53,6 +53,14 @@ export const useMessageUsage = (): MessageUsage & {
   };
 
   const checkSubscription = async () => {
+    if (isAdmin) {
+      setSubscription({
+        plan_type: 'Business Pro',
+        status: 'active'
+      } as Tables<'subscriptions'>);
+      return;
+    }
+
     try {
       const { data: sub, error } = await supabase
         .from('subscriptions')
@@ -68,6 +76,8 @@ export const useMessageUsage = (): MessageUsage & {
   };
 
   const updateMessageCount = async () => {
+    if (isAdmin) return;
+    
     try {
       const { data: usage, error: selectError } = await supabase
         .from('message_usage')
@@ -110,7 +120,7 @@ export const useMessageUsage = (): MessageUsage & {
   useEffect(() => {
     checkMessageUsage();
     checkSubscription();
-  }, []);
+  }, [isAdmin]);
 
   return {
     messageCount,
@@ -119,3 +129,4 @@ export const useMessageUsage = (): MessageUsage & {
     updateMessageCount
   };
 };
+
