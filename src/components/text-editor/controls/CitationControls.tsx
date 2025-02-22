@@ -20,6 +20,13 @@ import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 
+interface Source {
+  link: string;
+  title: string;
+  author?: string;
+  publishDate?: string;
+}
+
 interface CitationControlsProps {
   citationStyle: CitationStyle;
   onCitationStyleChange: (value: CitationStyle) => void;
@@ -33,59 +40,66 @@ export const CitationControls = ({
   onAddSourceLink,
   isLoading = false,
 }: CitationControlsProps) => {
-  const [sourceLink, setSourceLink] = useState('');
-  const [sourceTitle, setSourceTitle] = useState('');
-  const [authorName, setAuthorName] = useState('');
-  const [publishDate, setPublishDate] = useState('');
+  const [sources, setSources] = useState<Source[]>([]);
+  const [currentSource, setCurrentSource] = useState<Source>({ link: '', title: '', author: '', publishDate: '' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [hasAddedFirstSource, setHasAddedFirstSource] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  // Open dialog when a citation style is selected
+  // Open dialog when a citation style is selected for the first time
   useEffect(() => {
-    if (citationStyle !== 'none') {
-      if (!hasAddedFirstSource) {
-        setIsDialogOpen(true);
-      }
-    } else {
-      setIsDialogOpen(false);
+    if (citationStyle !== 'none' && sources.length === 0) {
+      setIsDialogOpen(true);
     }
-  }, [citationStyle, hasAddedFirstSource]);
+  }, [citationStyle, sources.length]);
 
   const handleSubmit = () => {
-    if (!sourceTitle) {
-      toast.error("Source title is required");
+    if (!currentSource.title || !currentSource.link) {
+      toast.error("Source title and link are required");
       return;
     }
 
-    if (!sourceLink) {
-      toast.error("Source link is required");
-      return;
-    }
-
-    // For APA and MLA styles, author name is required
-    if ((citationStyle === 'apa' || citationStyle === 'mla') && !authorName) {
+    if ((citationStyle === 'apa' || citationStyle === 'mla') && !currentSource.author) {
       toast.error("Author name is required for APA and MLA citations");
       return;
     }
 
-    // For all academic styles, publish date is highly recommended
-    if (!publishDate && (citationStyle === 'apa' || citationStyle === 'mla' || citationStyle === 'chicago')) {
-      toast.warning("Adding a publish date is recommended for proper citation formatting");
+    if (editingIndex !== null) {
+      // Update existing source
+      const updatedSources = [...sources];
+      updatedSources[editingIndex] = currentSource;
+      setSources(updatedSources);
+      toast.success("Source updated successfully");
+    } else {
+      // Add new source
+      setSources(prev => [...prev, currentSource]);
+      toast.success("Source added successfully");
     }
 
-    onAddSourceLink(sourceLink, sourceTitle, authorName, publishDate);
-    setSourceLink('');
-    setSourceTitle('');
-    setAuthorName('');
-    setPublishDate('');
-    setIsDialogOpen(false);
-    setHasAddedFirstSource(true);
-    toast.success("Source added successfully");
+    // Send to parent component
+    onAddSourceLink(
+      currentSource.link, 
+      currentSource.title, 
+      currentSource.author, 
+      currentSource.publishDate
+    );
+
+    // Reset form
+    setCurrentSource({ link: '', title: '', author: '', publishDate: '' });
+    setEditingIndex(null);
+  };
+
+  const handleEdit = (index: number) => {
+    setCurrentSource(sources[index]);
+    setEditingIndex(index);
+  };
+
+  const handleDelete = (index: number) => {
+    setSources(prev => prev.filter((_, i) => i !== index));
+    toast.success("Source removed");
   };
 
   const handleStyleChange = (value: CitationStyle) => {
-    if (value !== 'none' && !hasAddedFirstSource) {
-      toast.info("Please add at least one source first");
+    if (value !== 'none' && sources.length === 0) {
       setIsDialogOpen(true);
     }
     onCitationStyleChange(value);
@@ -108,30 +122,41 @@ export const CitationControls = ({
         </SelectContent>
       </Select>
 
+      {citationStyle !== 'none' && (
+        <Button 
+          variant="outline" 
+          onClick={() => setIsDialogOpen(true)}
+          className="flex gap-2 items-center"
+        >
+          Manage Sources ({sources.length})
+        </Button>
+      )}
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Add Source ({citationStyle.toUpperCase()})</DialogTitle>
+            <DialogTitle>
+              {editingIndex !== null ? "Edit Source" : "Add Source"} ({citationStyle.toUpperCase()})
+            </DialogTitle>
           </DialogHeader>
+          
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="title">Source Title<span className="text-red-500">*</span></Label>
               <Input
                 id="title"
-                value={sourceTitle}
-                onChange={(e) => setSourceTitle(e.target.value)}
+                value={currentSource.title}
+                onChange={(e) => setCurrentSource(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Enter source title"
-                required
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="link">Source Link<span className="text-red-500">*</span></Label>
               <Input
                 id="link"
-                value={sourceLink}
-                onChange={(e) => setSourceLink(e.target.value)}
+                value={currentSource.link}
+                onChange={(e) => setCurrentSource(prev => ({ ...prev, link: e.target.value }))}
                 placeholder="Enter source link"
-                required
               />
             </div>
             {showManualFields && (
@@ -145,34 +170,63 @@ export const CitationControls = ({
                   </Label>
                   <Input
                     id="author"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
+                    value={currentSource.author}
+                    onChange={(e) => setCurrentSource(prev => ({ ...prev, author: e.target.value }))}
                     placeholder="Enter author name"
-                    required={citationStyle === 'apa' || citationStyle === 'mla'}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date">
-                    Publish Date 
+                    Publish Date
                     <span className="text-gray-400 text-sm ml-2">(Recommended)</span>
                   </Label>
                   <Input
                     id="date"
                     type="date"
-                    value={publishDate}
-                    onChange={(e) => setPublishDate(e.target.value)}
+                    value={currentSource.publishDate}
+                    onChange={(e) => setCurrentSource(prev => ({ ...prev, publishDate: e.target.value }))}
                   />
                 </div>
               </>
             )}
-            <Button onClick={handleSubmit} className="w-full" disabled={isLoading}>
+
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : 'Add Source'}
+              ) : (editingIndex !== null ? 'Update Source' : 'Add Source')}
             </Button>
+
+            {sources.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium mb-2">Added Sources:</h4>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {sources.map((source, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-secondary rounded">
+                      <div className="truncate flex-1">
+                        <p className="font-medium truncate">{source.title}</p>
+                        <p className="text-sm text-muted-foreground truncate">{source.link}</p>
+                      </div>
+                      <div className="flex gap-2 ml-2">
+                        <Button size="sm" variant="ghost" onClick={() => handleEdit(index)}>
+                          Edit
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(index)}>
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 };
+

@@ -29,9 +29,15 @@ serve(async (req) => {
     const formatDate = (dateString?: string) => {
       if (!dateString) return ''
       const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      const options: Intl.DateTimeFormatOptions = { 
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }
+      return date.toLocaleDateString('en-US', options)
     }
 
+    // Citation style specific formatting
     switch (style) {
       case 'apa':
         sourcesPage = '\n\nReferences\n\n'
@@ -39,7 +45,7 @@ serve(async (req) => {
           const author = source.author ? `${source.author}. ` : ''
           const date = source.publishDate ? `(${formatDate(source.publishDate)}). ` : ''
           const citation = `${author}${date}${source.title}. Retrieved from ${source.link}`
-          sourcesPage += `${citation}\n`
+          sourcesPage += `    ${citation}\n`
         })
         break
 
@@ -49,7 +55,7 @@ serve(async (req) => {
           const author = source.author ? `${source.author}. ` : ''
           const date = source.publishDate ? `${formatDate(source.publishDate)}. ` : ''
           const citation = `${author}"${source.title}." ${date}Web. ${source.link}`
-          sourcesPage += `${citation}\n`
+          sourcesPage += `    ${citation}\n`
         })
         break
 
@@ -59,7 +65,7 @@ serve(async (req) => {
           const author = source.author ? `${source.author}. ` : ''
           const date = source.publishDate ? `${formatDate(source.publishDate)}. ` : ''
           const citation = `${author}"${source.title}." ${date}Accessed online at ${source.link}`
-          sourcesPage += `${citation}\n`
+          sourcesPage += `    ${citation}\n`
         })
         break
 
@@ -67,27 +73,21 @@ serve(async (req) => {
         sourcesPage = '\n\nReference List\n\n'
         sources.forEach((source) => {
           const author = source.author ? `${source.author} ` : ''
-          const year = source.publishDate ? `(${new Date(source.publishDate).getFullYear()}) ` : ''
-          const citation = `${author}${year}'${source.title}', Available at: ${source.link}`
-          sourcesPage += `${citation}\n`
+          const year = source.publishDate ? 
+            `(${new Date(source.publishDate).getFullYear()}) ` : ''
+          const citation = `${author}${year}'${source.title}', Available at: ${source.link} `
+          citation += source.publishDate ? 
+            `(Accessed: ${formatDate(source.publishDate)})` : ''
+          sourcesPage += `    ${citation}\n`
         })
         break
 
       default:
         sourcesPage = '\n\nSources\n\n'
         sources.forEach((source) => {
-          sourcesPage += `${source.title}: ${source.link}\n`
+          sourcesPage += `    ${source.title}: ${source.link}\n`
         })
     }
-
-    // Format the sources page with proper indentation
-    sourcesPage = sourcesPage.split('\n').map((line, index) => {
-      if (index === 0 || line.trim() === '') return line
-      if (line.includes('References') || line.includes('Works Cited') || 
-          line.includes('Bibliography') || line.includes('Reference List') || 
-          line.includes('Sources')) return line
-      return '    ' + line // Add proper indentation for citation entries
-    }).join('\n')
 
     return new Response(
       JSON.stringify({
@@ -103,6 +103,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in format-citation function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
@@ -110,8 +111,9 @@ serve(async (req) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-        status: 400,
+        status: 500,
       },
     )
   }
 })
+
