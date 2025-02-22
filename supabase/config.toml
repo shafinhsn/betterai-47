@@ -3,3 +3,4 @@ project_id = "igfpasvqbjczyohitymc"
 
 [functions.process-document]
 verify_jwt = false
+
