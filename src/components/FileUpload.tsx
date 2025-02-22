@@ -16,7 +16,10 @@ import {
 
 // Initialize PDF.js worker
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  const worker = new Worker(
+    new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url)
+  );
+  pdfjsLib.GlobalWorkerOptions.workerPort = worker;
 }
 
 interface FileUploadProps {
@@ -157,4 +160,3 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
-
