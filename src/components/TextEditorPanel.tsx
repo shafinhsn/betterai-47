@@ -40,39 +40,26 @@ export const TextEditorPanel = ({
     handlePlagiarismCheck,
   } = useTextEditor();
 
-  const applyFormatting = (property: string, value: string) => {
+  const applyFormattingToSelection = (property: string, value: string) => {
     const selection = window.getSelection();
-    const editorElement = editorRef.current;
+    if (!selection || !editorRef.current) return;
 
-    if (!editorElement || !selection) return;
-
-    // If there's no selection, apply to the whole content
-    if (selection.toString().length === 0) {
-      editorElement.style[property as any] = value;
-      return;
-    }
-
-    // If there's a selection, create a span with the formatting
     const range = selection.getRangeAt(0);
+    if (range.collapsed) return; // No text selected
+
     const span = document.createElement('span');
     span.style[property as any] = value;
-    
-    // Copy only the relevant styles to preserve existing formatting
-    const computedStyle = window.getComputedStyle(editorElement);
-    const stylesToCopy = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign'];
-    stylesToCopy.forEach(style => {
-      if (style !== property) { // Don't copy the style we're currently changing
-        span.style[style as any] = computedStyle[style];
-      }
-    });
-
-    // Apply the new formatting
     span.appendChild(range.extractContents());
     range.insertNode(span);
-    
+
     // Clean up selection
     selection.removeAllRanges();
     selection.addRange(range);
+  };
+
+  const applyFormattingToAll = (property: string, value: string) => {
+    if (!editorRef.current) return;
+    editorRef.current.style[property as any] = value;
   };
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
@@ -80,20 +67,39 @@ export const TextEditorPanel = ({
     setEditableContent(content);
   };
 
-  useEffect(() => {
-    if (editorRef.current) {
-      const editor = editorRef.current;
-      
-      // Apply formatting to the whole content when no text is selected
-      if (!window.getSelection()?.toString()) {
-        editor.style.fontFamily = font;
-        editor.style.fontSize = `${size}px`;
-        editor.style.textAlign = alignment;
-        editor.style.fontWeight = format.includes('bold') ? 'bold' : 'normal';
-        editor.style.fontStyle = format.includes('italic') ? 'italic' : 'normal';
-      }
+  const handleFormatWithSelection = (formats: string[]) => {
+    const selection = window.getSelection();
+    if (!selection || selection.toString().length === 0) {
+      // No selection, apply to all text
+      formats.forEach(format => {
+        if (format === 'bold') {
+          applyFormattingToAll('fontWeight', 'bold');
+        } else if (format === 'italic') {
+          applyFormattingToAll('fontStyle', 'italic');
+        }
+      });
+    } else {
+      // Apply to selected text only
+      formats.forEach(format => {
+        if (format === 'bold') {
+          applyFormattingToSelection('fontWeight', 'bold');
+        } else if (format === 'italic') {
+          applyFormattingToSelection('fontStyle', 'italic');
+        }
+      });
     }
-  }, [font, size, alignment, format]);
+  };
+
+  const handleStyleWithSelection = (property: string, value: string) => {
+    const selection = window.getSelection();
+    if (!selection || selection.toString().length === 0) {
+      // No selection, apply to all text
+      applyFormattingToAll(property, value);
+    } else {
+      // Apply to selected text only
+      applyFormattingToSelection(property, value);
+    }
+  };
 
   return (
     <div className="bg-[#1a1a1a] rounded-lg p-4 h-full">
@@ -118,25 +124,19 @@ export const TextEditorPanel = ({
             isCheckingPlagiarism={isCheckingPlagiarism}
             onFormatChange={(value) => {
               handleFormatChange(value);
-              value.forEach(format => {
-                if (format === 'bold') {
-                  applyFormatting('fontWeight', 'bold');
-                } else if (format === 'italic') {
-                  applyFormatting('fontStyle', 'italic');
-                }
-              });
+              handleFormatWithSelection(value);
             }}
             onFontChange={(value) => {
               handleFontChange(value);
-              applyFormatting('fontFamily', value);
+              handleStyleWithSelection('fontFamily', value);
             }}
             onSizeChange={(value) => {
               handleSizeChange(value);
-              applyFormatting('fontSize', `${value}px`);
+              handleStyleWithSelection('fontSize', `${value}px`);
             }}
             onAlignmentChange={(value) => {
               handleAlignmentChange(value);
-              applyFormatting('textAlign', value);
+              applyFormattingToAll('textAlign', value);
             }}
             onCitationStyleChange={handleCitationStyleChange}
             onPlagiarismCheck={handlePlagiarismCheck}
