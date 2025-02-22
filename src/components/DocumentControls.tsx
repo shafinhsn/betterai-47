@@ -48,11 +48,16 @@ export const DocumentControls = ({
   const handleDownload = async (content: string, type: 'original' | 'updated') => {
     try {
       if (type === 'original') {
-        // For PDF files, download the original PDF file
+        // For PDF files, download directly from Supabase storage
         if (currentDocument.fileType === 'application/pdf') {
-          const response = await fetch(currentDocument.filePath);
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
+          const { data, error } = await supabase.storage
+            .from('documents')
+            .download(currentDocument.filePath);
+
+          if (error) throw error;
+
+          // Create a download link for the PDF blob
+          const url = URL.createObjectURL(data);
           const a = document.createElement('a');
           a.href = url;
           a.download = currentDocument.filename;
@@ -144,4 +149,3 @@ export const DocumentControls = ({
     </div>
   );
 };
-
