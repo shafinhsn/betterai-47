@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
-import { SubscriptionDialog } from '@/components/SubscriptionDialog';
 import { useMessageUsage } from '@/hooks/use-message-usage';
 import { FREE_TIER_LIMIT } from '@/constants/subscription';
 import { MessageList } from './chat/MessageList';
@@ -14,7 +13,6 @@ import type { ChatProps } from '@/types/chat';
 export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdate }: ChatProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [chatPresets, setChatPresets] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [session, setSession] = useState<boolean>(false);
@@ -63,7 +61,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
     if (subscription) return true;
     
     if (messageCount >= FREE_TIER_LIMIT) {
-      setShowSubscriptionDialog(true);
+      navigate('/subscription');
       return false;
     }
     
@@ -145,12 +143,6 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
         onPresetChange={setSelectedPreset}
         onSubmit={handleSubmit}
       />
-
-      <SubscriptionDialog
-        open={showSubscriptionDialog}
-        onOpenChange={setShowSubscriptionDialog}
-      />
     </div>
   );
 };
-
