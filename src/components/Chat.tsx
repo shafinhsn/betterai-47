@@ -1,11 +1,11 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { SubscriptionDialog } from '@/components/SubscriptionDialog';
 import { useMessageUsage } from '@/hooks/use-message-usage';
 import { FREE_TIER_LIMIT } from '@/constants/subscription';
-import { AuthHoverCard } from './AuthHoverCard';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
 import { TrialBanner } from './chat/TrialBanner';
@@ -20,6 +20,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   const [session, setSession] = useState<boolean>(false);
   const { messageCount, subscription, updateMessageCount } = useMessageUsage();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadSession = async () => {
@@ -77,6 +78,11 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   };
 
   const handleSendMessage = async (content: string) => {
+    if (!session) {
+      navigate('/auth');
+      return;
+    }
+
     try {
       const canSendMessage = await checkUsageLimit();
       if (!canSendMessage) return;
@@ -124,17 +130,6 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       setInput('');
     }
   };
-
-  if (!session) {
-    return (
-      <div className="flex flex-col h-full">
-        {messages.length > 0 && <MessageList messages={messages} />}
-        <div className="p-4 border-t border-emerald-900/20">
-          <AuthHoverCard />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-full">

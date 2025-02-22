@@ -1,5 +1,5 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DocumentSidebar } from '@/components/DocumentSidebar';
 import { Chat } from '@/components/Chat';
 import { DocumentPreview } from '@/components/DocumentPreview';
@@ -9,6 +9,7 @@ import { Message, ProcessedDocument } from '@/types/document';
 import { TextEditor } from '@/components/TextEditor';
 import { Button } from '@/components/ui/button';
 import { ProfileMenu } from '@/components/ProfileMenu';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -19,6 +20,26 @@ const Index = () => {
   const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/auth');
+      }
+    };
+    
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleFileSelect = async (selectedFile: File, fileContent: string, filePath: string = '') => {
     setIsProcessing(true);
@@ -189,4 +210,3 @@ const Index = () => {
 };
 
 export default Index;
-
