@@ -1,6 +1,12 @@
 
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DocumentPreview } from '@/components/DocumentPreview';
 import {
   ToggleGroup,
@@ -61,27 +67,29 @@ export const TextEditorPanel = ({
       
       <div className="bg-[#242424] rounded-lg p-4 mb-4">
         <div className="flex flex-wrap gap-4 mb-4">
-          <Select
-            value={font}
-            onValueChange={handleFontChange}
-            items={[
-              { value: 'Arial', label: 'Arial' },
-              { value: 'Times New Roman', label: 'Times New Roman' },
-              { value: 'Courier New', label: 'Courier New' }
-            ]}
-          />
+          <Select value={font} onValueChange={handleFontChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select font" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Arial">Arial</SelectItem>
+              <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+              <SelectItem value="Courier New">Courier New</SelectItem>
+            </SelectContent>
+          </Select>
           
-          <Select
-            value={size}
-            onValueChange={handleSizeChange}
-            items={[
-              { value: '12', label: '12px' },
-              { value: '14', label: '14px' },
-              { value: '16', label: '16px' },
-              { value: '18', label: '18px' },
-              { value: '20', label: '20px' }
-            ]}
-          />
+          <Select value={size} onValueChange={handleSizeChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select size" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="12">12px</SelectItem>
+              <SelectItem value="14">14px</SelectItem>
+              <SelectItem value="16">16px</SelectItem>
+              <SelectItem value="18">18px</SelectItem>
+              <SelectItem value="20">20px</SelectItem>
+            </SelectContent>
+          </Select>
 
           <ToggleGroup
             type="multiple"
@@ -137,3 +145,4 @@ export const TextEditorPanel = ({
     </div>
   );
 };
+
