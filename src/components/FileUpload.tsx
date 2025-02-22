@@ -14,11 +14,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Initialize PDF.js worker using the worker from node_modules
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+// Set worker source path
+const pdfjsWorker = new URL(
   'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+  import.meta.url,
+);
+
+// Initialize PDF.js worker
+if (typeof window !== 'undefined') {
+  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+}
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -47,22 +52,26 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
 
   const processPdf = async (file: File) => {
     try {
+      console.log('Starting PDF processing...');
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({
-        data: arrayBuffer,
-        standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
-      }).promise;
       
+      // Load the PDF document
+      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      console.log('PDF loading task created');
+      
+      const pdf = await loadingTask.promise;
       console.log('PDF loaded successfully with', pdf.numPages, 'pages');
       
       // Extract text from all pages
-      const maxPages = pdf.numPages;
       const textContent = [];
       
-      for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        console.log('Processing page', pageNum);
         const page = await pdf.getPage(pageNum);
-        const text = await page.getTextContent();
-        const pageText = text.items.map((item: any) => item.str).join(' ');
+        const content = await page.getTextContent();
+        const pageText = content.items
+          .map((item: any) => item.str)
+          .join(' ');
         textContent.push(pageText);
       }
       
@@ -83,10 +92,11 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       const file = acceptedFiles[0];
       try {
         let content;
-        // Check if file type matches selected document type
         if (documentType === 'pdf' && file.type === 'application/pdf') {
+          console.log('Processing PDF file:', file.name);
           content = await processPdf(file);
         } else if (documentType === 'docx' && file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          console.log('Processing DOCX file:', file.name);
           content = await processDocx(file);
         } else {
           toast({
@@ -96,11 +106,14 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
           });
           return;
         }
-        onFileSelect(file, content);
-        toast({
-          title: "Success",
-          description: `${file.name} has been processed successfully.`,
-        });
+
+        if (content) {
+          onFileSelect(file, content);
+          toast({
+            title: "Success",
+            description: `${file.name} has been processed successfully.`,
+          });
+        }
       } catch (error) {
         console.error('Error processing file:', error);
       }
@@ -149,4 +162,3 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
-
