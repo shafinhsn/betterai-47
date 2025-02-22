@@ -14,8 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Initialize PDF.js worker using HTTPS CDN
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker using the full HTTPS CDN URL and explicit version
+const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_CDN;
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -44,9 +45,16 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
 
   const processPdf = async (file: File) => {
     try {
+      console.log('Processing PDF with worker:', PDFJS_CDN);
       const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+      const loadingTask = pdfjs.getDocument({ 
+        data: arrayBuffer,
+        cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+        cMapPacked: true,
+      });
+      
       const pdf = await loadingTask.promise;
+      console.log('PDF loaded successfully with', pdf.numPages, 'pages');
       
       // Extract text from all pages
       const maxPages = pdf.numPages;
@@ -142,3 +150,4 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
+
