@@ -6,6 +6,8 @@ import { DocumentPreview } from '@/components/DocumentPreview';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Download, Trash } from "lucide-react";
 
 interface Message {
   id: string;
@@ -30,7 +32,6 @@ const Index = () => {
   const handleFileSelect = async (selectedFile: File) => {
     setIsProcessing(true);
     setFile(selectedFile);
-    // Clear previous content immediately when processing starts
     setContent('');
     setCurrentDocument(null);
     
@@ -50,7 +51,6 @@ const Index = () => {
         throw new Error('No content received from document processing');
       }
 
-      // Basic validation of the received content
       if (typeof data.content !== 'string' || data.content.trim() === '') {
         throw new Error('Invalid or empty document content received');
       }
@@ -73,6 +73,64 @@ const Index = () => {
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleRemoveDocument = async () => {
+    if (!currentDocument) return;
+
+    try {
+      const { error } = await supabase.storage
+        .from('documents')
+        .remove([currentDocument.filePath]);
+
+      if (error) throw error;
+
+      setFile(null);
+      setContent('');
+      setCurrentDocument(null);
+      setMessages([]);
+
+      toast({
+        title: "Document removed",
+        description: "Successfully removed the document",
+      });
+    } catch (error) {
+      console.error('Error removing document:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove document. Please try again.",
+      });
+    }
+  };
+
+  const handleDownloadDocument = () => {
+    if (!content) return;
+
+    try {
+      // Create a blob with the processed content
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentDocument ? `processed_${currentDocument.filename}.txt` : 'processed_document.txt';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Document downloaded",
+        description: "Successfully downloaded the processed document",
+      });
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to download document. Please try again.",
+      });
     }
   };
 
@@ -103,9 +161,32 @@ const Index = () => {
               </div>
             )}
             {currentDocument && !isProcessing && (
-              <div className="mt-4 text-sm">
-                <p className="font-medium">Current document:</p>
-                <p className="text-muted-foreground">{currentDocument.filename}</p>
+              <div className="mt-4">
+                <div className="text-sm mb-2">
+                  <p className="font-medium">Current document:</p>
+                  <p className="text-muted-foreground">{currentDocument.filename}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadDocument}
+                    className="w-full"
+                    disabled={!content}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRemoveDocument}
+                    className="w-full"
+                  >
+                    <Trash className="mr-2 h-4 w-4" />
+                    Remove
+                  </Button>
+                </div>
               </div>
             )}
           </div>
