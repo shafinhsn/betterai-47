@@ -9,7 +9,7 @@ import { FREE_TIER_LIMIT } from '@/constants/subscription';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
 import { TrialBanner } from './chat/TrialBanner';
-import type { ChatProps, SubscriptionPlan } from '@/types/chat';
+import type { ChatProps } from '@/types/chat';
 
 export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdate }: ChatProps) => {
   const [input, setInput] = useState('');
@@ -58,13 +58,6 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       loadChatPresets();
     }
   }, [subscription]);
-
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
-    toast({
-      description: "This is a demo of the subscription feature. In production, this would integrate with Stripe for payments.",
-    });
-    setShowSubscriptionDialog(false);
-  };
 
   const checkUsageLimit = async () => {
     if (subscription) return true;
@@ -156,8 +149,8 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       <SubscriptionDialog
         open={showSubscriptionDialog}
         onOpenChange={setShowSubscriptionDialog}
-        onSubscribe={handleSubscribe}
       />
     </div>
   );
 };
+
