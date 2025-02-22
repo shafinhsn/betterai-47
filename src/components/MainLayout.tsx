@@ -41,13 +41,20 @@ export const MainLayout = ({
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DocumentSidebar
+        isProcessing={isProcessing}
         currentDocument={currentDocument}
+        content={content}
+        updatedContent={updatedContent}
+        onFileSelect={onFileSelect}
         onDocumentRemoved={onDocumentRemoved}
       />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <DocumentControls
           currentDocument={currentDocument}
+          content={content}
+          updatedContent={updatedContent}
+          onDocumentRemoved={onDocumentRemoved}
           isAuthenticated={isAuthenticated}
           onNavigate={onNavigate}
         />
@@ -73,6 +80,7 @@ export const MainLayout = ({
                 <Chat
                   messages={messages}
                   onSendMessage={onSendMessage}
+                  onDocumentUpdate={onDocumentUpdate}
                 />
               </>
             ) : (
