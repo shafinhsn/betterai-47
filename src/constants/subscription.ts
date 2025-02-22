@@ -8,31 +8,34 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     messages: Infinity,
     features: [
       'Unlimited messages',
-      '1 week free trial',
+      '7 day free trial',
       'Ideal for academic use',
-      'Email support'
+      'Email support',
+      '100 messages per day limit'
     ]
   },
   {
     name: 'Professional',
     price: 10,
-    messages: 1000, // Monthly message limit to control API costs
+    messages: 1000,
     features: [
       '1,000 messages per month',
       'Priority support',
       'Advanced document analysis',
-      'Business usage allowed'
+      'Business usage allowed',
+      '50 messages per day limit'
     ]
   }
 ];
 
 // Free tier limits
-export const FREE_TIER_LIMIT = 20; // Reduced to control API costs
+export const FREE_TIER_LIMIT = 20;
 
 // API usage limits (messages per day) to prevent abuse
 export const DAILY_MESSAGE_LIMIT = {
-  student: 100,    // Student plan daily limit
-  professional: 50  // Professional plan daily limit
+  student: 100,
+  professional: 50,
+  free: 20
 };
 
 // Trial period in days for student accounts

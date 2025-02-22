@@ -12,7 +12,7 @@ export const SubscriptionDialog = ({ open, onOpenChange, onSubscribe }: Subscrip
         <DialogHeader>
           <DialogTitle>Choose Your Plan</DialogTitle>
           <DialogDescription>
-            Select the plan that best fits your needs. Student plan includes a 1-week free trial.
+            Select the plan that best fits your needs. Student plan includes a {STUDENT_TRIAL_DAYS}-day free trial.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">

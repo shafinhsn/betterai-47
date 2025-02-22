@@ -97,6 +97,7 @@ export type Database = {
           created_at: string | null
           expires_at: string | null
           id: string
+          is_student: boolean | null
           plan_type: string
           started_at: string | null
           status: string
@@ -107,6 +108,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          is_student?: boolean | null
           plan_type: string
           started_at?: string | null
           status: string
@@ -117,6 +119,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          is_student?: boolean | null
           plan_type?: string
           started_at?: string | null
           status?: string
