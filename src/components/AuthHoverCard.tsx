@@ -12,6 +12,7 @@ export const AuthHoverCard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -68,11 +69,11 @@ export const AuthHoverCard = () => {
   };
 
   return (
-    <HoverCard openDelay={0} closeDelay={300}>
+    <HoverCard open={isOpen} onOpenChange={setIsOpen}>
       <HoverCardTrigger asChild>
-        <div className="w-full h-full flex justify-center">
+        <div className="w-full h-full flex justify-center mt-8">
           <Input
-            placeholder="Sign in to start chatting..."
+            placeholder="Start chatting for assistance..."
             className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50"
             disabled
           />
@@ -147,4 +148,3 @@ export const AuthHoverCard = () => {
     </HoverCard>
   );
 };
-
