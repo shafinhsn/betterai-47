@@ -21,19 +21,37 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { Button } from '@/components/ui/button';
+import { 
+  TextAlignment, 
+  FormatOption, 
+  CitationStyle, 
+  FontFamily 
+} from '@/hooks/useTextEditor';
 
-interface TextEditorControlsProps {
-  font: string;
+export interface TextEditorControlsProps {
+  /** Selected font family */
+  font: FontFamily;
+  /** Font size in pixels */
   size: string;
-  alignment: string;
-  format: string[];
-  citationStyle: string;
+  /** Text alignment */
+  alignment: TextAlignment;
+  /** Array of active format options (bold/italic) */
+  format: FormatOption[];
+  /** Selected citation style */
+  citationStyle: CitationStyle;
+  /** Whether plagiarism check is in progress */
   isCheckingPlagiarism: boolean;
-  onFormatChange: (value: string[]) => void;
-  onFontChange: (value: string) => void;
+  /** Callback for format changes */
+  onFormatChange: (value: FormatOption[]) => void;
+  /** Callback for font family changes */
+  onFontChange: (value: FontFamily) => void;
+  /** Callback for font size changes */
   onSizeChange: (value: string) => void;
-  onAlignmentChange: (value: string) => void;
-  onCitationStyleChange: (value: string) => void;
+  /** Callback for alignment changes */
+  onAlignmentChange: (value: TextAlignment) => void;
+  /** Callback for citation style changes */
+  onCitationStyleChange: (value: CitationStyle) => void;
+  /** Callback to trigger plagiarism check */
   onPlagiarismCheck: () => void;
 }
 

@@ -4,10 +4,14 @@ import { TextEditorControls } from './text-editor/TextEditorControls';
 import { TextEditorHeader } from './text-editor/TextEditorHeader';
 import { useTextEditor } from '@/hooks/useTextEditor';
 
-interface TextEditorPanelProps {
+export interface TextEditorPanelProps {
+  /** The updated content after AI processing */
   updatedContent: string;
+  /** The original content before AI processing */
   content: string;
+  /** Key used to force re-render of preview */
   previewKey: number;
+  /** Callback function to trigger manual content update */
   onManualUpdate: () => void;
 }
 

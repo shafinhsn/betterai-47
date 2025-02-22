@@ -2,19 +2,44 @@
 import { useState } from 'react';
 import { toast } from "sonner";
 
-export const useTextEditor = () => {
-  const [font, setFont] = useState('Arial');
+export type TextAlignment = 'left' | 'center' | 'right' | 'justify';
+export type FormatOption = 'bold' | 'italic';
+export type CitationStyle = 'none' | 'apa' | 'mla' | 'chicago' | 'harvard';
+export type FontFamily = 'Arial' | 'Times New Roman' | 'Courier New' | 'Georgia' | 'Verdana';
+
+export interface TextEditorState {
+  font: FontFamily;
+  size: string;
+  alignment: TextAlignment;
+  format: FormatOption[];
+  citationStyle: CitationStyle;
+  isCheckingPlagiarism: boolean;
+}
+
+export interface TextEditorActions {
+  handleFormatChange: (value: FormatOption[]) => void;
+  handleFontChange: (value: FontFamily) => void;
+  handleSizeChange: (value: string) => void;
+  handleAlignmentChange: (value: TextAlignment) => void;
+  handleCitationStyleChange: (value: CitationStyle) => void;
+  handlePlagiarismCheck: () => Promise<void>;
+}
+
+export type TextEditorHookReturn = TextEditorState & TextEditorActions;
+
+export const useTextEditor = (): TextEditorHookReturn => {
+  const [font, setFont] = useState<FontFamily>('Arial');
   const [size, setSize] = useState('16');
-  const [alignment, setAlignment] = useState('left');
-  const [format, setFormat] = useState<string[]>([]);
-  const [citationStyle, setCitationStyle] = useState('none');
+  const [alignment, setAlignment] = useState<TextAlignment>('left');
+  const [format, setFormat] = useState<FormatOption[]>([]);
+  const [citationStyle, setCitationStyle] = useState<CitationStyle>('none');
   const [isCheckingPlagiarism, setIsCheckingPlagiarism] = useState(false);
 
-  const handleFormatChange = (value: string[]) => {
+  const handleFormatChange = (value: FormatOption[]) => {
     setFormat(value);
   };
 
-  const handleFontChange = (value: string) => {
+  const handleFontChange = (value: FontFamily) => {
     setFont(value);
   };
 
@@ -22,11 +47,11 @@ export const useTextEditor = () => {
     setSize(value);
   };
 
-  const handleAlignmentChange = (value: string) => {
-    if (value) setAlignment(value);
+  const handleAlignmentChange = (value: TextAlignment) => {
+    setAlignment(value);
   };
 
-  const handleCitationStyleChange = (value: string) => {
+  const handleCitationStyleChange = (value: CitationStyle) => {
     setCitationStyle(value);
     toast.success(`Applied ${value.toUpperCase()} citation style`);
   };

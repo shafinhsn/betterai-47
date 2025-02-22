@@ -1,7 +1,8 @@
 
 import { Button } from '@/components/ui/button';
 
-interface TextEditorHeaderProps {
+export interface TextEditorHeaderProps {
+  /** Callback function to trigger manual content update */
   onManualUpdate: () => void;
 }
 
