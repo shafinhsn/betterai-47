@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -32,7 +34,16 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
     return null; // Loading state
   }
 
-  return session ? children : <Navigate to="/auth" replace />;
+  return session ? (
+    <div>
+      <div className="fixed top-4 right-4 z-50">
+        <ProfileMenu />
+      </div>
+      {children}
+    </div>
+  ) : (
+    <Navigate to="/auth" replace />
+  );
 };
 
 const App = () => (

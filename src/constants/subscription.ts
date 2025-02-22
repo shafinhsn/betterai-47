@@ -3,23 +3,23 @@ import { SubscriptionPlan } from '@/types/chat';
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    name: 'Basic',
+    name: 'Student Basic',
+    price: 5,
+    messages: Infinity,
+    features: ['Unlimited messages', 'Basic support', 'Standard response time']
+  },
+  {
+    name: 'Student Plus',
     price: 10,
-    messages: 1000,
-    features: ['1,000 messages per month', 'Basic support', 'Standard response time']
+    messages: Infinity,
+    features: ['Unlimited messages', 'Priority support', 'Faster response time', 'Advanced document analysis']
   },
   {
-    name: 'Premium',
-    price: 25,
-    messages: 5000,
-    features: ['5,000 messages per month', 'Priority support', 'Faster response time', 'Advanced document analysis']
-  },
-  {
-    name: 'Enterprise',
-    price: 100,
-    messages: 25000,
-    features: ['25,000 messages per month', '24/7 Support', 'Fastest response time', 'Custom features']
+    name: 'Student Pro',
+    price: 20,
+    messages: Infinity,
+    features: ['Unlimited messages', '24/7 Support', 'Fastest response time', 'Custom features']
   }
 ];
 
-export const FREE_TIER_LIMIT = 100;
+export const FREE_TIER_LIMIT = 50;
