@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
@@ -16,10 +15,7 @@ import {
 
 // Initialize PDF.js worker
 if (typeof window !== 'undefined') {
-  const worker = new Worker(
-    new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url)
-  );
-  pdfjsLib.GlobalWorkerOptions.workerPort = worker;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 }
 
 interface FileUploadProps {
