@@ -13,6 +13,7 @@ export const AuthHoverCard = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState("");
   const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -74,77 +75,83 @@ export const AuthHoverCard = () => {
         <div className="w-full h-full flex justify-center mt-8">
           <Input
             placeholder="Start chatting for assistance..."
-            className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50"
-            disabled
+            className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50 cursor-text"
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              if (!isOpen) setIsOpen(true);
+            }}
+            disabled={isLoading}
           />
         </div>
       </HoverCardTrigger>
       <HoverCardContent 
-        side="top" 
-        align="center"
-        className="w-80 bg-[#1a1a1a] border-emerald-800/30 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        className="w-[90vw] max-w-2xl bg-[#1a1a1a] border-emerald-800/30 rounded-lg p-8"
         sideOffset={5}
       >
-        <div className="flex flex-col items-center mb-6">
-          <div className="relative mb-4">
-            <PenLine className="w-12 h-12 text-emerald-500" strokeWidth={1.5} />
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+        <div className="max-w-md mx-auto">
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative mb-4">
+              <PenLine className="w-16 h-16 text-emerald-500" strokeWidth={1.5} />
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse" />
+            </div>
+            <h2 className="font-playfair text-4xl font-bold text-emerald-50 mb-2">WordEdit.ai</h2>
+            <p className="text-lg text-emerald-400">Your AI Document Editor</p>
+            <div className="w-24 h-0.5 bg-emerald-800/30 my-6" />
           </div>
-          <h2 className="font-playfair text-3xl font-bold text-emerald-50 mb-1">WordEdit.ai</h2>
-          <p className="text-sm text-emerald-400">Your AI Document Editor</p>
-          <div className="w-16 h-0.5 bg-emerald-800/30 my-4" />
+          <form onSubmit={handleSignIn} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-emerald-50 text-lg">Email</Label>
+              <div className="relative">
+                <UserRound className="absolute left-3 top-3 h-6 w-6 text-emerald-500" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="pl-12 py-6 text-lg bg-emerald-900/20 border-emerald-800/30 text-emerald-50"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-emerald-50 text-lg">Password</Label>
+              <div className="relative">
+                <LogIn className="absolute left-3 top-3 h-6 w-6 text-emerald-500" />
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="pl-12 py-6 text-lg bg-emerald-900/20 border-emerald-800/30 text-emerald-50"
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex gap-4 pt-4">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 py-6 text-lg bg-emerald-700 hover:bg-emerald-600 text-emerald-50"
+              >
+                Sign In
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSignUp}
+                disabled={isLoading}
+                variant="outline"
+                className="flex-1 py-6 text-lg bg-emerald-900/30 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
+              >
+                Sign Up
+              </Button>
+            </div>
+          </form>
         </div>
-        <form onSubmit={handleSignIn} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-emerald-50">Email</Label>
-            <div className="relative">
-              <UserRound className="absolute left-3 top-2.5 h-5 w-5 text-emerald-500" />
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="pl-10 bg-emerald-900/20 border-emerald-800/30 text-emerald-50"
-                required
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-emerald-50">Password</Label>
-            <div className="relative">
-              <LogIn className="absolute left-3 top-2.5 h-5 w-5 text-emerald-500" />
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="pl-10 bg-emerald-900/20 border-emerald-800/30 text-emerald-50"
-                required
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-emerald-50"
-            >
-              Sign In
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSignUp}
-              disabled={isLoading}
-              variant="outline"
-              className="flex-1 bg-emerald-900/30 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
-            >
-              Sign Up
-            </Button>
-          </div>
-        </form>
       </HoverCardContent>
     </HoverCard>
   );
 };
+
