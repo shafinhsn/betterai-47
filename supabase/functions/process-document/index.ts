@@ -54,10 +54,15 @@ serve(async (req) => {
 
     console.log('File uploaded successfully')
 
-    // Get file text content
+    // Get file text content and sanitize it
     let content = ''
     try {
-      content = await file.text()
+      const rawContent = await file.text()
+      // Replace any problematic Unicode characters with their closest ASCII equivalent
+      content = rawContent
+        .normalize('NFKD') // Decompose characters into their base form
+        .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
+        .replace(/[^\x00-\x7F]/g, '') // Remove any remaining non-ASCII characters
       console.log('Content extracted successfully')
     } catch (error) {
       console.error('Error extracting text content:', error)
