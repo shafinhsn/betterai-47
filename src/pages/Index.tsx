@@ -15,18 +15,40 @@ const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [content, setContent] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileSelect = async (selectedFile: File) => {
+    setIsProcessing(true);
     setFile(selectedFile);
-    // In a real app, we'd process the file here
-    setContent("Sample document content...");
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      
+      const response = await fetch('/api/supabase/functions/v1/process-document', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process document');
+      }
+
+      const data = await response.json();
+      setContent(data.content);
+    } catch (error) {
+      console.error('Error processing document:', error);
+      setContent('Error processing document. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleSendMessage = (message: string) => {
-    const newMessage = {
+    const newMessage: Message = {
       id: Date.now().toString(),
       content: message,
-      sender: messages.length % 2 === 0 ? 'user' : 'ai' as const
+      sender: 'user'
     };
     setMessages(prev => [...prev, newMessage]);
   };
@@ -43,6 +65,11 @@ const Index = () => {
               </p>
             </div>
             <FileUpload onFileSelect={handleFileSelect} />
+            {isProcessing && (
+              <div className="mt-4 text-sm text-muted-foreground">
+                Processing document...
+              </div>
+            )}
           </div>
         </ResizablePanel>
         
