@@ -1,11 +1,10 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, File } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
 import * as pdfjs from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
 import {
   Select,
   SelectContent,
@@ -15,7 +14,10 @@ import {
 } from "@/components/ui/select"
 
 // Initialize PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -39,8 +41,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const processPdf = async (file: File) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjs.getDocument(arrayBuffer);
-      const pdf = await loadingTask.promise;
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       
       // Extract text from all pages
       const maxPages = pdf.numPages;
@@ -120,4 +121,3 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
-
