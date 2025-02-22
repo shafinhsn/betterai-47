@@ -69,11 +69,11 @@ const Index = () => {
     setMessages([]);
   };
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = (message: string, sender: 'user' | 'ai') => {
     const newMessage: Message = {
       id: Date.now().toString(),
       content: message,
-      sender: 'user'
+      sender: sender
     };
     setMessages(prev => [...prev, newMessage]);
   };

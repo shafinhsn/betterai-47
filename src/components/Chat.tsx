@@ -14,7 +14,7 @@ interface Message {
 }
 
 interface ChatProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, sender: 'user' | 'ai') => void;
   messages: Message[];
   documentContent?: string;
   onDocumentUpdate: (updatedContent: string) => void;
@@ -29,7 +29,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       setIsLoading(true);
       
       // Add user message to chat
-      onSendMessage(content);
+      onSendMessage(content, 'user');
       
       // Check if this is an edit request
       const isEditRequest = content.toLowerCase().includes('edit') || 
@@ -59,12 +59,12 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       
       // Add AI response to chat
       if (data?.reply) {
-        onSendMessage(data.reply);
+        onSendMessage(data.reply, 'ai');
       }
 
     } catch (error) {
       console.error('Error sending message:', error);
-      onSendMessage('Sorry, I encountered an error while processing your request.');
+      onSendMessage('Sorry, I encountered an error while processing your request.', 'ai');
     } finally {
       setIsLoading(false);
     }
