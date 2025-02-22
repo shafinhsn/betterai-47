@@ -57,11 +57,12 @@ export const TextEditorPanel = ({
     const span = document.createElement('span');
     span.style[property as any] = value;
     
-    // Preserve existing formatting by copying styles from parent
+    // Copy only the relevant styles to preserve existing formatting
     const computedStyle = window.getComputedStyle(editorElement);
-    Object.values(computedStyle).forEach(property => {
-      if (computedStyle[property]) {
-        span.style[property] = computedStyle[property];
+    const stylesToCopy = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'textAlign'];
+    stylesToCopy.forEach(style => {
+      if (style !== property) { // Don't copy the style we're currently changing
+        span.style[style as any] = computedStyle[style];
       }
     });
 
@@ -159,3 +160,4 @@ export const TextEditorPanel = ({
     </div>
   );
 };
+
