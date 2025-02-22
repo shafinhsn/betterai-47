@@ -42,6 +42,13 @@ export const SourceDialog = ({
 }: SourceDialogProps) => {
   const showManualFields = citationStyle === 'apa' || citationStyle === 'mla' || citationStyle === 'chicago';
 
+  const handleInputChange = (field: keyof Source, value: string) => {
+    setCurrentSource({
+      ...currentSource,
+      [field]: value
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto fixed top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2">
@@ -57,7 +64,7 @@ export const SourceDialog = ({
             <Input
               id="title"
               value={currentSource.title}
-              onChange={(e) => setCurrentSource(prev => ({ ...prev, title: e.target.value }))}
+              onChange={(e) => handleInputChange('title', e.target.value)}
               placeholder="Enter source title"
             />
           </div>
@@ -66,7 +73,7 @@ export const SourceDialog = ({
             <Input
               id="link"
               value={currentSource.link}
-              onChange={(e) => setCurrentSource(prev => ({ ...prev, link: e.target.value }))}
+              onChange={(e) => handleInputChange('link', e.target.value)}
               placeholder="Enter source link"
             />
           </div>
@@ -82,7 +89,7 @@ export const SourceDialog = ({
                 <Input
                   id="author"
                   value={currentSource.author}
-                  onChange={(e) => setCurrentSource(prev => ({ ...prev, author: e.target.value }))}
+                  onChange={(e) => handleInputChange('author', e.target.value)}
                   placeholder="Enter author name"
                 />
               </div>
@@ -95,7 +102,7 @@ export const SourceDialog = ({
                   id="date"
                   type="date"
                   value={currentSource.publishDate}
-                  onChange={(e) => setCurrentSource(prev => ({ ...prev, publishDate: e.target.value }))}
+                  onChange={(e) => handleInputChange('publishDate', e.target.value)}
                 />
               </div>
             </>
@@ -115,3 +122,4 @@ export const SourceDialog = ({
     </Dialog>
   );
 };
+
