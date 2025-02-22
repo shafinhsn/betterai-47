@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { LogIn, UserPlus, PenLine } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const AuthPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent, isSignUp: boolean) => {
@@ -23,6 +25,9 @@ const AuthPage = () => {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: { remember_me: rememberMe }
+          }
         });
         
         if (signUpError) throw signUpError;
@@ -32,6 +37,9 @@ const AuthPage = () => {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
+          options: {
+            persistSession: rememberMe
+          }
         });
 
         if (error) throw error;
@@ -82,6 +90,20 @@ const AuthPage = () => {
                 required
                 className="bg-[#1a1a1a] border-[#2a2a2a]"
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              />
+              <label
+                htmlFor="remember"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-300"
+              >
+                Remember me
+              </label>
             </div>
           </div>
 

@@ -19,29 +19,31 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-      }
+      setIsAuthenticated(!!session);
     };
     
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate('/auth');
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const handleFileSelect = async (selectedFile: File, fileContent: string, filePath: string = '') => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
     setIsProcessing(true);
     setFile(selectedFile);
     setContent('');
@@ -84,6 +86,11 @@ const Index = () => {
   };
 
   const handleSendMessage = (message: string, sender: 'user' | 'ai') => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+    
     const newMessage: Message = {
       id: Date.now().toString(),
       content: message,
@@ -93,6 +100,10 @@ const Index = () => {
   };
 
   const handleDocumentUpdate = (newContent: string) => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
     setUpdatedContent(newContent);
     setPreviewKey(prev => prev + 1);
     toast({
@@ -102,6 +113,10 @@ const Index = () => {
   };
 
   const handleManualUpdate = () => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
     setPreviewKey(prev => prev + 1);
     toast({
       title: "Document updated",
@@ -110,13 +125,26 @@ const Index = () => {
   };
 
   const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
     setUpdatedContent(event.target.value);
   };
 
   return (
     <div className="h-screen bg-[#121212] text-white overflow-hidden flex flex-col">
       <div className="fixed top-4 right-4 z-50">
-        <ProfileMenu />
+        {isAuthenticated ? (
+          <ProfileMenu />
+        ) : (
+          <Button
+            onClick={() => navigate('/auth')}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            Sign In
+          </Button>
+        )}
       </div>
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="h-full">
