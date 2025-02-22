@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
+import * as mammoth from 'https://esm.sh/mammoth@1.6.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,14 +38,13 @@ serve(async (req) => {
       const pages = pdfDoc.getPages()
       extractedText = (await Promise.all(
         pages.map(async (page) => {
-          const text = await page.getText()
-          return text
+          return await page.extractText()
         })
       )).join('\n\n')
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      // Handle DOCX files
-      const textDecoder = new TextDecoder('utf-8')
-      extractedText = textDecoder.decode(fileBuffer)
+      // Handle DOCX files using mammoth
+      const result = await mammoth.extractRawText({ arrayBuffer: fileBuffer })
+      extractedText = result.value
     } else {
       throw new Error('Unsupported file type')
     }
@@ -66,7 +66,8 @@ serve(async (req) => {
       throw uploadError
     }
 
-    const content = extractedText.trim()
+    // Ensure the content is properly encoded as UTF-8 text
+    const content = new TextDecoder().decode(new TextEncoder().encode(extractedText.trim()))
 
     return new Response(
       JSON.stringify({
@@ -81,6 +82,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('Error processing document:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
