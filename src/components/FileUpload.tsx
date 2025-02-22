@@ -14,8 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Initialize PDF.js worker using CDN
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker
+if (typeof window !== 'undefined') {
+  const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
+  pdfjsLib.GlobalWorkerOptions.workerPort = new pdfjsWorker.PDFWorker();
+}
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -48,10 +51,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       const arrayBuffer = await file.arrayBuffer();
       
       // Load the PDF document
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      console.log('PDF loading task created');
-      
-      const pdf = await loadingTask.promise;
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       console.log('PDF loaded successfully with', pdf.numPages, 'pages');
       
       const textContent: string[] = [];
@@ -158,3 +158,4 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
+
