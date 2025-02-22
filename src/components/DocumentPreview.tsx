@@ -12,16 +12,17 @@ interface DocumentPreviewProps {
 
 const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps>(
   ({ content, isUpdated = false, originalContent, style }, ref) => {
+    console.log('DocumentPreview rendering with:', { content, isUpdated, originalContent });
+
     const diffs = useMemo(() => {
       if (!isUpdated || !originalContent) return null;
 
       const dmp = new DiffMatchPatch.diff_match_patch();
-      const computedDiffs = dmp.diff_main(originalContent, content);
-      dmp.diff_cleanupSemantic(computedDiffs);
-      return computedDiffs;
+      return dmp.diff_main(originalContent, content);
     }, [content, originalContent, isUpdated]);
 
     if (!content) {
+      console.log('No content to render');
       return null;
     }
 
@@ -104,3 +105,4 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
 DocumentPreviewComponent.displayName = 'DocumentPreview';
 
 export const DocumentPreview = memo(DocumentPreviewComponent);
+

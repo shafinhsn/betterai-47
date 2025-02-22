@@ -23,7 +23,8 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
       
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: open // Only fetch when dialog is open
   });
 
   const handleSubscribe = async (productId: string, planName: string) => {
@@ -151,3 +152,4 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     </Dialog>
   );
 };
+
