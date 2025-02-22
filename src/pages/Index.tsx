@@ -1,16 +1,10 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DocumentSidebar } from '@/components/DocumentSidebar';
-import { Chat } from '@/components/Chat';
-import { DocumentPreview } from '@/components/DocumentPreview';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useToast } from "@/hooks/use-toast";
 import { Message, ProcessedDocument } from '@/types/document';
-import { TextEditor } from '@/components/TextEditor';
-import { Button } from '@/components/ui/button';
-import { ProfileMenu } from '@/components/ProfileMenu';
 import { supabase } from '@/integrations/supabase/client';
+import { MainLayout } from '@/components/MainLayout';
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -125,103 +119,22 @@ const Index = () => {
     });
   };
 
-  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (!isAuthenticated) {
-      navigate('/auth');
-      return;
-    }
-    setUpdatedContent(event.target.value);
-  };
-
   return (
-    <div className="h-screen bg-[#121212] text-white overflow-hidden flex flex-col">
-      <div className="fixed top-4 right-4 z-50">
-        {isAuthenticated ? (
-          <ProfileMenu />
-        ) : (
-          <Button
-            onClick={() => navigate('/auth')}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            Sign In
-          </Button>
-        )}
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          <ResizablePanel defaultSize={25} minSize={20} className="bg-[#1a1a1a] border-r border-[#2a2a2a]">
-            <DocumentSidebar
-              isProcessing={isProcessing}
-              currentDocument={currentDocument}
-              content={content}
-              updatedContent={updatedContent}
-              onFileSelect={handleFileSelect}
-              onDocumentRemoved={handleDocumentRemoved}
-            />
-          </ResizablePanel>
-          
-          <ResizableHandle withHandle className="bg-[#2a2a2a]" />
-          
-          <ResizablePanel defaultSize={50}>
-            <div className="h-full flex flex-col">
-              <div className="flex-1">
-                <Chat
-                  messages={messages}
-                  onSendMessage={handleSendMessage}
-                  documentContent={content}
-                  onDocumentUpdate={handleDocumentUpdate}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
-
-          <ResizableHandle withHandle className="bg-[#2a2a2a]" />
-
-          <ResizablePanel defaultSize={25}>
-            <div className="h-full p-4">
-              <h3 className="text-sm font-medium mb-2 text-gray-200">Document Preview</h3>
-              {content ? (
-                <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                  <DocumentPreview 
-                    key={`original-${previewKey}`} 
-                    content={content} 
-                    isUpdated={false}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
-                </div>
-              )}
-              {updatedContent && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium text-gray-200">Updated Document</h3>
-                    <Button variant="outline" size="sm" onClick={handleManualUpdate}>
-                      Update
-                    </Button>
-                  </div>
-                  <TextEditor
-                    onFormatChange={() => {}}
-                    onFontChange={() => {}}
-                    onSizeChange={() => {}}
-                    onAlignmentChange={() => {}}
-                  />
-                  <div className="bg-[#242424] rounded-lg p-4 overflow-auto">
-                    <DocumentPreview 
-                      key={`updated-${previewKey}`} 
-                      content={updatedContent} 
-                      isUpdated={true}
-                      originalContent={content}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
-    </div>
+    <MainLayout
+      isAuthenticated={isAuthenticated}
+      isProcessing={isProcessing}
+      currentDocument={currentDocument}
+      content={content}
+      updatedContent={updatedContent}
+      messages={messages}
+      previewKey={previewKey}
+      onFileSelect={handleFileSelect}
+      onDocumentRemoved={handleDocumentRemoved}
+      onSendMessage={handleSendMessage}
+      onDocumentUpdate={handleDocumentUpdate}
+      onManualUpdate={handleManualUpdate}
+      onNavigate={() => navigate('/auth')}
+    />
   );
 };
 
