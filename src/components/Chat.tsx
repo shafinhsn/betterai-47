@@ -35,7 +35,9 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
           context: documentContent || '',
           shouldUpdateDocument: content.toLowerCase().includes('edit') || 
                               content.toLowerCase().includes('update') || 
-                              content.toLowerCase().includes('change'),
+                              content.toLowerCase().includes('change') ||
+                              content.toLowerCase().includes('modify') ||
+                              content.toLowerCase().includes('replace'),
         },
       });
 
@@ -43,9 +45,17 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
 
       if (data?.updatedDocument) {
         onDocumentUpdate(data.updatedDocument);
-      } else if (data?.reply) {
+      }
+      
+      if (data?.reply) {
+        const aiMessage: Message = {
+          id: Date.now().toString(),
+          content: data.reply,
+          sender: 'ai'
+        };
         onSendMessage(data.reply);
       }
+
     } catch (error) {
       console.error('Error sending message:', error);
       onSendMessage('Sorry, I encountered an error while processing your request.');
@@ -72,7 +82,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
               'mb-4 p-4 rounded-lg',
               message.sender === 'user'
                 ? 'bg-primary text-primary-foreground ml-auto max-w-[80%]'
-                : 'bg-muted/70 text-muted-foreground mr-auto max-w-[80%]'
+                : 'bg-muted text-muted-foreground mr-auto max-w-[80%]'
             )}
           >
             {message.content}
