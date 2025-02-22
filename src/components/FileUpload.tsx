@@ -5,6 +5,7 @@ import { Upload, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
 import * as pdfjs from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
 import {
   Select,
   SelectContent,
@@ -14,9 +15,7 @@ import {
 } from "@/components/ui/select"
 
 // Initialize PDF.js worker
-if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-}
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -40,7 +39,8 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const processPdf = async (file: File) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+      const loadingTask = pdfjs.getDocument(arrayBuffer);
+      const pdf = await loadingTask.promise;
       
       // Extract text from all pages
       const maxPages = pdf.numPages;
