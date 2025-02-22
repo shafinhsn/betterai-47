@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { DocumentSidebar } from '@/components/DocumentSidebar';
 import { Chat } from '@/components/Chat';
@@ -7,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Message, ProcessedDocument } from '@/types/document';
 import { TextEditor } from '@/components/TextEditor';
 import { Button } from '@/components/ui/button';
+import { ProfileMenu } from '@/components/ProfileMenu';
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -112,6 +114,9 @@ const Index = () => {
 
   return (
     <div className="h-screen bg-[#121212] text-white overflow-hidden">
+      <div className="fixed top-4 right-4 z-50">
+        <ProfileMenu />
+      </div>
       <ResizablePanelGroup direction="horizontal" className="h-full">
         <ResizablePanel defaultSize={25} minSize={20} className="bg-[#1a1a1a] border-r border-[#2a2a2a]">
           <DocumentSidebar

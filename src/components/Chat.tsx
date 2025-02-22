@@ -13,6 +13,7 @@ import { FREE_TIER_LIMIT } from '@/constants/subscription';
 import type { ChatProps, Message, SubscriptionPlan } from '@/types/chat';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AuthHoverCard } from './AuthHoverCard';
 
 export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdate }: ChatProps) => {
   const [input, setInput] = useState('');
@@ -20,8 +21,24 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [chatPresets, setChatPresets] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
+  const [session, setSession] = useState<boolean>(false);
   const { messageCount, subscription, updateMessageCount } = useMessageUsage();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(!!session);
+    };
+    
+    loadSession();
+
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(!!session);
+    });
+
+    return () => authSubscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const loadChatPresets = async () => {
@@ -136,6 +153,14 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       setInput('');
     }
   };
+
+  if (!session) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <AuthHoverCard />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
