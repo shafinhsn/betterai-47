@@ -3,7 +3,7 @@ import { SubscriptionPlan } from '@/types/chat';
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    name: 'Creator Plan',
+    name: 'Student Plan',
     price: 8,
     messages: Infinity,
     features: [
@@ -21,7 +21,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: 15,
     messages: Infinity,
     features: [
-      'Everything in Creator Plan',
+      'Everything in Student Plan',
       'Priority support',
       'Advanced document analysis',
       'Custom document templates',
