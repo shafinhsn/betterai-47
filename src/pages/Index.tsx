@@ -14,7 +14,7 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | null>(null);
-  const [previewKey, setPreviewKey] = useState(0); // Add a key to force re-render
+  const [previewKey, setPreviewKey] = useState(0);
   const { toast } = useToast();
 
   const handleFileSelect = async (selectedFile: File, fileContent: string) => {
@@ -70,7 +70,7 @@ const Index = () => {
 
   const handleDocumentUpdate = (newContent: string) => {
     setUpdatedContent(newContent);
-    setPreviewKey(prev => prev + 1); // Increment key to force re-render
+    setPreviewKey(prev => prev + 1);
     toast({
       title: "Document updated",
       description: "The document has been modified based on your request.",
@@ -108,8 +108,8 @@ const Index = () => {
         
         <ResizablePanel defaultSize={35}>
           <div className="h-full p-4 bg-[#1a1a1a]">
-            <div className="flex flex-col h-full gap-4">
-              <div className="flex-1">
+            <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
+              <ResizablePanel defaultSize={50}>
                 <h3 className="text-sm font-medium mb-2 text-gray-200">Original Document</h3>
                 {content ? (
                   <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
@@ -120,21 +120,25 @@ const Index = () => {
                     {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
                   </div>
                 )}
-              </div>
+              </ResizablePanel>
+              
               {updatedContent && (
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
-                  <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                    <DocumentPreview 
-                      key={`updated-${previewKey}`}
-                      content={updatedContent} 
-                      isUpdated={true} 
-                      originalContent={content}
-                    />
-                  </div>
-                </div>
+                <>
+                  <ResizableHandle withHandle className="bg-[#2a2a2a]" />
+                  <ResizablePanel defaultSize={50}>
+                    <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
+                    <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
+                      <DocumentPreview 
+                        key={`updated-${previewKey}`}
+                        content={updatedContent} 
+                        isUpdated={true} 
+                        originalContent={content}
+                      />
+                    </div>
+                  </ResizablePanel>
+                </>
               )}
-            </div>
+            </ResizablePanelGroup>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
