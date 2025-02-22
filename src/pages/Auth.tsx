@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogIn, UserPlus, PenLine } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
 
 const AuthPage = () => {
   const [email, setEmail] = useState('');
@@ -48,11 +48,11 @@ const AuthPage = () => {
     <div className="min-h-screen bg-[#121212] text-white flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center">
-          <div className="relative mb-4">
-            <PenLine className="w-16 h-16 text-emerald-500" strokeWidth={1.5} />
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse" />
-          </div>
-          <h2 className="text-4xl font-bold font-playfair">WordEdit.ai</h2>
+          <h2 className="text-5xl font-bold font-playfair">
+            <span className="text-emerald-500">Word</span>
+            <span className="text-emerald-400">Edit</span>
+            <span className="text-emerald-500">.ai</span>
+          </h2>
           <p className="mt-2 text-sm text-gray-400">Sign in or create an account to continue</p>
         </div>
         
