@@ -26,10 +26,10 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     }
   });
 
-  const handleSubscribe = async (planType: string) => {
+  const handleSubscribe = async (productId: string, planName: string) => {
     try {
       setIsLoading(true);
-      setProcessingPlanId(planType);
+      setProcessingPlanId(planName);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -39,7 +39,8 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
 
       const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          planType: planType === 'Student Plan' ? 'student' : 'business',
+          planType: planName === 'Student Plan' ? 'student' : 'business',
+          productId: productId,
           email: user.email,
           userId: user.id
         }
@@ -135,7 +136,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
                 </ul>
                 <Button
                   className="w-full"
-                  onClick={() => handleSubscribe(product.name)}
+                  onClick={() => handleSubscribe(product.stripe_product_id, product.name)}
                   disabled={isLoading}
                   variant={product.name === 'Student Plan' ? 'default' : 'outline'}
                 >
