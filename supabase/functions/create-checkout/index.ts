@@ -58,13 +58,6 @@ serve(async (req) => {
         email,
         metadata: {
           supabase_user_id: userId
-        },
-        address: {
-          country: 'US', // Default to US, will be updated during checkout
-          postal_code: '00000' // Temporary postal code, will be updated during checkout
-        },
-        tax: {
-          ip_address: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip')
         }
       });
       stripeCustomerId = customer.id;
@@ -97,16 +90,17 @@ serve(async (req) => {
       mode: 'subscription',
       success_url: `${req.headers.get('origin')}/`,
       cancel_url: `${req.headers.get('origin')}/`,
-      customer_update: {
-        address: 'auto'
-      },
-      tax_id_collection: {
-        enabled: true
-      },
       automatic_tax: { 
         enabled: true 
       },
+      customer_update: {
+        name: 'auto',
+        address: 'auto'
+      },
       billing_address_collection: 'required',
+      tax_id_collection: {
+        enabled: true
+      },
       client_reference_id: userId,
       metadata: {
         supabase_user_id: userId
