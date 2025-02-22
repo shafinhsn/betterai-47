@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UserRound, LogIn } from 'lucide-react';
+import { UserRound, LogIn, PenLine } from 'lucide-react';
 
 export const AuthHoverCard = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -79,9 +79,14 @@ export const AuthHoverCard = () => {
         </div>
       </HoverCardTrigger>
       <HoverCardContent className="w-80 bg-[#1a1a1a] border-emerald-800/30">
-        <div className="mb-4 text-center">
-          <h2 className="font-playfair text-2xl font-bold text-emerald-50 mb-2">WordEdit.ai</h2>
-          <p className="text-sm text-emerald-400">Sign in to start your editing journey</p>
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative mb-4">
+            <PenLine className="w-12 h-12 text-emerald-500" strokeWidth={1.5} />
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+          </div>
+          <h2 className="font-playfair text-3xl font-bold text-emerald-50 mb-1">WordEdit.ai</h2>
+          <p className="text-sm text-emerald-400">Your AI Document Editor</p>
+          <div className="w-16 h-0.5 bg-emerald-800/30 my-4" />
         </div>
         <form onSubmit={handleSignIn} className="space-y-4">
           <div className="space-y-2">
@@ -137,3 +142,4 @@ export const AuthHoverCard = () => {
     </HoverCard>
   );
 };
+
