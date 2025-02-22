@@ -1,12 +1,13 @@
 
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { DocumentSidebar } from '@/components/DocumentSidebar';
 import { Chat } from '@/components/Chat';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { TextEditorPanel } from '@/components/TextEditorPanel';
-import { DocumentControls } from '@/components/DocumentControls';
-import { FileUpload } from '@/components/FileUpload';
-import { DocumentPreview } from '@/components/DocumentPreview';
-import { ProcessedDocument, Message } from '@/types/document';
+import { Button } from '@/components/ui/button';
+import { ProfileMenu } from '@/components/ProfileMenu';
+import { ProcessedDocument } from '@/types/document';
+import { Message } from '@/types/document';
 
 interface MainLayoutProps {
   isAuthenticated: boolean | null;
@@ -16,7 +17,7 @@ interface MainLayoutProps {
   updatedContent: string;
   messages: Message[];
   previewKey: number;
-  onFileSelect: (file: File, content: string, path?: string) => void;
+  onFileSelect: (file: File, content: string, filePath?: string) => void;
   onDocumentRemoved: () => void;
   onSendMessage: (message: string, sender: 'user' | 'ai') => void;
   onDocumentUpdate: (content: string) => void;
@@ -37,74 +38,71 @@ export const MainLayout = ({
   onSendMessage,
   onDocumentUpdate,
   onManualUpdate,
-  onNavigate
+  onNavigate,
 }: MainLayoutProps) => {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <DocumentSidebar
-        isProcessing={isProcessing}
-        currentDocument={currentDocument}
-        content={content}
-        updatedContent={updatedContent}
-        onFileSelect={onFileSelect}
-        onDocumentRemoved={onDocumentRemoved}
-        isAuthenticated={isAuthenticated}
-        onNavigate={onNavigate}
-      />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <DocumentControls
-          currentDocument={currentDocument}
-          content={content}
-          updatedContent={updatedContent}
-          onDocumentRemoved={onDocumentRemoved}
-          isAuthenticated={isAuthenticated}
-          onNavigate={onNavigate}
-        />
-        
-        <div className="flex-1 grid grid-cols-3 gap-4 p-4 overflow-hidden">
-          {currentDocument ? (
-            <>
-              <TextEditorPanel
-                updatedContent={updatedContent}
-                content={content}
-                previewKey={previewKey}
-                onManualUpdate={onManualUpdate}
-              />
-              <Chat
-                messages={messages}
-                onSendMessage={onSendMessage}
-                onDocumentUpdate={onDocumentUpdate}
-              />
-              <div className="flex flex-col space-y-4 overflow-hidden">
-                <PreviewPanel
-                  content={content}
-                  isProcessing={isProcessing}
-                  previewKey={previewKey}
+    <div className="h-screen bg-[#121212] text-white overflow-hidden flex flex-col">
+      <div className="fixed top-4 right-4 z-50">
+        {isAuthenticated ? (
+          <ProfileMenu />
+        ) : (
+          <Button
+            onClick={onNavigate}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            Sign In
+          </Button>
+        )}
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={25} minSize={20} className="bg-[#1a1a1a] border-r border-[#2a2a2a]">
+            <DocumentSidebar
+              isProcessing={isProcessing}
+              currentDocument={currentDocument}
+              content={content}
+              updatedContent={updatedContent}
+              onFileSelect={onFileSelect}
+              onDocumentRemoved={onDocumentRemoved}
+            />
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle className="bg-[#2a2a2a]" />
+          
+          <ResizablePanel defaultSize={50}>
+            <div className="h-full flex flex-col">
+              <div className="flex-1">
+                <Chat
+                  messages={messages}
+                  onSendMessage={onSendMessage}
+                  documentContent={content}
+                  onDocumentUpdate={onDocumentUpdate}
                 />
-                {updatedContent && (
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document Preview</h3>
-                    <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                      <DocumentPreview 
-                        key={`updated-${previewKey}`} 
-                        content={updatedContent}
-                        isUpdated={true}
-                        originalContent={content}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
-            </>
-          ) : (
-            <div className="col-start-3">
-              <FileUpload onFileSelect={onFileSelect} />
             </div>
-          )}
-        </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle className="bg-[#2a2a2a]" />
+
+          <ResizablePanel defaultSize={25}>
+            <div className="h-full p-4">
+              <PreviewPanel
+                content={content}
+                isProcessing={isProcessing}
+                previewKey={previewKey}
+              />
+              {updatedContent && (
+                <TextEditorPanel
+                  updatedContent={updatedContent}
+                  content={content}
+                  previewKey={previewKey}
+                  onManualUpdate={onManualUpdate}
+                />
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
 };
-

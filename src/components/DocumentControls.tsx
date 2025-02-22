@@ -8,27 +8,19 @@ import { DocumentInfo } from "./DocumentInfo";
 import { downloadOriginalDocument, downloadUpdatedDocument } from "@/utils/document";
 
 interface DocumentControlsProps {
-  currentDocument: ProcessedDocument | null;
-  content?: string;
+  currentDocument: ProcessedDocument;
+  content: string;
   updatedContent?: string;
   onDocumentRemoved: () => void;
-  isAuthenticated: boolean | null;
-  onNavigate: () => void;
 }
 
 export const DocumentControls = ({ 
   currentDocument, 
   content, 
   updatedContent, 
-  onDocumentRemoved,
-  isAuthenticated,
-  onNavigate
+  onDocumentRemoved 
 }: DocumentControlsProps) => {
   const { toast } = useToast();
-
-  if (!currentDocument) {
-    return null;
-  }
 
   const handleRemoveDocument = async () => {
     try {
@@ -56,12 +48,12 @@ export const DocumentControls = ({
     }
   };
 
-  const handleDownload = async (downloadContent: string, type: 'original' | 'updated') => {
+  const handleDownload = async (content: string, type: 'original' | 'updated') => {
     try {
       if (type === 'original') {
-        await downloadOriginalDocument(currentDocument, downloadContent);
+        await downloadOriginalDocument(currentDocument, content);
       } else {
-        await downloadUpdatedDocument(downloadContent, currentDocument.filename, currentDocument.fileType);
+        await downloadUpdatedDocument(content, currentDocument.filename, currentDocument.fileType);
       }
 
       toast({
@@ -79,14 +71,14 @@ export const DocumentControls = ({
   };
 
   return (
-    <div className="border-b p-4">
+    <div className="mt-4">
       <DocumentInfo filename={currentDocument.filename} />
       <div className="space-y-2">
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleDownload(content || '', 'original')}
+            onClick={() => handleDownload(content, 'original')}
             className="w-full"
             disabled={!content}
           >
