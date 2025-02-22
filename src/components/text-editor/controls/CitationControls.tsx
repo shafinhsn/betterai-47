@@ -52,15 +52,35 @@ export const CitationControls = ({
   }, [citationStyle, hasAddedFirstSource]);
 
   const handleSubmit = () => {
-    if (sourceLink && sourceTitle) {
-      onAddSourceLink(sourceLink, sourceTitle, authorName, publishDate);
-      setSourceLink('');
-      setSourceTitle('');
-      setAuthorName('');
-      setPublishDate('');
-      setIsDialogOpen(false);
-      setHasAddedFirstSource(true);
+    if (!sourceTitle) {
+      toast.error("Source title is required");
+      return;
     }
+
+    if (!sourceLink) {
+      toast.error("Source link is required");
+      return;
+    }
+
+    // For APA and MLA styles, author name is required
+    if ((citationStyle === 'apa' || citationStyle === 'mla') && !authorName) {
+      toast.error("Author name is required for APA and MLA citations");
+      return;
+    }
+
+    // For all academic styles, publish date is highly recommended
+    if (!publishDate && (citationStyle === 'apa' || citationStyle === 'mla' || citationStyle === 'chicago')) {
+      toast.warning("Adding a publish date is recommended for proper citation formatting");
+    }
+
+    onAddSourceLink(sourceLink, sourceTitle, authorName, publishDate);
+    setSourceLink('');
+    setSourceTitle('');
+    setAuthorName('');
+    setPublishDate('');
+    setIsDialogOpen(false);
+    setHasAddedFirstSource(true);
+    toast.success("Source added successfully");
   };
 
   const handleStyleChange = (value: CitationStyle) => {
@@ -95,36 +115,47 @@ export const CitationControls = ({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Source Title</Label>
+              <Label htmlFor="title">Source Title<span className="text-red-500">*</span></Label>
               <Input
                 id="title"
                 value={sourceTitle}
                 onChange={(e) => setSourceTitle(e.target.value)}
                 placeholder="Enter source title"
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="link">Source Link</Label>
+              <Label htmlFor="link">Source Link<span className="text-red-500">*</span></Label>
               <Input
                 id="link"
                 value={sourceLink}
                 onChange={(e) => setSourceLink(e.target.value)}
                 placeholder="Enter source link"
+                required
               />
             </div>
             {showManualFields && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="author">Author Name (optional)</Label>
+                  <Label htmlFor="author">
+                    Author Name
+                    {(citationStyle === 'apa' || citationStyle === 'mla') && 
+                      <span className="text-red-500">*</span>
+                    }
+                  </Label>
                   <Input
                     id="author"
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
                     placeholder="Enter author name"
+                    required={citationStyle === 'apa' || citationStyle === 'mla'}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="date">Publish Date (optional)</Label>
+                  <Label htmlFor="date">
+                    Publish Date 
+                    <span className="text-gray-400 text-sm ml-2">(Recommended)</span>
+                  </Label>
                   <Input
                     id="date"
                     type="date"
