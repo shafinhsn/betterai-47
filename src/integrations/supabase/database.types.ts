@@ -74,6 +74,35 @@ export type Database = {
           avatar_url?: string | null
         }
       }
+      stripe_products: {
+        Row: {
+          id: string
+          name: string
+          stripe_product_id: string
+          stripe_price_id: string
+          description: string | null
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          stripe_product_id: string
+          stripe_price_id: string
+          description?: string | null
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          stripe_product_id?: string
+          stripe_price_id?: string
+          description?: string | null
+          active?: boolean
+          created_at?: string
+        }
+      }
       subscriptions: {
         Row: {
           expires_at: string | null
@@ -125,4 +154,3 @@ export type Database = {
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
 export type Insertables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
 export type Updateables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
-
