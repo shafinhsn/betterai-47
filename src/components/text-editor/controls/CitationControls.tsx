@@ -81,6 +81,7 @@ export const CitationControls = ({
     // Reset form
     setCurrentSource({ link: '', title: '', author: '', publishDate: '' });
     setEditingIndex(null);
+    setIsDialogOpen(false); // Close dialog after submission
   };
 
   const handleEdit = (index: number) => {
@@ -128,7 +129,7 @@ export const CitationControls = ({
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto fixed top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2">
           <DialogHeader>
             <DialogTitle>
               {editingIndex !== null ? "Edit Source" : "Add Source"} ({citationStyle.toUpperCase()})
