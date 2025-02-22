@@ -64,6 +64,23 @@ serve(async (req) => {
       content = 'Unable to extract text content from file'
     }
 
+    // Save document metadata to database
+    const { error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        filename: sanitizedFileName,
+        file_path: filePath,
+        content_type: file.type,
+        content: content
+      })
+
+    if (dbError) {
+      console.error('Database error:', dbError)
+      throw new Error(`Failed to save document metadata: ${dbError.message}`)
+    }
+
+    console.log('Document processed and saved successfully')
+
     // Return the processed document data
     return new Response(
       JSON.stringify({
