@@ -1,20 +1,35 @@
-import { useState } from 'react';
-import { SUBSCRIPTION_PLANS, STUDENT_TRIAL_DAYS } from '@/constants/subscription';
+
+import { useState, useEffect } from 'react';
+import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Briefcase, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { SubscriptionDialogProps, SubscriptionPlan } from '@/types/chat';
+import type { SubscriptionDialogProps } from '@/types/chat';
+import { useQuery } from '@tanstack/react-query';
 
 export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
 
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
+  const { data: products } = useQuery({
+    queryKey: ['stripe-products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stripe_products')
+        .select('*')
+        .eq('active', true);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const handleSubscribe = async (planType: string) => {
     try {
       setIsLoading(true);
-      setProcessingPlanId(plan.name);
+      setProcessingPlanId(planType);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -24,7 +39,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
 
       const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          planType: plan.name === 'Student Plan' ? 'student' : 'business',
+          planType: planType === 'Student Plan' ? 'student' : 'business',
           email: user.email,
           userId: user.id
         }
@@ -43,6 +58,42 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     }
   };
 
+  const getFeatures = (planType: string) => {
+    if (planType === 'Student Plan') {
+      return [
+        'Unlimited messages',
+        `${STUDENT_TRIAL_DAYS}-day free trial`,
+        'Advanced document editing',
+        'Citation generation',
+        'Academic formatting (APA, MLA)',
+        'Essay structure improvements',
+        'Plagiarism checker',
+        'Smart formatting',
+        'Google Docs integration',
+        'Real-time collaborative editing',
+        'Email support',
+        '150 messages per day'
+      ];
+    }
+    return [
+      'Everything in Student Plan',
+      'Industry-specific editing',
+      'Legal document support',
+      'Medical content refinement',
+      'Corporate language optimization',
+      'Priority support',
+      'Advanced document analysis',
+      'Custom document templates',
+      'Team collaboration features',
+      'API access',
+      '500 messages per day'
+    ];
+  };
+
+  if (!products) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
       if (!isLoading) {
@@ -57,25 +108,26 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-          {SUBSCRIPTION_PLANS.map((plan) => {
-            const isPlanProcessing = processingPlanId === plan.name;
+          {products.map((product) => {
+            const isPlanProcessing = processingPlanId === product.name;
+            const price = parseFloat(product.stripe_price_id.split('_')[1]) || 0;
             
             return (
               <div 
-                key={plan.name} 
+                key={product.id} 
                 className="border rounded-lg p-6 flex flex-col hover:border-emerald-500 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  {plan.name === 'Student Plan' ? (
+                  {product.name === 'Student Plan' ? (
                     <GraduationCap className="h-5 w-5 text-emerald-500" />
                   ) : (
                     <Briefcase className="h-5 w-5 text-emerald-500" />
                   )}
-                  <h3 className="font-bold text-lg">{plan.name}</h3>
+                  <h3 className="font-bold text-lg">{product.name}</h3>
                 </div>
-                <p className="text-3xl font-bold my-4">${plan.price}<span className="text-sm font-normal">/mo</span></p>
+                <p className="text-3xl font-bold my-4">${price}<span className="text-sm font-normal">/mo</span></p>
                 <ul className="text-sm space-y-3 flex-grow mb-6">
-                  {plan.features.map((feature, i) => (
+                  {getFeatures(product.name).map((feature, i) => (
                     <li key={i} className="flex items-center gap-2">
                       <span className="text-emerald-500">✓</span> {feature}
                     </li>
@@ -83,9 +135,9 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
                 </ul>
                 <Button
                   className="w-full"
-                  onClick={() => handleSubscribe(plan)}
+                  onClick={() => handleSubscribe(product.name)}
                   disabled={isLoading}
-                  variant={plan.name === 'Student Plan' ? 'default' : 'outline'}
+                  variant={product.name === 'Student Plan' ? 'default' : 'outline'}
                 >
                   {isPlanProcessing ? (
                     <>
@@ -93,7 +145,7 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
                       Processing...
                     </>
                   ) : (
-                    plan.name === 'Student Plan' ? 'Start Free Trial' : 'Subscribe Now'
+                    product.name === 'Student Plan' ? 'Start Free Trial' : 'Subscribe Now'
                   )}
                 </Button>
               </div>
@@ -104,3 +156,4 @@ export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogPro
     </Dialog>
   );
 };
+
