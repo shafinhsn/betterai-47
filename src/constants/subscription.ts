@@ -10,7 +10,12 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Unlimited messages',
       '14-day free trial',
       'Advanced document editing',
-      'Smart content suggestions',
+      'Citation generation',
+      'Academic formatting (APA, MLA)',
+      'Essay structure improvements',
+      'Plagiarism checker',
+      'Smart formatting',
+      'Google Docs integration',
       'Real-time collaborative editing',
       'Email support',
       '150 messages per day'
@@ -22,6 +27,10 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     messages: Infinity,
     features: [
       'Everything in Student Plan',
+      'Industry-specific editing',
+      'Legal document support',
+      'Medical content refinement',
+      'Corporate language optimization',
       'Priority support',
       'Advanced document analysis',
       'Custom document templates',
@@ -44,4 +53,3 @@ export const DAILY_MESSAGE_LIMIT = {
 
 // Trial period in days
 export const STUDENT_TRIAL_DAYS = 14;
-
