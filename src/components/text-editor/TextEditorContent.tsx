@@ -40,9 +40,7 @@ export const TextEditorContent = ({
     
     // Save selection on backspace and enter to ensure proper cursor position
     if (e.key === 'Backspace' || e.key === 'Enter') {
-      requestAnimationFrame(() => {
-        saveSelection();
-      });
+      saveSelection(); // Save selection BEFORE modifying content
     }
   };
 
@@ -97,4 +95,3 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
-

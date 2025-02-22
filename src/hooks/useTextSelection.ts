@@ -2,54 +2,46 @@
 import { useState, useRef, RefObject } from 'react';
 
 export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
-  const [selectionRange, setSelectionRange] = useState<Range | null>(null);
   const [lastCaretPosition, setLastCaretPosition] = useState<number | null>(null);
   const formatStateRef = useRef<{ isBold: boolean; isItalic: boolean }>({ isBold: false, isItalic: false });
+  const selectionRangeRef = useRef<Range | null>(null);
 
   const saveSelection = () => {
+    if (!editorRef.current) return;
+
     const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      if (editorRef.current?.contains(range.commonAncestorContainer)) {
-        setSelectionRange(range.cloneRange());
-        setLastCaretPosition(range.startOffset);
-        
-        // Update format state
-        formatStateRef.current = {
-          isBold: document.queryCommandState('bold'),
-          isItalic: document.queryCommandState('italic')
-        };
-      }
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (editorRef.current.contains(range.commonAncestorContainer)) {
+      selectionRangeRef.current = range.cloneRange();
+      setLastCaretPosition(range.startOffset);
+      
+      // Update format state
+      formatStateRef.current = {
+        isBold: document.queryCommandState('bold'),
+        isItalic: document.queryCommandState('italic')
+      };
     }
   };
 
   const restoreSelection = () => {
-    if (!editorRef.current) return;
+    if (!editorRef.current || !selectionRangeRef.current) return;
 
-    // Wait for the next frame to ensure DOM is updated
-    requestAnimationFrame(() => {
-      if (selectionRange && editorRef.current) {
-        const selection = window.getSelection();
-        if (selection) {
-          try {
-            // First, check if the range is still valid
-            const newRange = document.createRange();
-            newRange.setStart(selectionRange.startContainer, selectionRange.startOffset);
-            newRange.setEnd(selectionRange.endContainer, selectionRange.endOffset);
-            
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-          } catch (e) {
-            // If the range is invalid, try to set cursor at the end
-            const range = document.createRange();
-            range.selectNodeContents(editorRef.current);
-            range.collapse(false);
-            selection.removeAllRanges();
-            selection.addRange(range);
-          }
-        }
-      }
-    });
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    selection.removeAllRanges();
+
+    try {
+      selection.addRange(selectionRangeRef.current);
+    } catch (e) {
+      // If the saved range is invalid, set cursor to the end of content
+      const range = document.createRange();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+      selection.addRange(range);
+    }
   };
 
   const applyFormattingToSelection = (property: string, value: string | null) => {
@@ -99,4 +91,3 @@ export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
     applyFormattingToAll
   };
 };
-
