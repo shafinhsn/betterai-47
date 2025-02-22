@@ -79,10 +79,10 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
           <div
             key={message.id}
             className={cn(
-              'mb-4 p-4 rounded-lg',
+              'mb-4 p-4 rounded-lg max-w-[80%]',
               message.sender === 'user'
-                ? 'bg-primary text-primary-foreground ml-auto max-w-[80%]'
-                : 'bg-muted text-muted-foreground mr-auto max-w-[80%]'
+                ? 'ml-auto bg-[#1EAEDB] text-white'
+                : 'mr-auto bg-[#F1F0FB] text-gray-800'
             )}
           >
             {message.content}
