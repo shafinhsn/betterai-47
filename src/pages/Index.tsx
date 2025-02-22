@@ -6,6 +6,7 @@ import { DocumentPreview } from '@/components/DocumentPreview';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useToast } from "@/hooks/use-toast";
 import { Message, ProcessedDocument } from '@/types/document';
+import { TextEditor } from '@/components/TextEditor';
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -77,6 +78,26 @@ const Index = () => {
     });
   };
 
+  const handleFormatChange = (format: string) => {
+    // Implementation for text formatting
+    console.log('Format changed:', format);
+  };
+
+  const handleFontChange = (font: string) => {
+    // Implementation for font changes
+    console.log('Font changed:', font);
+  };
+
+  const handleSizeChange = (size: string) => {
+    // Implementation for size changes
+    console.log('Size changed:', size);
+  };
+
+  const handleAlignmentChange = (alignment: string) => {
+    // Implementation for alignment changes
+    console.log('Alignment changed:', alignment);
+  };
+
   return (
     <div className="h-screen bg-[#121212] text-white overflow-hidden">
       <ResizablePanelGroup direction="horizontal" className="h-full">
@@ -108,32 +129,42 @@ const Index = () => {
         
         <ResizablePanel defaultSize={35}>
           <div className="h-full p-4 bg-[#1a1a1a]">
-            <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
+            <ResizablePanelGroup direction="vertical" className="h-full gap-4">
               <ResizablePanel defaultSize={50}>
-                <h3 className="text-sm font-medium mb-2 text-gray-200">Original Document</h3>
-                {content ? (
-                  <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                    <DocumentPreview key={`original-${previewKey}`} content={content} isUpdated={false} />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
-                  </div>
-                )}
+                <div className="h-full">
+                  <h3 className="text-sm font-medium mb-2 text-gray-200">Original Document</h3>
+                  {content ? (
+                    <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
+                      <DocumentPreview key={`original-${previewKey}`} content={content} isUpdated={false} />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
+                    </div>
+                  )}
+                </div>
               </ResizablePanel>
               
               {updatedContent && (
                 <>
                   <ResizableHandle withHandle className="bg-[#2a2a2a]" />
                   <ResizablePanel defaultSize={50}>
-                    <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
-                    <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                      <DocumentPreview 
-                        key={`updated-${previewKey}`}
-                        content={updatedContent} 
-                        isUpdated={true} 
-                        originalContent={content}
+                    <div className="h-full">
+                      <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
+                      <TextEditor
+                        onFormatChange={handleFormatChange}
+                        onFontChange={handleFontChange}
+                        onSizeChange={handleSizeChange}
+                        onAlignmentChange={handleAlignmentChange}
                       />
+                      <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-6rem)] overflow-auto">
+                        <DocumentPreview 
+                          key={`updated-${previewKey}`}
+                          content={updatedContent} 
+                          isUpdated={true} 
+                          originalContent={content}
+                        />
+                      </div>
                     </div>
                   </ResizablePanel>
                 </>
