@@ -12,14 +12,9 @@ export const FormatControls = ({
   format,
   onFormatChange,
 }: FormatControlsProps) => {
-  const isFormatActive = (formatType: FormatOption) => {
-    if (typeof document === 'undefined') return false;
-    return document.queryCommandState(formatType);
-  };
-
   const handleFormatClick = (formatType: FormatOption) => {
     document.execCommand(formatType, false);
-    const newFormat = isFormatActive(formatType) 
+    const newFormat = format.includes(formatType)
       ? format.filter(f => f !== formatType)
       : [...format, formatType];
     onFormatChange(newFormat);
@@ -31,7 +26,7 @@ export const FormatControls = ({
         variant="outline" 
         size="icon"
         onClick={() => handleFormatClick('bold')}
-        className={`hover:bg-emerald-700/20 ${isFormatActive('bold') ? 'bg-emerald-700/20' : ''}`}
+        className={`hover:bg-emerald-700/20 ${format.includes('bold') ? 'bg-emerald-700/20' : ''}`}
         aria-label="Bold"
       >
         <Bold className="h-4 w-4" />
@@ -40,7 +35,7 @@ export const FormatControls = ({
         variant="outline"
         size="icon"
         onClick={() => handleFormatClick('italic')}
-        className={`hover:bg-emerald-700/20 ${isFormatActive('italic') ? 'bg-emerald-700/20' : ''}`}
+        className={`hover:bg-emerald-700/20 ${format.includes('italic') ? 'bg-emerald-700/20' : ''}`}
         aria-label="Italic"
       >
         <Italic className="h-4 w-4" />
