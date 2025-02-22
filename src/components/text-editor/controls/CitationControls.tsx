@@ -58,11 +58,6 @@ export const CitationControls = ({
       return;
     }
 
-    if ((citationStyle === 'apa' || citationStyle === 'mla') && !currentSource.author) {
-      toast.error("Author name is required for APA and MLA citations");
-      return;
-    }
-
     if (editingIndex !== null) {
       // Update existing source
       const updatedSources = [...sources];
@@ -142,7 +137,7 @@ export const CitationControls = ({
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Source Title<span className="text-red-500">*</span></Label>
+              <Label htmlFor="title">Source Title</Label>
               <Input
                 id="title"
                 value={currentSource.title}
@@ -151,7 +146,7 @@ export const CitationControls = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="link">Source Link<span className="text-red-500">*</span></Label>
+              <Label htmlFor="link">Source Link</Label>
               <Input
                 id="link"
                 value={currentSource.link}
@@ -165,7 +160,7 @@ export const CitationControls = ({
                   <Label htmlFor="author">
                     Author Name
                     {(citationStyle === 'apa' || citationStyle === 'mla') && 
-                      <span className="text-red-500">*</span>
+                      <span className="text-gray-400 text-sm ml-2">(Required for APA/MLA)</span>
                     }
                   </Label>
                   <Input
@@ -178,7 +173,7 @@ export const CitationControls = ({
                 <div className="space-y-2">
                   <Label htmlFor="date">
                     Publish Date
-                    <span className="text-gray-400 text-sm ml-2">(Recommended)</span>
+                    <span className="text-gray-400 text-sm ml-2">(Optional)</span>
                   </Label>
                   <Input
                     id="date"
