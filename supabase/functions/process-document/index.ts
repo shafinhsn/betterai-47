@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,6 +22,8 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
+    console.log('Processing file:', file.name);
+
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -32,6 +35,8 @@ serve(async (req) => {
     const fileExt = sanitizedFileName.split('.').pop();
     const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
+    console.log('Uploading file to storage:', filePath);
+
     // Upload file to storage
     const { data: storageData, error: uploadError } = await supabase.storage
       .from('documents')
@@ -41,11 +46,20 @@ serve(async (req) => {
       });
 
     if (uploadError) {
+      console.error('Upload error:', uploadError);
       throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
     // Extract text content from file
-    const content = await file.text();
+    let content = '';
+    try {
+      content = await file.text();
+    } catch (error) {
+      console.error('Error extracting text content:', error);
+      content = 'Unable to extract text content from file';
+    }
+
+    console.log('Saving document metadata to database');
 
     // Save document metadata to database
     const { error: dbError } = await supabase
@@ -58,6 +72,7 @@ serve(async (req) => {
       });
 
     if (dbError) {
+      console.error('Database error:', dbError);
       throw new Error(`Failed to save document metadata: ${dbError.message}`);
     }
 
@@ -67,7 +82,12 @@ serve(async (req) => {
         filePath,
         filename: sanitizedFileName
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   } catch (error) {
     console.error('Error processing document:', error);
@@ -75,7 +95,10 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }
       }
     );
   }
