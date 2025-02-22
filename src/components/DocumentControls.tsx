@@ -50,46 +50,65 @@ export const DocumentControls = ({
 
   const createPDFFromText = async (text: string) => {
     const pdfDoc = await PDFDocument.create();
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const page = pdfDoc.addPage();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const { width, height } = page.getSize();
     
     const fontSize = 12;
     const lineHeight = fontSize * 1.2;
     const margin = 50;
-    const maxWidth = page.getSize().width - (margin * 2);
+    const maxWidth = width - (margin * 2);
     
-    // Split text into lines that fit within the page width
-    const lines: string[] = [];
-    const words = text.split(' ');
-    let currentLine = '';
+    // Split text into paragraphs first
+    const paragraphs = text.split('\n');
+    let yPosition = height - margin;
     
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const width = font.widthOfTextAtSize(testLine, fontSize);
+    for (const paragraph of paragraphs) {
+      // Split paragraph into words and create lines
+      const words = paragraph.split(' ');
+      let currentLine = '';
       
-      if (width > maxWidth) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        const lineWidth = helveticaFont.widthOfTextAtSize(testLine, fontSize);
+        
+        if (lineWidth <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          // Draw the current line and start a new one
+          if (yPosition > margin) {
+            page.drawText(currentLine, {
+              x: margin,
+              y: yPosition,
+              size: fontSize,
+              font: helveticaFont,
+            });
+            yPosition -= lineHeight;
+          }
+          currentLine = word;
+        }
       }
-    }
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    
-    // Write lines to the page
-    lines.forEach((line, index) => {
-      const y = page.getSize().height - margin - (index * lineHeight);
-      if (y > margin) { // Only write if we're still within page bounds
-        page.drawText(line, {
+      
+      // Draw the last line of the paragraph
+      if (currentLine && yPosition > margin) {
+        page.drawText(currentLine, {
           x: margin,
-          y,
+          y: yPosition,
           size: fontSize,
-          font,
+          font: helveticaFont,
         });
+        yPosition -= lineHeight;
       }
-    });
+      
+      // Add extra space between paragraphs
+      yPosition -= lineHeight/2;
+      
+      // If we're running out of space, add a new page
+      if (yPosition <= margin) {
+        const newPage = pdfDoc.addPage();
+        yPosition = newPage.getSize().height - margin;
+      }
+    }
     
     return await pdfDoc.save();
   };
@@ -126,7 +145,7 @@ export const DocumentControls = ({
           document.body.removeChild(a);
         }
       } else {
-        // For updated content, always generate a PDF
+        // For updated content, generate a PDF
         const pdfBytes = await createPDFFromText(content);
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -198,4 +217,3 @@ export const DocumentControls = ({
     </div>
   );
 };
-
