@@ -11,12 +11,13 @@ export interface TextEditorControlsProps {
   alignment: TextAlignment;
   format: FormatOption[];
   citationStyle: CitationStyle;
+  isLoading?: boolean;
   onFormatChange: (value: FormatOption[]) => void;
   onFontChange: (value: FontFamily) => void;
   onSizeChange: (value: string) => void;
   onAlignmentChange: (value: TextAlignment) => void;
   onCitationStyleChange: (value: CitationStyle) => void;
-  onAddSourceLink: (sourceLink: string, sourceTitle: string) => void;
+  onAddSourceLink: (sourceLink: string, sourceTitle: string, authorName?: string, publishDate?: string) => void;
 }
 
 export const TextEditorControls = ({
@@ -25,6 +26,7 @@ export const TextEditorControls = ({
   alignment,
   format,
   citationStyle,
+  isLoading,
   onFormatChange,
   onFontChange,
   onSizeChange,
@@ -43,6 +45,7 @@ export const TextEditorControls = ({
       
       <CitationControls
         citationStyle={citationStyle}
+        isLoading={isLoading}
         onCitationStyleChange={onCitationStyleChange}
         onAddSourceLink={onAddSourceLink}
       />

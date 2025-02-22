@@ -33,6 +33,7 @@ export const TextEditorPanel = ({
     alignment,
     format,
     citationStyle,
+    isLoading,
     handleFormatChange,
     handleFontChange,
     handleSizeChange,
@@ -85,6 +86,7 @@ export const TextEditorPanel = ({
             alignment={alignment}
             format={format}
             citationStyle={citationStyle}
+            isLoading={isLoading}
             onFormatChange={(formats) => {
               formats.forEach(format => handleFormatWithSelection(format));
             }}
@@ -118,4 +120,3 @@ export const TextEditorPanel = ({
     </div>
   );
 };
-

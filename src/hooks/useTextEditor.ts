@@ -11,6 +11,8 @@ export type FontFamily = 'Arial' | 'Times New Roman' | 'Courier New' | 'Georgia'
 interface Source {
   link: string;
   title: string;
+  author?: string;
+  publishDate?: string;
 }
 
 export interface TextEditorState {
@@ -20,6 +22,7 @@ export interface TextEditorState {
   format: FormatOption[];
   citationStyle: CitationStyle;
   sources: Source[];
+  isLoading: boolean;
 }
 
 export interface TextEditorActions {
@@ -28,7 +31,7 @@ export interface TextEditorActions {
   handleSizeChange: (value: string) => void;
   handleAlignmentChange: (value: TextAlignment) => void;
   handleCitationStyleChange: (value: CitationStyle) => void;
-  handleAddSourceLink: (sourceLink: string, sourceTitle: string) => void;
+  handleAddSourceLink: (sourceLink: string, sourceTitle: string, authorName?: string, publishDate?: string) => void;
 }
 
 export type TextEditorHookReturn = TextEditorState & TextEditorActions;
@@ -40,6 +43,7 @@ export const useTextEditor = (): TextEditorHookReturn => {
   const [format, setFormat] = useState<FormatOption[]>([]);
   const [citationStyle, setCitationStyle] = useState<CitationStyle>('none');
   const [sources, setSources] = useState<Source[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFormatChange = (value: FormatOption[]) => {
     setFormat(value);
@@ -57,8 +61,20 @@ export const useTextEditor = (): TextEditorHookReturn => {
     setAlignment(value);
   };
 
-  const handleAddSourceLink = (sourceLink: string, sourceTitle: string) => {
-    setSources(prev => [...prev, { link: sourceLink, title: sourceTitle }]);
+  const handleAddSourceLink = async (sourceLink: string, sourceTitle: string, authorName?: string, publishDate?: string) => {
+    const newSource = {
+      link: sourceLink,
+      title: sourceTitle,
+      author: authorName,
+      publishDate: publishDate
+    };
+    
+    setSources(prev => [...prev, newSource]);
+    
+    if (citationStyle !== 'none') {
+      await handleCitationStyleChange(citationStyle);
+    }
+    
     toast.success("Source added successfully");
   };
 
@@ -75,13 +91,14 @@ export const useTextEditor = (): TextEditorHookReturn => {
         return;
       }
 
+      setIsLoading(true);
       const text = editorContent.textContent || '';
 
       const { data, error } = await supabase.functions.invoke('format-citation', {
         body: { 
           text,
           style: value,
-          sources
+          sources,
         },
       });
 
@@ -95,6 +112,8 @@ export const useTextEditor = (): TextEditorHookReturn => {
     } catch (error) {
       console.error('Error formatting citations:', error);
       toast.error('Failed to format citations');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -105,6 +124,7 @@ export const useTextEditor = (): TextEditorHookReturn => {
     format,
     citationStyle,
     sources,
+    isLoading,
     handleFormatChange,
     handleFontChange,
     handleSizeChange,
