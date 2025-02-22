@@ -5,6 +5,7 @@ import { Upload, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
 import * as pdfjs from 'pdfjs-dist';
+import { PDFWorker } from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
 import {
   Select,
   SelectContent,
@@ -13,8 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Initialize pdf.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker
+if (!pdfjs.GlobalWorkerOptions.workerPort) {
+  pdfjs.GlobalWorkerOptions.workerPort = new PDFWorker();
+}
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -118,3 +121,4 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
+
