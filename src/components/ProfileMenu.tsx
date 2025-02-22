@@ -14,13 +14,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Upload, User } from "lucide-react";
+import { LogOut, Upload, User, CreditCard, Settings, DollarSign } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { SubscriptionDialog } from "./SubscriptionDialog";
 
 export const ProfileMenu = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const navigate = useNavigate();
+
+  const { data: subscription } = useQuery({
+    queryKey: ['subscription'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+      
+      return data;
+    }
+  });
 
   const handleSignOut = async () => {
     try {
@@ -34,7 +54,6 @@ export const ProfileMenu = () => {
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Convert to data URL for local storage
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
@@ -45,6 +64,12 @@ export const ProfileMenu = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSubscribe = async (plan: any) => {
+    // This would integrate with your payment provider (e.g., Stripe)
+    toast.info("This would redirect to payment processing");
+    setIsSubscriptionOpen(false);
   };
 
   // Load avatar from localStorage on component mount
@@ -75,6 +100,15 @@ export const ProfileMenu = () => {
             <Upload className="mr-2 h-4 w-4" />
             Change Profile Picture
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsSubscriptionOpen(true)}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Subscription
+            {subscription && (
+              <span className="ml-auto text-xs opacity-60">
+                {subscription.plan_type}
+              </span>
+            )}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
@@ -104,6 +138,12 @@ export const ProfileMenu = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SubscriptionDialog 
+        open={isSubscriptionOpen} 
+        onOpenChange={setIsSubscriptionOpen}
+        onSubscribe={handleSubscribe}
+      />
     </>
   );
 };
