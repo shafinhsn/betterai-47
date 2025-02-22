@@ -1,8 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import PDFParser from 'https://esm.sh/pdf2json@2.0.2'
 import * as mammoth from 'https://esm.sh/mammoth@1.6.0'
+import { parse as parsePdf } from 'https://deno.land/x/pdfparser@v1.0.3/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,29 +36,9 @@ serve(async (req) => {
     if (fileType === 'application/pdf') {
       console.log('Processing PDF file');
       try {
-        const pdfParser = new PDFParser();
         const pdfData = new Uint8Array(fileBuffer);
-        
-        // Convert the parsing to a Promise
-        const parseResult = await new Promise((resolve, reject) => {
-          pdfParser.on('pdfParser_dataReady', (pdfData) => {
-            resolve(pdfData);
-          });
-          pdfParser.on('pdfParser_dataError', (error) => {
-            reject(error);
-          });
-          pdfParser.parseBuffer(pdfData);
-        });
-        
-        // @ts-ignore - The types for pdf2json are not complete
-        const rawText = parseResult.Pages
-          .map((page: any) => page.Texts
-            .map((text: any) => decodeURIComponent(text.R[0].T))
-            .join(' ')
-          )
-          .join('\n\n');
-          
-        extractedText = rawText;
+        const result = await parsePdf(pdfData);
+        extractedText = result.text;
         console.log('PDF processed successfully, text length:', extractedText.length);
       } catch (pdfError) {
         console.error('PDF processing error:', pdfError);
