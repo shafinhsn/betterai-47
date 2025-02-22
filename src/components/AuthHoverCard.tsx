@@ -68,9 +68,9 @@ export const AuthHoverCard = () => {
   };
 
   return (
-    <HoverCard>
+    <HoverCard openDelay={0} closeDelay={300}>
       <HoverCardTrigger asChild>
-        <div className="w-full h-full">
+        <div className="w-full h-full flex justify-center">
           <Input
             placeholder="Sign in to start chatting..."
             className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50"
@@ -78,7 +78,12 @@ export const AuthHoverCard = () => {
           />
         </div>
       </HoverCardTrigger>
-      <HoverCardContent className="w-80 bg-[#1a1a1a] border-emerald-800/30">
+      <HoverCardContent 
+        side="top" 
+        align="center"
+        className="w-80 bg-[#1a1a1a] border-emerald-800/30 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
+        sideOffset={5}
+      >
         <div className="flex flex-col items-center mb-6">
           <div className="relative mb-4">
             <PenLine className="w-12 h-12 text-emerald-500" strokeWidth={1.5} />
