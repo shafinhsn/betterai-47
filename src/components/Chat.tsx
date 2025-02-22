@@ -47,10 +47,8 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
         onDocumentUpdate(data.updatedDocument);
-      }
-      
-      // Add AI response to chat
-      if (data?.reply) {
+        onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai');
+      } else if (data?.reply) {
         onSendMessage(data.reply, 'ai');
       }
 
@@ -77,26 +75,26 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
           <div
             key={message.id}
             className={cn(
-              'mb-4 p-4 rounded-lg max-w-[80%]',
+              'mb-4 p-4 rounded-lg max-w-[80%] font-sans',
               message.sender === 'user'
-                ? 'ml-auto bg-[#1EAEDB] text-white'
-                : 'mr-auto bg-[#F1F0FB] text-gray-800'
+                ? 'ml-auto bg-emerald-600 text-white'
+                : 'mr-auto bg-emerald-900/30 text-emerald-50'
             )}
           >
             {message.content}
           </div>
         ))}
       </ScrollArea>
-      <form onSubmit={handleSubmit} className="p-4 border-t">
+      <form onSubmit={handleSubmit} className="p-4 border-t border-emerald-900/20">
         <div className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything about your document..."
-            className="flex-1"
+            className="flex-1 bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50"
             disabled={isLoading}
           />
-          <Button type="submit" size="icon" disabled={isLoading}>
+          <Button type="submit" size="icon" disabled={isLoading} className="bg-emerald-700 hover:bg-emerald-600">
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

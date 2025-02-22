@@ -1,9 +1,8 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://rsms.me/inter/inter.css');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
@@ -13,19 +12,19 @@
     --card-foreground: 0 0% 100%;
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 100%;
-    --primary: 252 100% 67%;
+    --primary: 142 76% 36%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 4% 16%;
+    --secondary: 142 24% 16%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 240 4% 16%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 252 100% 67%;
+    --muted: 142 24% 16%;
+    --muted-foreground: 142 25% 64.9%;
+    --accent: 142 76% 36%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 252 100% 67%;
+    --border: 142 24% 16%;
+    --input: 142 24% 16%;
+    --ring: 142 76% 36%;
     --radius: 0.5rem;
   }
 }
@@ -37,6 +36,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -53,11 +54,11 @@
 }
 
 .chat-message-user {
-  @apply bg-[#2a2a2a] text-white;
+  @apply bg-emerald-600 text-white;
 }
 
 .chat-message-ai {
-  @apply bg-[#1d1d1d] text-gray-200;
+  @apply bg-emerald-900/30 text-emerald-50;
 }
 
 .document-preview {
