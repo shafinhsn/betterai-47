@@ -36,6 +36,26 @@ export const TextEditorContent = ({
       e.preventDefault();
       document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
       saveSelection();
+    } else if (e.key === 'Backspace') {
+      // Prevent default behavior for backspace to handle it manually
+      e.preventDefault();
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      
+      if (selection && range) {
+        if (range.collapsed) {
+          // If no text is selected, delete one character
+          range.setStart(range.startContainer, range.startOffset - 1);
+          range.deleteContents();
+        } else {
+          // If text is selected, delete the selection
+          range.deleteContents();
+        }
+        saveSelection();
+        // Trigger input event to update content
+        const inputEvent = new Event('input', { bubbles: true });
+        editorRef.current?.dispatchEvent(inputEvent);
+      }
     }
   };
 
@@ -50,7 +70,6 @@ export const TextEditorContent = ({
     saveSelection();
   };
 
-  // Save selection when clicking or touching the editor
   const handlePointerDown = () => {
     saveSelection();
   };
@@ -82,7 +101,7 @@ export const TextEditorContent = ({
   }, [format, font, size, alignment]);
 
   return (
-    <ScrollArea className="h-[calc(100%-5rem)]">
+    <ScrollArea className="h-[calc(100%-5rem)] overflow-y-auto">
       <div 
         ref={editorRef}
         className="bg-[#242424] rounded p-6 min-h-[200px] w-full"
@@ -100,9 +119,12 @@ export const TextEditorContent = ({
           overflowWrap: 'break-word',
           lineHeight: '1.5',
           outline: 'none',
-          maxWidth: '100%'
+          maxWidth: '100%',
+          height: 'auto',
+          minHeight: '200px'
         }}
       />
     </ScrollArea>
   );
 };
+
