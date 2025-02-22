@@ -53,7 +53,7 @@ export const DocumentControls = ({
       if (type === 'original') {
         await downloadOriginalDocument(currentDocument, content);
       } else {
-        await downloadUpdatedDocument(content, currentDocument.filename);
+        await downloadUpdatedDocument(content, currentDocument.filename, currentDocument.fileType);
       }
 
       toast({
