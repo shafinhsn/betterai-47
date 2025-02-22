@@ -15,7 +15,9 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
       if (!isUpdated || !originalContent) return null;
 
       const dmp = new DiffMatchPatch.diff_match_patch();
-      return dmp.diff_main(originalContent, content);
+      const computedDiffs = dmp.diff_main(originalContent, content);
+      dmp.diff_cleanupSemantic(computedDiffs); // This helps clean up the diff output
+      return computedDiffs;
     }, [content, originalContent, isUpdated]);
 
     if (!content) {
@@ -36,33 +38,54 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
         ));
       }
 
-      return diffs.map((diff, index) => {
+      // Group the diffs by paragraphs for better rendering
+      const elements: JSX.Element[] = [];
+      let currentParagraph = "";
+      let paragraphClass = "";
+
+      diffs.forEach((diff, index) => {
         const [type, text] = diff;
-        const key = `${index}-${text.substring(0, 10)}`;
+        const lines = text.split('\n');
 
-        let className = "whitespace-pre-wrap ";
-        switch (type) {
-          case 1: // Insertion
-            className += "bg-emerald-900/50 text-emerald-200";
-            break;
-          case -1: // Deletion
-            className += "bg-red-900/50 text-red-200 line-through";
-            break;
-          default: // No change
-            className += "text-emerald-50";
-        }
+        lines.forEach((line, lineIndex) => {
+          let className = "whitespace-pre-wrap ";
+          switch (type) {
+            case 1: // Insertion
+              className += "bg-emerald-900/50 text-emerald-200";
+              break;
+            case -1: // Deletion
+              className += "bg-red-900/50 text-red-200 line-through opacity-50";
+              break;
+            default: // No change
+              className += "text-emerald-50";
+          }
 
-        return text.split('\n').map((line, lineIndex) => (
-          line ? (
-            <p 
-              key={`${key}-${lineIndex}`} 
-              className={`mb-4 ${className}`}
-            >
-              {line}
-            </p>
-          ) : <br key={`${key}-${lineIndex}`} />
-        ));
+          if (line) {
+            currentParagraph += line;
+            paragraphClass = className;
+          }
+
+          // If we hit a line break or it's the last line, render the paragraph
+          if (lineIndex < lines.length - 1 || index === diffs.length - 1) {
+            if (currentParagraph) {
+              elements.push(
+                <p 
+                  key={`${index}-${lineIndex}-${currentParagraph.substring(0, 10)}`}
+                  className={`mb-4 ${paragraphClass}`}
+                >
+                  {currentParagraph}
+                </p>
+              );
+              currentParagraph = "";
+            }
+            if (!line) {
+              elements.push(<br key={`${index}-${lineIndex}-br`} />);
+            }
+          }
+        });
       });
+
+      return elements;
     };
 
     return (
