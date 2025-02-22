@@ -16,9 +16,10 @@ import {
 
 // Initialize PDF.js worker
 if (typeof window !== 'undefined') {
-  // Use a more reliable worker initialization approach
-  const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
-  pdfjsLib.GlobalWorkerOptions.workerPort = new pdfjsWorker.default();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.mjs',
+    import.meta.url
+  ).toString();
 }
 
 interface FileUploadProps {
@@ -51,7 +52,6 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       console.log('Processing PDF file:', file.name);
       const arrayBuffer = await file.arrayBuffer();
       
-      // Load the PDF document with explicit worker configuration
       const loadingTask = pdfjsLib.getDocument({
         data: arrayBuffer,
         verbosity: pdfjsLib.VerbosityLevel.ERRORS
@@ -163,3 +163,4 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     </div>
   );
 };
+
