@@ -46,10 +46,14 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       // Handle document update if provided
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
-        // Clear any previous updates and set the new content
+        // Force a refresh by setting the content, even if it's the same
         onDocumentUpdate(data.updatedDocument);
         onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai');
       } else if (data?.reply) {
+        // If there's no document update but there is a reply, still refresh with current content
+        if (documentContent) {
+          onDocumentUpdate(documentContent);
+        }
         onSendMessage(data.reply, 'ai');
       }
 
@@ -107,4 +111,3 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
     </div>
   );
 };
-
