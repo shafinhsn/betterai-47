@@ -50,9 +50,20 @@ export const TextEditorContent = ({
     saveSelection();
   };
 
+  // Save selection when clicking or touching the editor
+  const handlePointerDown = () => {
+    saveSelection();
+  };
+
   useEffect(() => {
     const handleSelectionChange = () => {
-      saveSelection();
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        if (editorRef.current?.contains(range.commonAncestorContainer)) {
+          saveSelection();
+        }
+      }
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);
@@ -81,6 +92,7 @@ export const TextEditorContent = ({
         onKeyDown={handleKeyDown}
         onBeforeInput={handleBeforeInput}
         onPaste={handlePaste}
+        onPointerDown={handlePointerDown}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',

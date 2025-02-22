@@ -23,6 +23,7 @@ export const FormatControls = ({
         size="icon"
         onClick={() => handleFormatClick('bold')}
         className={`hover:bg-emerald-700/20 ${format.includes('bold') ? 'bg-emerald-700/20' : ''}`}
+        aria-label="Bold"
       >
         <Bold className="h-4 w-4" />
       </Button>
@@ -31,6 +32,7 @@ export const FormatControls = ({
         size="icon"
         onClick={() => handleFormatClick('italic')}
         className={`hover:bg-emerald-700/20 ${format.includes('italic') ? 'bg-emerald-700/20' : ''}`}
+        aria-label="Italic"
       >
         <Italic className="h-4 w-4" />
       </Button>

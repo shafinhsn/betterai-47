@@ -4,12 +4,16 @@ import { useState, useRef, RefObject } from 'react';
 export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
   const [selectionRange, setSelectionRange] = useState<Range | null>(null);
   const [lastCaretPosition, setLastCaretPosition] = useState<number | null>(null);
+  const formatStateRef = useRef<{ isBold: boolean; isItalic: boolean }>({ isBold: false, isItalic: false });
 
   const saveSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
-      setSelectionRange(selection.getRangeAt(0).cloneRange());
-      setLastCaretPosition(selection.getRangeAt(0).startOffset);
+      const range = selection.getRangeAt(0);
+      if (editorRef.current?.contains(range.commonAncestorContainer)) {
+        setSelectionRange(range.cloneRange());
+        setLastCaretPosition(range.startOffset);
+      }
     }
   };
 
@@ -24,24 +28,39 @@ export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
   };
 
   const toggleFormat = (format: string) => {
+    if (!editorRef.current) return;
+
     const selection = window.getSelection();
-    if (!selection || !editorRef.current) return;
+    if (!selection) return;
 
-    // Save the current selection
-    const range = selection.getRangeAt(0);
-    const savedRange = range.cloneRange();
+    // Save current selection
+    const savedSelection = selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
 
-    // If no text is selected, return
-    if (range.collapsed) return;
-
-    // Execute the command to toggle the format
-    document.execCommand(format, false);
+    if (selection.toString().length > 0) {
+      // Text is selected - apply formatting only to selection
+      document.execCommand(format, false);
+    } else {
+      // No text selected - toggle format state for future input
+      const formatKey = format === 'bold' ? 'isBold' : 'isItalic';
+      formatStateRef.current[formatKey] = !formatStateRef.current[formatKey];
+      
+      // Create a new span with the formatting
+      const span = document.createElement('span');
+      if (formatStateRef.current[formatKey]) {
+        span.style.fontWeight = format === 'bold' ? 'bold' : 'normal';
+        span.style.fontStyle = format === 'italic' ? 'italic' : 'normal';
+      }
+      
+      // Insert the span at cursor position
+      document.execCommand('insertHTML', false, span.outerHTML);
+    }
 
     // Restore the selection
-    selection.removeAllRanges();
-    selection.addRange(savedRange);
+    if (savedSelection) {
+      selection.removeAllRanges();
+      selection.addRange(savedSelection);
+    }
 
-    // Save the new selection state
     saveSelection();
   };
 
