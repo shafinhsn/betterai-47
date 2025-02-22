@@ -1,11 +1,42 @@
 
+import { useState } from 'react';
 import { SUBSCRIPTION_PLANS, STUDENT_TRIAL_DAYS } from '@/constants/subscription';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Briefcase } from 'lucide-react';
+import { GraduationCap, Briefcase, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { SubscriptionDialogProps } from '@/types/chat';
 
-export const SubscriptionDialog = ({ open, onOpenChange, onSubscribe }: SubscriptionDialogProps) => {
+export const SubscriptionDialog = ({ open, onOpenChange }: SubscriptionDialogProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubscribe = async (plan: any) => {
+    try {
+      setIsLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          planType: plan.name === 'Student Plan' ? 'student' : 'business',
+          email: user.email,
+          userId: user.id
+        }
+      });
+
+      if (error) throw error;
+      if (!url) throw new Error('No checkout URL returned');
+
+      window.location.href = url;
+    } catch (error: any) {
+      toast.error('Failed to start checkout: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
@@ -39,10 +70,18 @@ export const SubscriptionDialog = ({ open, onOpenChange, onSubscribe }: Subscrip
               </ul>
               <Button
                 className="w-full"
-                onClick={() => onSubscribe(plan)}
+                onClick={() => handleSubscribe(plan)}
+                disabled={isLoading}
                 variant={plan.name === 'Student Plan' ? 'default' : 'outline'}
               >
-                {plan.name === 'Student Plan' ? 'Start Free Trial' : 'Subscribe Now'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  plan.name === 'Student Plan' ? 'Start Free Trial' : 'Subscribe Now'
+                )}
               </Button>
             </div>
           ))}
