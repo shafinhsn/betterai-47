@@ -22,25 +22,11 @@ export const TextEditorPanel = ({
   const [editableContent, setEditableContent] = useState(updatedContent || content);
   const editorRef = useRef<HTMLDivElement>(null);
   const { lastCaretPosition, applyFormattingToSelection, applyFormattingToAll } = useTextSelection(editorRef);
+  const textEditor = useTextEditor();
 
   useEffect(() => {
     setEditableContent(updatedContent || content);
   }, [updatedContent, content]);
-
-  const {
-    font,
-    size,
-    alignment,
-    format,
-    citationStyle,
-    isLoading,
-    handleFormatChange,
-    handleFontChange,
-    handleSizeChange,
-    handleAlignmentChange,
-    handleCitationStyleChange,
-    handleAddSourceLink,
-  } = useTextEditor();
 
   const handleFormatWithSelection = (formatType: string) => {
     const selection = window.getSelection();
@@ -81,39 +67,39 @@ export const TextEditorPanel = ({
       <div className="space-y-4 h-[calc(100%-4rem)]">
         <div className="bg-[#242424] rounded p-2">
           <TextEditorControls
-            font={font}
-            size={size}
-            alignment={alignment}
-            format={format}
-            citationStyle={citationStyle}
-            isLoading={isLoading}
+            font={textEditor.font}
+            size={textEditor.size}
+            alignment={textEditor.alignment}
+            format={textEditor.format}
+            citationStyle={textEditor.citationStyle}
+            isLoading={textEditor.isLoading}
             onFormatChange={(formats) => {
               formats.forEach(format => handleFormatWithSelection(format));
             }}
             onFontChange={(value) => {
-              handleFontChange(value);
+              textEditor.handleFontChange(value);
               handleStyleWithSelection('fontFamily', value);
             }}
             onSizeChange={(value) => {
-              handleSizeChange(value);
+              textEditor.handleSizeChange(value);
               handleStyleWithSelection('fontSize', `${value}px`);
             }}
             onAlignmentChange={(value) => {
-              handleAlignmentChange(value);
+              textEditor.handleAlignmentChange(value);
               applyFormattingToAll('textAlign', value);
             }}
-            onCitationStyleChange={handleCitationStyleChange}
-            onAddSourceLink={handleAddSourceLink}
+            onCitationStyleChange={textEditor.handleCitationStyleChange}
+            onAddSourceLink={textEditor.handleAddSourceLink}
           />
         </div>
 
         <TextEditorContent
           content={editableContent}
           onContentChange={setEditableContent}
-          format={format}
-          font={font}
-          size={size}
-          alignment={alignment}
+          format={textEditor.format}
+          font={textEditor.font}
+          size={textEditor.size}
+          alignment={textEditor.alignment}
           lastCaretPosition={lastCaretPosition}
         />
       </div>
