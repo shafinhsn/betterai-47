@@ -17,6 +17,7 @@ serve(async (req) => {
     const { planType, email, userId } = await req.json();
     
     if (!planType || !email || !userId) {
+      console.error('Missing required fields:', { planType, email, userId });
       throw new Error('Missing required fields');
     }
 
@@ -29,9 +30,9 @@ serve(async (req) => {
       .from('customers')
       .select('stripe_customer_id')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
-    if (customerError && customerError.code !== 'PGRST116') {
+    if (customerError) {
       console.error('Error fetching customer:', customerError);
       throw new Error('Failed to fetch customer data');
     }
@@ -39,6 +40,7 @@ serve(async (req) => {
     let stripeCustomerId = customerData?.stripe_customer_id;
 
     if (!stripeCustomerId) {
+      console.log('Creating new Stripe customer for:', email);
       const customer = await stripe.customers.create({ email });
       stripeCustomerId = customer.id;
 
@@ -56,14 +58,13 @@ serve(async (req) => {
       }
     }
 
-    const prices = {
-      student: Deno.env.get('STRIPE_STUDENT_PRICE_ID'),
-      business: Deno.env.get('STRIPE_BUSINESS_PRICE_ID')
-    };
+    const priceId = planType === 'student' 
+      ? Deno.env.get('STRIPE_STUDENT_PRICE_ID')
+      : Deno.env.get('STRIPE_BUSINESS_PRICE_ID');
 
-    const priceId = prices[planType as keyof typeof prices];
     if (!priceId) {
-      throw new Error('Invalid plan type');
+      console.error('Missing price ID for plan type:', planType);
+      throw new Error(`Invalid price ID for plan type: ${planType}`);
     }
 
     console.log(`Creating checkout session with price ID ${priceId}`);
@@ -78,7 +79,12 @@ serve(async (req) => {
       client_reference_id: userId
     });
 
-    console.log('Checkout session created successfully');
+    if (!session.url) {
+      console.error('No URL returned from Stripe session:', session);
+      throw new Error('No checkout URL returned from Stripe');
+    }
+
+    console.log('Checkout session created successfully:', session.id);
 
     return new Response(
       JSON.stringify({ url: session.url }),
@@ -88,7 +94,10 @@ serve(async (req) => {
     console.error('Checkout error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
