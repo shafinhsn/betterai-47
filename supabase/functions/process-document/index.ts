@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import * as pdfjs from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm'
+import mammoth from 'https://esm.sh/mammoth@1.6.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,10 +36,10 @@ serve(async (req) => {
 
     // Generate a unique file path
     const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')
-    const fileExt = sanitizedFileName.split('.').pop()
+    const fileExt = sanitizedFileName.split('.').pop()?.toLowerCase()
     const filePath = `${crypto.randomUUID()}.${fileExt}`
 
-    console.log('Uploading file:', filePath)
+    console.log('Processing file:', filePath)
 
     // Upload file to storage
     const { error: uploadError } = await supabase.storage
@@ -54,22 +56,42 @@ serve(async (req) => {
 
     console.log('File uploaded successfully')
 
-    // Read and process the file content
+    // Extract text content based on file type
     let content = ''
     try {
-      // Read the file content
       const arrayBuffer = await file.arrayBuffer()
-      const buffer = new Uint8Array(arrayBuffer)
-      
-      // Use TextDecoder to properly decode the content
-      const decoder = new TextDecoder('utf-8')
-      content = decoder.decode(buffer)
-      
-      // Basic text cleanup
+
+      if (fileExt === 'pdf') {
+        // Load and parse PDF
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer })
+        const pdf = await loadingTask.promise
+        
+        // Extract text from all pages
+        const numPages = pdf.numPages
+        const textContent = []
+        
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdf.getPage(i)
+          const text = await page.getTextContent()
+          const pageText = text.items.map(item => item.str).join(' ')
+          textContent.push(pageText)
+        }
+        
+        content = textContent.join('\n\n')
+      } else if (fileExt === 'docx') {
+        // Parse DOCX document
+        const result = await mammoth.extractRawText({ arrayBuffer })
+        content = result.value
+      } else {
+        throw new Error('Unsupported file type. Only PDF and DOCX files are supported.')
+      }
+
+      // Clean up the extracted text
       content = content
         .replace(/\u0000/g, '') // Remove null bytes
-        .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove replacement characters and BOM
+        .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove replacement characters
         .replace(/\r\n/g, '\n') // Normalize line endings
+        .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newlines
         .trim()
 
       console.log('Content extracted successfully, length:', content.length)
