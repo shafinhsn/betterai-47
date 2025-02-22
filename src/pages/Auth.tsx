@@ -20,12 +20,29 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
+        const isEduEmail = email.toLowerCase().endsWith('.edu');
         const { error } = await supabase.auth.signUp({
           email,
           password,
         });
+        
         if (error) throw error;
-        toast.success("Check your email for the confirmation link!");
+
+        if (isEduEmail) {
+          const trialEndDate = new Date();
+          trialEndDate.setDate(trialEndDate.getDate() + 7); // 7 days trial
+
+          await supabase.from('subscriptions').insert({
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+            plan_type: 'Trial',
+            status: 'active',
+            trial_end_at: trialEndDate.toISOString()
+          });
+
+          toast.success("Welcome! As an .edu user, you've received a 1-week free trial.");
+        } else {
+          toast.success("Check your email for the confirmation link!");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -108,4 +125,4 @@ export default function Auth() {
       </div>
     </div>
   );
-}
+};
