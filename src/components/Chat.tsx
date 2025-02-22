@@ -127,8 +127,11 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
 
   if (!session) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <AuthHoverCard />
+      <div className="flex flex-col h-full">
+        {messages.length > 0 && <MessageList messages={messages} />}
+        <div className="p-4 border-t border-emerald-900/20">
+          <AuthHoverCard />
+        </div>
       </div>
     );
   }
