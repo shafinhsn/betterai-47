@@ -1,3 +1,4 @@
+
 import { useTextEditor } from '@/hooks/useTextEditor';
 import { Button } from './ui/button';
 import { useState, useEffect, useRef } from 'react';
@@ -32,13 +33,11 @@ export const TextEditorPanel = ({
     alignment,
     format,
     citationStyle,
-    isCheckingPlagiarism,
     handleFormatChange,
     handleFontChange,
     handleSizeChange,
     handleAlignmentChange,
     handleCitationStyleChange,
-    handlePlagiarismCheck,
   } = useTextEditor();
 
   const handleFormatWithSelection = (formatType: string) => {
@@ -85,7 +84,6 @@ export const TextEditorPanel = ({
             alignment={alignment}
             format={format}
             citationStyle={citationStyle}
-            isCheckingPlagiarism={isCheckingPlagiarism}
             onFormatChange={(formats) => {
               formats.forEach(format => handleFormatWithSelection(format));
             }}
@@ -102,7 +100,9 @@ export const TextEditorPanel = ({
               applyFormattingToAll('textAlign', value);
             }}
             onCitationStyleChange={handleCitationStyleChange}
-            onPlagiarismCheck={handlePlagiarismCheck}
+            onAddSourceLink={(sourceLink, sourceTitle) => {
+              handleCitationStyleChange(citationStyle);
+            }}
           />
         </div>
 
