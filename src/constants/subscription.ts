@@ -8,7 +8,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     messages: Infinity,
     features: [
       'Unlimited messages',
-      '14-day free trial',
+      `${STUDENT_TRIAL_DAYS}-day free trial`,
       'Advanced document editing',
       'Citation generation',
       'Academic formatting (APA, MLA)',
