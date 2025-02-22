@@ -71,37 +71,41 @@ export const MainLayout = ({
           
           <ResizableHandle withHandle className="bg-[#2a2a2a]" />
           
-          <ResizablePanel defaultSize={50}>
-            <div className="h-full flex flex-col">
-              <div className="flex-1">
-                <Chat
-                  messages={messages}
-                  onSendMessage={onSendMessage}
-                  documentContent={content}
-                  onDocumentUpdate={onDocumentUpdate}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
+          <ResizablePanel defaultSize={75}>
+            <ResizablePanelGroup direction="horizontal">
+              <ResizablePanel defaultSize={60}>
+                <div className="h-full flex flex-col">
+                  <div className="flex-1">
+                    <Chat
+                      messages={messages}
+                      onSendMessage={onSendMessage}
+                      documentContent={content}
+                      onDocumentUpdate={onDocumentUpdate}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
 
-          <ResizableHandle withHandle className="bg-[#2a2a2a]" />
+              <ResizableHandle withHandle className="bg-[#2a2a2a]" />
 
-          <ResizablePanel defaultSize={25}>
-            <div className="h-full p-4">
-              <PreviewPanel
-                content={content}
-                isProcessing={isProcessing}
-                previewKey={previewKey}
-              />
-              {updatedContent && (
-                <TextEditorPanel
-                  updatedContent={updatedContent}
-                  content={content}
-                  previewKey={previewKey}
-                  onManualUpdate={onManualUpdate}
-                />
-              )}
-            </div>
+              <ResizablePanel defaultSize={40}>
+                <div className="h-full p-4">
+                  <PreviewPanel
+                    content={content}
+                    isProcessing={isProcessing}
+                    previewKey={previewKey}
+                  />
+                  {updatedContent && (
+                    <TextEditorPanel
+                      updatedContent={updatedContent}
+                      content={content}
+                      previewKey={previewKey}
+                      onManualUpdate={onManualUpdate}
+                    />
+                  )}
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
