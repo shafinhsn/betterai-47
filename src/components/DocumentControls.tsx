@@ -22,11 +22,20 @@ export const DocumentControls = ({
 
   const handleRemoveDocument = async () => {
     try {
-      const { error } = await supabase.storage
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([currentDocument.filePath]);
 
-      if (error) throw error;
+      if (storageError) throw storageError;
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .match({ file_path: currentDocument.filePath });
+
+      if (dbError) throw dbError;
 
       onDocumentRemoved();
 
@@ -115,3 +124,4 @@ export const DocumentControls = ({
     </div>
   );
 };
+
