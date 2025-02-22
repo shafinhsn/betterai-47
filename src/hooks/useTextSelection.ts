@@ -24,13 +24,32 @@ export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
   };
 
   const restoreSelection = () => {
-    if (selectionRange && editorRef.current) {
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(selectionRange);
+    if (!editorRef.current) return;
+
+    // Wait for the next frame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      if (selectionRange && editorRef.current) {
+        const selection = window.getSelection();
+        if (selection) {
+          try {
+            // First, check if the range is still valid
+            const newRange = document.createRange();
+            newRange.setStart(selectionRange.startContainer, selectionRange.startOffset);
+            newRange.setEnd(selectionRange.endContainer, selectionRange.endOffset);
+            
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+          } catch (e) {
+            // If the range is invalid, try to set cursor at the end
+            const range = document.createRange();
+            range.selectNodeContents(editorRef.current);
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        }
       }
-    }
+    });
   };
 
   const applyFormattingToSelection = (property: string, value: string | null) => {
@@ -80,3 +99,4 @@ export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
     applyFormattingToAll
   };
 };
+

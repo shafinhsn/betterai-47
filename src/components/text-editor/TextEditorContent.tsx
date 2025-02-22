@@ -37,6 +37,13 @@ export const TextEditorContent = ({
       document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
       saveSelection();
     }
+    
+    // Save selection on backspace and enter to ensure proper cursor position
+    if (e.key === 'Backspace' || e.key === 'Enter') {
+      requestAnimationFrame(() => {
+        saveSelection();
+      });
+    }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -90,3 +97,4 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
+
