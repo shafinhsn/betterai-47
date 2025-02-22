@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useToast } from "@/hooks/use-toast";
 import type { Tables } from '@/integrations/supabase/database.types';
 
 interface Message {
@@ -61,6 +61,7 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   const [messageCount, setMessageCount] = useState(0);
   const [subscription, setSubscription] = useState<Tables<'subscriptions'> | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     checkMessageUsage();
@@ -133,7 +134,6 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     // In a real implementation, this would integrate with a payment provider like Stripe
     toast({
-      title: "Subscription Feature",
       description: "This is a demo of the subscription feature. In production, this would integrate with Stripe for payments.",
     });
     setShowSubscriptionDialog(false);
