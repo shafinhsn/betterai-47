@@ -34,16 +34,6 @@ export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
     // If no text is selected, return
     if (range.collapsed) return;
 
-    // Get the selected text
-    const selectedText = range.toString();
-    
-    // Create a temporary element to check if the selected text is already formatted
-    const temp = document.createElement('div');
-    temp.innerHTML = selectedText;
-    
-    // Check if the format is already applied
-    const isFormatApplied = document.queryCommandState(format);
-
     // Execute the command to toggle the format
     document.execCommand(format, false);
 
@@ -55,10 +45,51 @@ export const useTextSelection = (editorRef: RefObject<HTMLDivElement>) => {
     saveSelection();
   };
 
+  const applyFormattingToSelection = (property: string, value: string | null) => {
+    const selection = window.getSelection();
+    if (!selection || !editorRef.current) return;
+
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) {
+      const span = document.createElement('span');
+      if (value) {
+        span.style[property as any] = value;
+      }
+      
+      range.surroundContents(span);
+      
+      if (!value) {
+        // Remove formatting by unwrapping the span
+        const parent = span.parentNode;
+        if (parent) {
+          while (span.firstChild) {
+            parent.insertBefore(span.firstChild, span);
+          }
+          parent.removeChild(span);
+        }
+      }
+    }
+    saveSelection();
+  };
+
+  const applyFormattingToAll = (property: string, value: string | null) => {
+    if (!editorRef.current) return;
+    
+    if (value) {
+      editorRef.current.style[property as any] = value;
+    } else {
+      editorRef.current.style[property as any] = '';
+    }
+    
+    saveSelection();
+  };
+
   return {
     lastCaretPosition,
     toggleFormat,
     saveSelection,
-    restoreSelection
+    restoreSelection,
+    applyFormattingToSelection,
+    applyFormattingToAll
   };
 };
