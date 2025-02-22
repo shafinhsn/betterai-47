@@ -133,74 +133,56 @@ const Index = () => {
           
           <ResizableHandle withHandle className="bg-[#2a2a2a]" />
           
-          <ResizablePanel defaultSize={75}>
+          <ResizablePanel defaultSize={50}>
             <div className="h-full flex flex-col">
-              <div className="flex-1 border-x border-[#2a2a2a] bg-[#1a1a1a]">
-                <ResizablePanelGroup direction="vertical" className="h-full">
-                  <ResizablePanel defaultSize={70}>
-                    <div className="h-full p-4">
-                      <ResizablePanelGroup direction="vertical" className="h-full gap-4">
-                        <ResizablePanel defaultSize={50}>
-                          <div className="h-full">
-                            <h3 className="text-sm font-medium mb-2 text-gray-200">Original Document</h3>
-                            {content ? (
-                              <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                                <DocumentPreview key={`original-${previewKey}`} content={content} isUpdated={false} />
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-gray-400">
-                                {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
-                              </div>
-                            )}
-                          </div>
-                        </ResizablePanel>
-                        
-                        {updatedContent && (
-                          <>
-                            <ResizableHandle withHandle className="bg-[#2a2a2a]" />
-                            <ResizablePanel defaultSize={50}>
-                              <div className="h-full">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h3 className="text-sm font-medium text-gray-200">Updated Document</h3>
-                                  <Button variant="outline" size="sm" onClick={handleManualUpdate}>
-                                    Update
-                                  </Button>
-                                </div>
-                                <TextEditor
-                                  onFormatChange={() => {}}
-                                  onFontChange={() => {}}
-                                  onSizeChange={() => {}}
-                                  onAlignmentChange={() => {}}
-                                />
-                                <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-6rem)] overflow-auto">
-                                  <textarea
-                                    value={updatedContent}
-                                    onChange={handleContentChange}
-                                    className="w-full h-full bg-transparent text-emerald-50 focus:outline-none resize-none whitespace-pre-wrap"
-                                  />
-                                </div>
-                              </div>
-                            </ResizablePanel>
-                          </>
-                        )}
-                      </ResizablePanelGroup>
-                    </div>
-                  </ResizablePanel>
-                  
-                  <ResizableHandle withHandle className="bg-[#2a2a2a]" />
-                  
-                  <ResizablePanel defaultSize={30}>
-                    <div className="h-full border-t border-[#2a2a2a] bg-[#1a1a1a]">
-                      <Chat
-                        messages={messages}
-                        onSendMessage={handleSendMessage}
-                        documentContent={content}
-                        onDocumentUpdate={handleDocumentUpdate}
-                      />
-                    </div>
-                  </ResizablePanel>
-                </ResizablePanelGroup>
+              <div className="flex-1">
+                <Chat
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                  documentContent={content}
+                  onDocumentUpdate={handleDocumentUpdate}
+                />
               </div>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle className="bg-[#2a2a2a]" />
+
+          <ResizablePanel defaultSize={25}>
+            <div className="h-full p-4">
+              <h3 className="text-sm font-medium mb-2 text-gray-200">Document Preview</h3>
+              {content ? (
+                <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
+                  <DocumentPreview key={`original-${previewKey}`} content={content} isUpdated={false} />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
+                </div>
+              )}
+              {updatedContent && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-200">Updated Document</h3>
+                    <Button variant="outline" size="sm" onClick={handleManualUpdate}>
+                      Update
+                    </Button>
+                  </div>
+                  <TextEditor
+                    onFormatChange={() => {}}
+                    onFontChange={() => {}}
+                    onSizeChange={() => {}}
+                    onAlignmentChange={() => {}}
+                  />
+                  <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-6rem)] overflow-auto">
+                    <textarea
+                      value={updatedContent}
+                      onChange={handleContentChange}
+                      className="w-full h-full bg-transparent text-emerald-50 focus:outline-none resize-none whitespace-pre-wrap"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>

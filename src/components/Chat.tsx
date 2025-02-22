@@ -137,8 +137,8 @@ export const Chat = ({ onSendMessage, messages, documentContent, onDocumentUpdat
       <MessageList messages={messages} />
       
       {messageCount < FREE_TIER_LIMIT && !subscription && (
-        <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm">
-          {FREE_TIER_LIMIT - messageCount} messages remaining in free tier
+        <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
+          <span className="font-medium">{FREE_TIER_LIMIT - messageCount}</span> messages remaining in free tier
         </div>
       )}
       
