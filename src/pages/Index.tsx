@@ -30,6 +30,9 @@ const Index = () => {
   const handleFileSelect = async (selectedFile: File) => {
     setIsProcessing(true);
     setFile(selectedFile);
+    // Clear previous content immediately when processing starts
+    setContent('');
+    setCurrentDocument(null);
     
     try {
       const formData = new FormData();
@@ -43,8 +46,13 @@ const Index = () => {
         throw error;
       }
 
-      if (!data) {
-        throw new Error('No data received from function');
+      if (!data || !data.content) {
+        throw new Error('No content received from document processing');
+      }
+
+      // Basic validation of the received content
+      if (typeof data.content !== 'string' || data.content.trim() === '') {
+        throw new Error('Invalid or empty document content received');
       }
 
       setContent(data.content);
@@ -57,6 +65,7 @@ const Index = () => {
     } catch (error) {
       console.error('Error processing document:', error);
       setContent('');
+      setCurrentDocument(null);
       toast({
         variant: "destructive",
         title: "Error",
@@ -122,7 +131,7 @@ const Index = () => {
               <DocumentPreview content={content} />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
-                Upload a document to see preview
+                {isProcessing ? 'Processing document...' : 'Upload a document to see preview'}
               </div>
             )}
           </div>
