@@ -23,11 +23,10 @@ export const SourceList = ({ sources, onEdit, onDelete }: SourceListProps) => {
       <div className="space-y-2 max-h-[200px] overflow-y-auto">
         {sources.map((source, index) => (
           <div key={index} className="flex items-center justify-between p-2 bg-secondary rounded">
-            <div className="truncate flex-1">
-              <p className="font-medium truncate">{source.title}</p>
-              <p className="text-sm text-muted-foreground truncate">{source.link}</p>
+            <div className="flex-1 mr-2">
+              <p className="font-medium text-sm truncate">{source.title}</p>
             </div>
-            <div className="flex gap-2 ml-2">
+            <div className="flex gap-2 shrink-0">
               <Button size="sm" variant="ghost" onClick={() => onEdit(index)}>
                 Edit
               </Button>

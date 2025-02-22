@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
@@ -101,32 +100,16 @@ export const SubscriptionPage = () => {
   };
 
   const getFeatures = (planType: string) => {
-    if (planType === 'Student Plan') {
-      return [
-        'Unlimited messages',
-        `${STUDENT_TRIAL_DAYS}-day free trial`,
-        'Advanced document editing',
-        'Citation generation',
-        'Academic formatting (APA, MLA)',
-        'Essay structure improvements',
-        'Plagiarism checker',
-        'Smart formatting',
-        'Email support',
-        '150 messages per day'
-      ];
-    }
     return [
-      'Everything in Student Plan',
-      'Industry-specific editing',
-      'Legal document support',
-      'Medical content refinement',
-      'Corporate language optimization',
-      'Priority support',
-      'Advanced document analysis',
-      'Custom document templates',
-      'Team collaboration features',
-      'API access',
-      '500 messages per day'
+      'Unlimited messages',
+      `${STUDENT_TRIAL_DAYS}-day free trial`,
+      'Advanced document editing',
+      'Citation generation',
+      'Academic formatting (APA, MLA)',
+      'Essay structure improvements',
+      'Smart formatting',
+      'Email support',
+      '150 messages per day'
     ];
   };
 
@@ -150,16 +133,16 @@ export const SubscriptionPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-lg mx-auto">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
           <p className="text-muted-foreground">
-            Select the plan that best fits your needs. Student plan includes a {STUDENT_TRIAL_DAYS}-day free trial.
+            Start with a {STUDENT_TRIAL_DAYS}-day free trial. No credit card required.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {products?.map((product) => (
+        <div className="space-y-6">
+          {products?.filter(product => product.name === 'Student Plan').map((product) => (
             <SubscriptionCard
               key={product.id}
               name={product.name}
