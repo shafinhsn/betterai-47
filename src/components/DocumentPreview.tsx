@@ -4,10 +4,11 @@ import { useEffect, useRef, forwardRef, memo, useState } from 'react';
 
 interface DocumentPreviewProps {
   content: string;
+  isUpdated?: boolean;
 }
 
 const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps>(
-  ({ content }, ref) => {
+  ({ content, isUpdated = false }, ref) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [displayedContent, setDisplayedContent] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -21,6 +22,11 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
     useEffect(() => {
       if (!content) {
         setDisplayedContent('');
+        return;
+      }
+
+      if (!isUpdated) {
+        setDisplayedContent(content);
         return;
       }
 
@@ -39,7 +45,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
       }, 20); // Adjust speed by changing this value (milliseconds)
 
       return () => clearInterval(typingInterval);
-    }, [content]);
+    }, [content, isUpdated]);
 
     if (!content) {
       return null;

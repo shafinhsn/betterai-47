@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { DocumentSidebar } from '@/components/DocumentSidebar';
 import { Chat } from '@/components/Chat';
@@ -79,7 +78,6 @@ const Index = () => {
   };
 
   const handleDocumentUpdate = (newContent: string) => {
-    // Clear previous updates and set new content
     setUpdatedContent(newContent);
     toast({
       title: "Document updated",
@@ -123,7 +121,7 @@ const Index = () => {
                 <h3 className="text-sm font-medium mb-2 text-gray-200">Original Document</h3>
                 {content ? (
                   <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                    <DocumentPreview content={content} />
+                    <DocumentPreview content={content} isUpdated={false} />
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">
@@ -135,7 +133,7 @@ const Index = () => {
                 <div className="flex-1">
                   <h3 className="text-sm font-medium mb-2 text-gray-200">Updated Document</h3>
                   <div className="bg-[#242424] rounded-lg p-4 h-[calc(100%-2rem)] overflow-auto">
-                    <DocumentPreview content={updatedContent} />
+                    <DocumentPreview content={updatedContent} isUpdated={true} />
                   </div>
                 </div>
               )}
@@ -148,4 +146,3 @@ const Index = () => {
 };
 
 export default Index;
-
