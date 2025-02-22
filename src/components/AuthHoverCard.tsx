@@ -36,6 +36,7 @@ export const AuthHoverCard = () => {
         title: "Success",
         description: "You have been signed in",
       });
+      setIsOpen(false);
     }
 
     setIsLoading(false);
@@ -64,6 +65,7 @@ export const AuthHoverCard = () => {
         title: "Success",
         description: "Check your email to confirm your account",
       });
+      setIsOpen(false);
     }
 
     setIsLoading(false);
@@ -86,7 +88,7 @@ export const AuthHoverCard = () => {
         </div>
       </HoverCardTrigger>
       <HoverCardContent 
-        className="w-[90vw] max-w-2xl bg-[#1a1a1a] border-emerald-800/30 rounded-lg p-8"
+        className="w-[90vw] max-w-2xl bg-[#1a1a1a] border border-emerald-800/30 rounded-lg p-8 shadow-2xl"
         sideOffset={5}
       >
         <div className="max-w-md mx-auto">
@@ -154,4 +156,3 @@ export const AuthHoverCard = () => {
     </HoverCard>
   );
 };
-
