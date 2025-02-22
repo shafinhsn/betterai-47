@@ -4,7 +4,6 @@ import { FileUpload } from '@/components/FileUpload';
 import { Chat } from '@/components/Chat';
 import { DocumentPreview } from '@/components/DocumentPreview';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { cn } from '@/lib/utils';
 
 interface Message {
   id: string;
@@ -27,19 +26,9 @@ const Index = () => {
     const newMessage = {
       id: Date.now().toString(),
       content: message,
-      sender: 'user' as const
+      sender: messages.length % 2 === 0 ? 'user' : 'ai' as const
     };
     setMessages(prev => [...prev, newMessage]);
-    
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: (Date.now() + 1).toString(),
-        content: "I'm analyzing your document... This is a placeholder response.",
-        sender: 'ai' as const
-      };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
   };
 
   return (
@@ -64,6 +53,7 @@ const Index = () => {
             <Chat
               messages={messages}
               onSendMessage={handleSendMessage}
+              documentContent={content}
             />
           </div>
         </ResizablePanel>

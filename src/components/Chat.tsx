@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -15,15 +16,42 @@ interface Message {
 interface ChatProps {
   onSendMessage: (message: string) => void;
   messages: Message[];
+  documentContent?: string;
 }
 
-export const Chat = ({ onSendMessage, messages }: ChatProps) => {
+export const Chat = ({ onSendMessage, messages, documentContent }: ChatProps) => {
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSendMessage = async (content: string) => {
+    try {
+      setIsLoading(true);
+      onSendMessage(content);
+      
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: {
+          message: content,
+          context: documentContent || '',
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.reply) {
+        onSendMessage(data.reply);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      onSendMessage('Sorry, I encountered an error while processing your request.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
-      onSendMessage(input);
+      handleSendMessage(input);
       setInput('');
     }
   };
@@ -52,8 +80,9 @@ export const Chat = ({ onSendMessage, messages }: ChatProps) => {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything about your document..."
             className="flex-1"
+            disabled={isLoading}
           />
-          <Button type="submit" size="icon">
+          <Button type="submit" size="icon" disabled={isLoading}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
