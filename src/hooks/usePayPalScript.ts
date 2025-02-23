@@ -30,17 +30,19 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
         existingScripts.forEach(script => script.remove());
 
         const script = document.createElement('script');
-        script.id = 'paypal-sdk';
-        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription&components=buttons&enable-funding=venmo,paylater`;
+        script.id = 'paypal-js';
+        script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=subscription`;
         script.async = true;
-        script.defer = true;
         script.crossOrigin = "anonymous";
         
-        // Add script attributes to help with CORS
-        script.setAttribute('data-namespace', 'paypal-sdk');
-        script.setAttribute('data-csp-nonce', 'random-nonce');
+        // Record load/error state
+        let hasLoaded = false;
+        let hasErrored = false;
 
         const handleError = (event: Event | string) => {
+          if (hasLoaded || hasErrored) return; // Prevent multiple callbacks
+          hasErrored = true;
+          
           console.error('PayPal script loading error:', event);
           if (isSubscribed) {
             onError?.(new Error(typeof event === 'string' ? event : 'Failed to load PayPal SDK'));
@@ -48,13 +50,11 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
         };
 
         script.onerror = handleError;
-        window.addEventListener('error', (event) => {
-          if (event.filename?.includes('paypal')) {
-            handleError(event);
-          }
-        }, { once: true });
 
         script.onload = () => {
+          if (hasErrored) return; // Don't proceed if we already had an error
+          hasLoaded = true;
+          
           if (window.paypal && isSubscribed) {
             console.log('PayPal SDK loaded successfully');
             setScriptLoaded(true);
@@ -66,15 +66,16 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
           }
         };
 
-        // Increased timeout to 30 seconds for slower connections
+        // Start timeout before appending script
         timeoutId = window.setTimeout(() => {
-          if (isSubscribed) {
+          if (!hasLoaded && isSubscribed) {
             const error = new Error('PayPal SDK load timeout');
             console.error('PayPal script timeout');
             onError?.(error);
           }
-        }, 30000);
+        }, 10000);
 
+        // Append the script
         document.head.appendChild(script);
       } catch (error) {
         console.error('Script loading error:', error);
@@ -99,4 +100,3 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
     scriptLoaded
   };
 };
-
