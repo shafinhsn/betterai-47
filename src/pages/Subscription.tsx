@@ -18,7 +18,7 @@ export const SubscriptionPage = () => {
 
   const isManagingSubscription = location.pathname === '/manage-subscription';
 
-  const { data: subscription } = useQuery({
+  const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
     queryKey: ['active-subscription'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -29,12 +29,18 @@ export const SubscriptionPage = () => {
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
       
       return data;
-    },
-    enabled: isManagingSubscription
+    }
   });
+
+  // If user has an active subscription and they're not on the management page,
+  // redirect them to manage subscription
+  if (subscription && !isManagingSubscription && !isLoadingSubscription) {
+    navigate('/manage-subscription');
+    return null;
+  }
 
   const { data: products, isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: ['stripe-products'],
@@ -130,7 +136,7 @@ export const SubscriptionPage = () => {
     return [];
   };
 
-  if (isLoadingProducts) {
+  if (isLoadingProducts || isLoadingSubscription) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
@@ -170,7 +176,7 @@ export const SubscriptionPage = () => {
         </div>
 
         <div className="space-y-6">
-          {products?.filter(product => product.name.toLowerCase().includes('student')).map((product) => (
+          {products?.map((product) => (
             <SubscriptionCard
               key={product.id}
               name={product.name}
