@@ -11,6 +11,12 @@ async function getPayPalAccessToken() {
   const clientId = Deno.env.get('PAYPAL_CLIENT_ID');
   const clientSecret = Deno.env.get('PAYPAL_SECRET_KEY');
   
+  if (!clientId || !clientSecret) {
+    throw new Error('PayPal credentials not configured');
+  }
+
+  console.log('Getting PayPal access token...');
+  
   const response = await fetch(`${PAYPAL_API_URL}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
@@ -22,11 +28,18 @@ async function getPayPalAccessToken() {
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error('Failed to get PayPal access token');
+  if (!response.ok) {
+    console.error('Failed to get PayPal access token:', data);
+    throw new Error('Failed to get PayPal access token');
+  }
+  
+  console.log('Successfully obtained PayPal access token');
   return data.access_token;
 }
 
 async function verifyWebhook(accessToken: string, webhookId: string, event: any) {
+  console.log('Verifying webhook signature...');
+  
   const response = await fetch(`${PAYPAL_API_URL}/v1/notifications/verify-webhook-signature`, {
     method: 'POST',
     headers: {
@@ -36,10 +49,22 @@ async function verifyWebhook(accessToken: string, webhookId: string, event: any)
     body: JSON.stringify({
       webhook_id: webhookId,
       webhook_event: event,
+      transmission_id: event.id,
+      transmission_time: event.create_time,
+      cert_url: event.links?.[0]?.href,
+      auth_algo: event.auth_algo,
+      transmission_sig: event.transmission_sig,
     }),
   });
 
   const data = await response.json();
+  console.log('Webhook verification response:', data);
+  
+  if (!response.ok) {
+    console.error('Webhook verification failed:', data);
+    throw new Error('Failed to verify webhook signature');
+  }
+  
   return data.verification_status === 'SUCCESS';
 }
 
@@ -50,10 +75,14 @@ serve(async (req) => {
 
   try {
     const webhookData = await req.json();
-    console.log('Received PayPal webhook:', webhookData);
+    console.log('Received PayPal webhook:', JSON.stringify(webhookData, null, 2));
 
     const accessToken = await getPayPalAccessToken();
     const webhookId = Deno.env.get('PAYPAL_WEBHOOK_ID');
+
+    if (!webhookId) {
+      throw new Error('PayPal webhook ID not configured');
+    }
 
     // Verify webhook signature
     const isValid = await verifyWebhook(accessToken, webhookId, webhookData);
@@ -62,34 +91,39 @@ serve(async (req) => {
       throw new Error('Invalid webhook signature');
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
+    console.log('Webhook signature verified successfully');
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase credentials not configured');
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     const eventType = webhookData.event_type;
     const resource = webhookData.resource;
-    const userId = resource.custom_id; // This is our user ID we passed during subscription creation
+    const userId = resource.custom_id; // This is our user ID passed during subscription creation
 
     console.log('Processing webhook event:', { eventType, userId });
 
     switch (eventType) {
       case 'BILLING.SUBSCRIPTION.ACTIVATED':
-        // Update subscription status to active
+        console.log('Processing subscription activation...');
         await supabaseClient
           .from('subscriptions')
           .upsert({
             user_id: userId,
             payment_subscription_id: resource.id,
-            payment_processor: 'paypal',
             status: 'active',
-            current_period_end: resource.billing_info.next_billing_time,
+            stripe_current_period_end: resource.billing_info.next_billing_time,
             plan_type: 'student'
           });
         break;
 
       case 'BILLING.SUBSCRIPTION.CANCELLED':
-        // Update subscription status to canceled
+        console.log('Processing subscription cancellation...');
         await supabaseClient
           .from('subscriptions')
           .update({
@@ -100,7 +134,7 @@ serve(async (req) => {
         break;
 
       case 'BILLING.SUBSCRIPTION.EXPIRED':
-        // Update subscription status to expired
+        console.log('Processing subscription expiration...');
         await supabaseClient
           .from('subscriptions')
           .update({
@@ -126,4 +160,3 @@ serve(async (req) => {
     );
   }
 });
-
