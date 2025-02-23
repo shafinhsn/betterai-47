@@ -17,7 +17,7 @@ export const getFeatures = () => {
   ];
 };
 
-export const handleSubscribe = async (productId: string, planName: string) => {
+export const handleSubscribe = async (productId: string, planName: string): Promise<string> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -75,7 +75,7 @@ export const handleSubscribe = async (productId: string, planName: string) => {
   } catch (error: any) {
     console.error('Subscription error:', error);
     toast.error('Failed to start checkout: ' + (error.message || 'Unknown error occurred'));
-    return null;
+    throw error; // Re-throw to handle in the component
   }
 };
 
@@ -112,3 +112,4 @@ export const handleManageSubscription = async () => {
     return null;
   }
 };
+
