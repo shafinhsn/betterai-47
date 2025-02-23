@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+
+import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
@@ -23,61 +23,12 @@ if (typeof window !== 'undefined') {
 }
 
 interface FileUploadProps {
-  onFileSelect: (file: File, content: string, filePath: string) => void;
+  onFileSelect: (file: File, content: string) => void;
 }
 
 export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const [documentType, setDocumentType] = useState<'docx' | 'pdf'>('docx');
-  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
-
-  // Cleanup function for Supabase documents
-  const cleanupDocuments = async () => {
-    try {
-      const { data: documentsToDelete, error: fetchError } = await supabase
-        .from('documents')
-        .select('file_path')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
-
-      if (fetchError) throw fetchError;
-
-      // Delete files from storage
-      if (documentsToDelete && documentsToDelete.length > 0) {
-        const filePaths = documentsToDelete.map(doc => doc.file_path).filter(Boolean);
-        
-        if (filePaths.length > 0) {
-          const { error: storageError } = await supabase.storage
-            .from('documents')
-            .remove(filePaths);
-
-          if (storageError) throw storageError;
-        }
-
-        // Delete document records
-        const { error: deleteError } = await supabase
-          .from('documents')
-          .delete()
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
-
-        if (deleteError) throw deleteError;
-      }
-    } catch (error) {
-      console.error('Error cleaning up documents:', error);
-    }
-  };
-
-  // Add event listener for page unload
-  useEffect(() => {
-    const handleUnload = () => {
-      cleanupDocuments();
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleUnload);
-    };
-  }, []);
 
   const processDocx = async (file: File) => {
     try {
@@ -97,26 +48,12 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
 
   const processPdf = async (file: File) => {
     try {
-      console.log('Processing PDF file:', file.name);
       const arrayBuffer = await file.arrayBuffer();
-      
-      // Upload the file to Supabase storage first
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(`${crypto.randomUUID()}-${file.name}`, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get the file path from the upload response
-      const filePath = uploadData.path;
-      
-      // Now process the PDF for text content
       const loadingTask = pdfjsLib.getDocument({
         data: arrayBuffer,
         verbosity: pdfjsLib.VerbosityLevel.ERRORS
       });
       const pdf = await loadingTask.promise;
-      console.log('PDF loaded successfully with', pdf.numPages, 'pages');
       
       const textContent: string[] = [];
       
@@ -129,7 +66,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
         textContent.push(pageText);
       }
       
-      return { text: textContent.join('\n\n'), filePath };
+      return textContent.join('\n\n');
     } catch (error) {
       console.error('Error processing PDF:', error);
       toast({
@@ -146,19 +83,13 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       const file = acceptedFiles[0];
       try {
         let content;
-        let filePath;
 
         if (documentType === 'pdf' && file.type === 'application/pdf') {
           console.log('Processing PDF file:', file.name);
-          const result = await processPdf(file);
-          content = result.text;
-          filePath = result.filePath;
+          content = await processPdf(file);
         } else if (documentType === 'docx' && file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
           console.log('Processing DOCX file:', file.name);
           content = await processDocx(file);
-          
-          // For DOCX, we'll store the text content directly
-          filePath = '';
         } else {
           toast({
             variant: "destructive",
@@ -169,7 +100,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
         }
 
         if (content) {
-          onFileSelect(file, content, filePath);
+          onFileSelect(file, content);
           toast({
             title: "Success",
             description: `${file.name} has been processed successfully.`,

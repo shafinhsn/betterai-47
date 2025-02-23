@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +57,7 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleFileSelect = async (selectedFile: File, fileContent: string, filePath: string = '') => {
+  const handleFileSelect = async (selectedFile: File, fileContent: string) => {
     if (!isAuthenticated) {
       navigate('/auth');
       return;
@@ -102,6 +103,7 @@ const Index = () => {
     setUpdatedContent('');
     setCurrentDocument(null);
     setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const handleSendMessage = (message: string, sender: 'user' | 'ai') => {
@@ -154,10 +156,7 @@ const Index = () => {
       messages={messages}
       previewKey={previewKey}
       onFileSelect={handleFileSelect}
-      onDocumentRemoved={() => {
-        handleDocumentRemoved();
-        localStorage.removeItem(STORAGE_KEY);
-      }}
+      onDocumentRemoved={handleDocumentRemoved}
       onSendMessage={handleSendMessage}
       onDocumentUpdate={handleDocumentUpdate}
       onManualUpdate={handleManualUpdate}

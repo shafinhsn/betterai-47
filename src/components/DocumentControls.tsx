@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Download, Trash } from "lucide-react";
 import { ProcessedDocument } from "@/types/document";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { DocumentInfo } from "./DocumentInfo";
 import { downloadOriginalDocument, downloadUpdatedDocument } from "@/utils/document";
 
@@ -26,35 +25,18 @@ export const DocumentControls = ({
 }: DocumentControlsProps) => {
   const { toast } = useToast();
 
-  const handleRemoveDocument = async () => {
+  const handleRemoveDocument = () => {
     if (!isAuthenticated) {
       onNavigate();
       return;
     }
 
-    try {
-      if (currentDocument?.fileType === 'application/pdf') {
-        const { error: storageError } = await supabase.storage
-          .from('documents')
-          .remove([currentDocument.filePath]);
+    onDocumentRemoved();
 
-        if (storageError) throw storageError;
-      }
-
-      onDocumentRemoved();
-
-      toast({
-        title: "Document removed",
-        description: "Successfully removed the document",
-      });
-    } catch (error) {
-      console.error('Error removing document:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to remove document. Please try again.",
-      });
-    }
+    toast({
+      title: "Document removed",
+      description: "Successfully removed the document",
+    });
   };
 
   const handleDownload = async (content: string, type: 'original' | 'updated') => {
