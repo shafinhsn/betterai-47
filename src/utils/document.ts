@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessedDocument } from "@/types/document";
 import { createPDFFromText } from "./pdf";
+import { createDocxFromText } from "./docx";
 
 export const downloadOriginalDocument = async (currentDocument: ProcessedDocument, content: string) => {
   if (currentDocument.fileType === 'application/pdf') {
@@ -21,8 +22,9 @@ export const downloadOriginalDocument = async (currentDocument: ProcessedDocumen
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
   } else {
-    // For DOCX files, download with proper MIME type
-    const blob = new Blob([content], { 
+    // For DOCX files, generate new document
+    const docxBuffer = await createDocxFromText(content);
+    const blob = new Blob([docxBuffer], { 
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
     });
     const url = URL.createObjectURL(blob);
@@ -50,8 +52,9 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
   } else {
-    // Save as DOCX for Word documents
-    const blob = new Blob([content], { 
+    // Generate new DOCX for Word documents
+    const docxBuffer = await createDocxFromText(content);
+    const blob = new Blob([docxBuffer], { 
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
     });
     const url = URL.createObjectURL(blob);
@@ -64,4 +67,3 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
     document.body.removeChild(a);
   }
 };
-
