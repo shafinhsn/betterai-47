@@ -30,6 +30,7 @@ export const PayPalButton = ({
   const navigate = useNavigate();
   const buttonInstanceRef = useRef<any>(null);
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
@@ -39,6 +40,7 @@ export const PayPalButton = ({
         console.log('Cookies are blocked - showing alert');
         setCookiesBlocked(true);
       } else {
+        setLoadError(error.message);
         toast.error('Failed to load PayPal: ' + error.message);
       }
     }
@@ -64,12 +66,16 @@ export const PayPalButton = ({
             shape: 'rect',
             label: 'subscribe'
           } as PayPalButtonStyle,
-          createSubscription: async () => {
+          createSubscription: async (data: any, actions: any) => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
                 planName: planName
               });
+              
+              // Reset any previous errors
+              setLoadError(null);
+              
               const subscriptionId = await onSubscribe(stripeProductId, planName);
               if (!subscriptionId) {
                 throw new Error('Failed to create subscription');
@@ -78,11 +84,12 @@ export const PayPalButton = ({
               return subscriptionId;
             } catch (error: any) {
               console.error('Subscription creation error:', error);
+              setLoadError(error.message || 'Failed to create subscription');
               toast.error('Failed to create subscription: ' + (error.message || 'Unknown error'));
               throw error;
             }
           },
-          onApprove: async (data: any) => {
+          onApprove: async (data: any, actions: any) => {
             console.log('Subscription approved:', data);
             toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
@@ -93,10 +100,12 @@ export const PayPalButton = ({
               console.log('Cookies are blocked during button interaction - showing alert');
               setCookiesBlocked(true);
             } else {
+              setLoadError(err.message || 'PayPal encountered an error');
               toast.error('PayPal encountered an error: ' + err.message);
             }
           },
           onCancel: () => {
+            console.log('Subscription was cancelled by user');
             toast.error('Subscription was cancelled');
           }
         };
@@ -109,16 +118,20 @@ export const PayPalButton = ({
             console.log('PayPal button rendered successfully');
           } else {
             console.error('PayPal button is not eligible for rendering');
+            setLoadError('PayPal payment method is not available');
             toast.error('PayPal payment method is not available');
           }
         }
       } catch (error) {
         console.error('Error rendering PayPal button:', error);
-        if (error instanceof Error && (error.message?.includes('blocked') || error.message?.includes('cookie'))) {
-          console.log('Cookies are blocked during render - showing alert');
-          setCookiesBlocked(true);
-        } else {
-          toast.error('Failed to render PayPal button');
+        if (error instanceof Error) {
+          if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
+            console.log('Cookies are blocked during render - showing alert');
+            setCookiesBlocked(true);
+          } else {
+            setLoadError(error.message);
+            toast.error('Failed to render PayPal button: ' + error.message);
+          }
         }
       }
     };
@@ -150,6 +163,10 @@ export const PayPalButton = ({
     <div className="w-full">
       {cookiesBlocked ? (
         <CookieAlert onOpenSettings={handleOpenCookieSettings} />
+      ) : loadError ? (
+        <div className="text-red-500 text-sm p-4 border border-red-200 rounded-md bg-red-50">
+          Error: {loadError}. Please try refreshing the page or check your connection.
+        </div>
       ) : (
         <div ref={paypalButtonRef} className="min-h-[150px]">
           {(isProcessing || isLoading) && <PayPalLoading />}
@@ -158,4 +175,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-

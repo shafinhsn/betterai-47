@@ -11,11 +11,14 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
   useEffect(() => {
+    let timeoutId: number;
+    
     const loadScript = () => {
       return new Promise<void>((resolve, reject) => {
         try {
           // Check if PayPal is already loaded
           if (window.paypal) {
+            console.log('PayPal SDK already loaded');
             setScriptLoaded(true);
             setIsLoading(false);
             resolve();
@@ -25,6 +28,7 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
           // Remove any existing PayPal scripts
           const existingScript = document.getElementById('paypal-sdk');
           if (existingScript) {
+            console.log('Removing existing PayPal script');
             existingScript.remove();
           }
 
@@ -55,6 +59,14 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
             reject(error);
           });
 
+          // Set a timeout to detect if script loading takes too long
+          timeoutId = window.setTimeout(() => {
+            const error = new Error('PayPal SDK load timeout');
+            console.error('PayPal script timeout');
+            onError?.(error);
+            reject(error);
+          }, 10000); // 10 second timeout
+
           document.body.appendChild(script);
         } catch (error) {
           console.error('Script loading error:', error);
@@ -68,9 +80,16 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
       setIsLoading(false);
       console.error('PayPal script loading failed:', error);
       onError?.(error);
+    }).finally(() => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     });
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       const script = document.getElementById('paypal-sdk');
       if (script) {
         script.remove();
