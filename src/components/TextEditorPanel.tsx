@@ -26,8 +26,8 @@ export const TextEditorPanel = ({
   };
 
   return (
-    <div className="bg-[#1a1a1a] rounded-lg p-4 h-full">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-[#1f1f1f] rounded-lg p-6 h-full flex flex-col gap-4">
+      <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gray-200">Updated Preview</h3>
         <Button 
           onClick={handleUpdate}
@@ -37,7 +37,7 @@ export const TextEditorPanel = ({
         </Button>
       </div>
 
-      <div className="space-y-4 h-[calc(100%-4rem)]">
+      <div className="flex-1 h-[calc(100%-3rem)]">
         <TextEditorContent
           content={editableContent}
           onContentChange={setEditableContent}
@@ -47,4 +47,3 @@ export const TextEditorPanel = ({
     </div>
   );
 };
-

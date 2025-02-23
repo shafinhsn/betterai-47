@@ -39,56 +39,54 @@ export const TextEditorContent = ({
   };
 
   const restoreSelection = useCallback(() => {
-    const selection = window.getSelection();
-    if (!selection || !lastSelectionRef.current || !editorRef.current) return;
+    if (!lastSelectionRef.current || !editorRef.current) return;
 
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
     let charCount = 0;
-    let foundStart = false;
-    let foundEnd = false;
-    let startNode: Node | null = null;
-    let startOffset = 0;
-    let endNode: Node | null = null;
-    let endOffset = 0;
+    let done = false;
 
     const traverse = (node: Node) => {
-      if (foundStart && foundEnd) return;
+      if (done) return;
 
       if (node.nodeType === Node.TEXT_NODE) {
-        const nextCharCount = charCount + node.textContent!.length;
-        if (!foundStart && lastSelectionRef.current!.start >= charCount && lastSelectionRef.current!.start <= nextCharCount) {
-          startNode = node;
-          startOffset = lastSelectionRef.current!.start - charCount;
-          foundStart = true;
+        const nextCount = charCount + node.textContent!.length;
+        if (!done && lastSelectionRef.current!.start >= charCount && lastSelectionRef.current!.start <= nextCount) {
+          range.setStart(node, lastSelectionRef.current!.start - charCount);
+          if (lastSelectionRef.current!.start === lastSelectionRef.current!.end) {
+            range.setEnd(node, lastSelectionRef.current!.start - charCount);
+            done = true;
+          }
         }
-        if (!foundEnd && lastSelectionRef.current!.end >= charCount && lastSelectionRef.current!.end <= nextCharCount) {
-          endNode = node;
-          endOffset = lastSelectionRef.current!.end - charCount;
-          foundEnd = true;
+        if (!done && lastSelectionRef.current!.end >= charCount && lastSelectionRef.current!.end <= nextCount) {
+          range.setEnd(node, lastSelectionRef.current!.end - charCount);
+          done = true;
         }
-        charCount = nextCharCount;
+        charCount = nextCount;
       } else {
-        for (const childNode of Array.from(node.childNodes)) {
-          traverse(childNode);
+        for (const child of Array.from(node.childNodes)) {
+          traverse(child);
         }
       }
     };
 
     traverse(editorRef.current);
 
-    if (startNode && endNode) {
-      try {
-        const range = document.createRange();
-        range.setStart(startNode, startOffset);
-        range.setEnd(endNode, endOffset);
-        selection.removeAllRanges();
-        selection.addRange(range);
+    try {
+      selection.removeAllRanges();
+      selection.addRange(range);
 
-        if (lastSelectionRef.current.scrollTop !== undefined && scrollAreaRef.current) {
-          scrollAreaRef.current.scrollTop = lastSelectionRef.current.scrollTop;
-        }
-      } catch (error) {
-        console.error('Error restoring selection:', error);
+      if (lastSelectionRef.current.scrollTop !== undefined && scrollAreaRef.current) {
+        requestAnimationFrame(() => {
+          if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTop = lastSelectionRef.current!.scrollTop!;
+          }
+        });
       }
+    } catch (error) {
+      console.error('Error restoring selection:', error);
     }
   }, []);
 
@@ -97,6 +95,7 @@ export const TextEditorContent = ({
     saveSelection();
     const newContent = e.currentTarget.innerHTML;
     onContentChange(newContent);
+    requestAnimationFrame(restoreSelection);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -119,23 +118,20 @@ export const TextEditorContent = ({
   };
 
   const handleScroll = () => {
-    if (scrollAreaRef.current) {
-      lastSelectionRef.current = {
-        ...lastSelectionRef.current!,
-        scrollTop: scrollAreaRef.current.scrollTop
-      };
+    if (scrollAreaRef.current && lastSelectionRef.current) {
+      lastSelectionRef.current.scrollTop = scrollAreaRef.current.scrollTop;
     }
   };
 
   return (
     <ScrollArea 
-      className="h-[calc(100%-5rem)] overflow-y-auto"
+      className="h-full overflow-y-auto border border-border/20 rounded-lg bg-[#1a1a1a]"
       ref={scrollAreaRef}
       onScrollCapture={handleScroll}
     >
       <div 
         ref={editorRef}
-        className="bg-[#242424] rounded p-6 min-h-[200px] w-full"
+        className="p-6 min-h-[200px] w-full focus:outline-none"
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
@@ -149,12 +145,8 @@ export const TextEditorContent = ({
           wordWrap: 'break-word',
           overflowWrap: 'break-word',
           lineHeight: '1.5',
-          outline: 'none',
-          maxWidth: '100%',
-          minHeight: '200px'
         }}
       />
     </ScrollArea>
   );
 };
-
