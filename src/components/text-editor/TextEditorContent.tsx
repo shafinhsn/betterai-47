@@ -21,20 +21,41 @@ export const TextEditorContent = ({
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
+  const selectionRef = useRef<Range | null>(null);
 
-  const saveAndRestoreSelection = () => {
-    // Delay the selection restoration slightly to ensure DOM updates are complete
-    requestAnimationFrame(() => {
-      if (!editorRef.current) return;
-      editorRef.current.focus();
-    });
+  const saveSelection = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    selectionRef.current = selection.getRangeAt(0).cloneRange();
+  };
+
+  const restoreSelection = () => {
+    if (!selectionRef.current || !editorRef.current) return;
+    
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    try {
+      selection.removeAllRanges();
+      selection.addRange(selectionRef.current);
+    } catch (error) {
+      console.error('Failed to restore selection:', error);
+    }
   };
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     if (isComposingRef.current) return;
+    saveSelection();
     const content = e.currentTarget.innerHTML;
     onContentChange(content);
-    saveAndRestoreSelection();
+    
+    // Use setTimeout to ensure DOM is updated before restoring selection
+    setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.focus();
+        restoreSelection();
+      }
+    }, 0);
   };
 
   const handleCompositionStart = () => {
@@ -51,6 +72,7 @@ export const TextEditorContent = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Tab') {
       e.preventDefault();
+      saveSelection();
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) return;
 
@@ -68,13 +90,21 @@ export const TextEditorContent = ({
     }
   };
 
+  const handleFocus = () => {
+    restoreSelection();
+  };
+
+  const handleBlur = () => {
+    saveSelection();
+  };
+
   useEffect(() => {
     if (editorRef.current) {
+      // Only apply these styles to the container
       editorRef.current.style.fontFamily = font;
-      editorRef.current.style.fontSize = `${size}px`;
       editorRef.current.style.textAlign = alignment;
     }
-  }, [font, size, alignment]);
+  }, [font, alignment]);
 
   return (
     <ScrollArea className="h-[calc(100%-5rem)] overflow-y-auto">
@@ -87,6 +117,8 @@ export const TextEditorContent = ({
         onKeyDown={handleKeyDown}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',

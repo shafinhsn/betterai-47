@@ -36,8 +36,8 @@ export const TextEditorPanel = ({
       // If no text is selected, apply to the entire content
       applyFormattingToAll(formatType, '');
     } else {
-      // If text is selected, apply only to the selection
-      document.execCommand(formatType === 'bold' ? 'bold' : 'italic', false);
+      // Apply formatting only to selected text
+      document.execCommand(formatType, false);
     }
   };
 
@@ -49,8 +49,17 @@ export const TextEditorPanel = ({
       // If no text is selected, apply to the entire content
       applyFormattingToAll(property, value);
     } else {
-      // If text is selected, apply only to the selection
-      applyFormattingToSelection(property, value);
+      // Create a span with the specified style
+      const span = document.createElement('span');
+      if (property === 'fontSize') {
+        span.style.fontSize = value;
+      } else if (property === 'fontFamily') {
+        span.style.fontFamily = value;
+      }
+
+      // Get the selected range and surround it with the styled span
+      const range = selection.getRangeAt(0);
+      range.surroundContents(span);
     }
   };
 
