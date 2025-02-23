@@ -16,27 +16,46 @@ export const TextEditorContent = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
   const lastSelectionRef = useRef<{
-    start: number;
-    end: number;
-    scrollTop?: number;
+    startOffset: number;
+    endOffset: number;
+    scrollTop: number;
   } | null>(null);
 
-  const saveSelection = () => {
+  const getTextOffsets = (node: Node, offset: number): number => {
+    let currentOffset = 0;
+    const walker = document.createTreeWalker(
+      editorRef.current!,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+      if (currentNode === node) {
+        return currentOffset + offset;
+      }
+      currentOffset += currentNode.textContent?.length || 0;
+      currentNode = walker.nextNode();
+    }
+    return offset;
+  };
+
+  const saveSelection = useCallback(() => {
+    if (!editorRef.current) return;
+
     const selection = window.getSelection();
-    if (!selection || !editorRef.current) return;
+    if (!selection || !selection.rangeCount) return;
 
     const range = selection.getRangeAt(0);
-    const preSelectionRange = range.cloneRange();
-    preSelectionRange.selectNodeContents(editorRef.current);
-    preSelectionRange.setEnd(range.startContainer, range.startOffset);
-    const start = preSelectionRange.toString().length;
+    const startOffset = getTextOffsets(range.startContainer, range.startOffset);
+    const endOffset = getTextOffsets(range.endContainer, range.endOffset);
 
     lastSelectionRef.current = {
-      start,
-      end: start + range.toString().length,
-      scrollTop: scrollAreaRef.current?.scrollTop
+      startOffset,
+      endOffset,
+      scrollTop: scrollAreaRef.current?.scrollTop || 0
     };
-  };
+  }, []);
 
   const restoreSelection = useCallback(() => {
     if (!lastSelectionRef.current || !editorRef.current) return;
@@ -45,43 +64,42 @@ export const TextEditorContent = ({
     if (!selection) return;
 
     const range = document.createRange();
-    let charCount = 0;
-    let done = false;
+    let currentOffset = 0;
+    let startFound = false;
+    let endFound = false;
 
-    const traverse = (node: Node) => {
-      if (done) return;
+    const walker = document.createTreeWalker(
+      editorRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
 
-      if (node.nodeType === Node.TEXT_NODE) {
-        const nextCount = charCount + node.textContent!.length;
-        if (!done && lastSelectionRef.current!.start >= charCount && lastSelectionRef.current!.start <= nextCount) {
-          range.setStart(node, lastSelectionRef.current!.start - charCount);
-          if (lastSelectionRef.current!.start === lastSelectionRef.current!.end) {
-            range.setEnd(node, lastSelectionRef.current!.start - charCount);
-            done = true;
-          }
-        }
-        if (!done && lastSelectionRef.current!.end >= charCount && lastSelectionRef.current!.end <= nextCount) {
-          range.setEnd(node, lastSelectionRef.current!.end - charCount);
-          done = true;
-        }
-        charCount = nextCount;
-      } else {
-        for (const child of Array.from(node.childNodes)) {
-          traverse(child);
-        }
+    let node = walker.nextNode();
+    while (node && (!startFound || !endFound)) {
+      const nodeLength = node.textContent?.length || 0;
+
+      if (!startFound && currentOffset + nodeLength >= lastSelectionRef.current.startOffset) {
+        range.setStart(node, lastSelectionRef.current.startOffset - currentOffset);
+        startFound = true;
       }
-    };
 
-    traverse(editorRef.current);
+      if (!endFound && currentOffset + nodeLength >= lastSelectionRef.current.endOffset) {
+        range.setEnd(node, lastSelectionRef.current.endOffset - currentOffset);
+        endFound = true;
+      }
+
+      currentOffset += nodeLength;
+      node = walker.nextNode();
+    }
 
     try {
       selection.removeAllRanges();
       selection.addRange(range);
 
-      if (lastSelectionRef.current.scrollTop !== undefined && scrollAreaRef.current) {
+      if (scrollAreaRef.current) {
         requestAnimationFrame(() => {
           if (scrollAreaRef.current) {
-            scrollAreaRef.current.scrollTop = lastSelectionRef.current!.scrollTop!;
+            scrollAreaRef.current.scrollTop = lastSelectionRef.current!.scrollTop;
           }
         });
       }
@@ -90,38 +108,55 @@ export const TextEditorContent = ({
     }
   }, []);
 
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+  const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     if (isComposingRef.current) return;
+    
     saveSelection();
     const newContent = e.currentTarget.innerHTML;
     onContentChange(newContent);
     requestAnimationFrame(restoreSelection);
-  };
+  }, [onContentChange, saveSelection, restoreSelection]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Tab') {
       e.preventDefault();
       document.execCommand('insertHTML', false, '\u00a0\u00a0\u00a0\u00a0');
       saveSelection();
     }
-  };
+  }, [saveSelection]);
 
-  const handleCompositionStart = () => {
+  const handleCompositionStart = useCallback(() => {
     isComposingRef.current = true;
-  };
+  }, []);
 
-  const handleCompositionEnd = () => {
+  const handleCompositionEnd = useCallback(() => {
     isComposingRef.current = false;
     if (editorRef.current) {
       handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
     }
-  };
+  }, [handleInput]);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (scrollAreaRef.current && lastSelectionRef.current) {
       lastSelectionRef.current.scrollTop = scrollAreaRef.current.scrollTop;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleSelectionChange = () => {
+      if (document.activeElement === editor) {
+        saveSelection();
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [saveSelection]);
 
   return (
     <ScrollArea 
@@ -138,7 +173,6 @@ export const TextEditorContent = ({
         onKeyDown={handleKeyDown}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
-        onSelect={saveSelection}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',
