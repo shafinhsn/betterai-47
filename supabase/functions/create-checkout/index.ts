@@ -39,7 +39,7 @@ serve(async (req) => {
       throw new Error('Product not found');
     }
 
-    // Create or get customer
+    // Get or create customer
     const { data: customer } = await supabaseClient
       .from('customers')
       .select('stripe_customer_id')

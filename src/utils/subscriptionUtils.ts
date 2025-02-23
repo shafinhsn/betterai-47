@@ -25,12 +25,29 @@ export const handleSubscribe = async (productId: string, planName: string) => {
       return '/auth';
     }
 
-    console.log('Creating checkout for:', { planName, productId, email: user.email, userId: user.id });
+    // First get the product details from our database
+    const { data: product, error: productError } = await supabase
+      .from('stripe_products')
+      .select('*')
+      .eq('name', planName)
+      .single();
+
+    if (productError || !product) {
+      console.error('Product lookup error:', productError);
+      throw new Error('Product not found in database');
+    }
+
+    console.log('Creating checkout for:', { 
+      planName, 
+      productId: product.stripe_product_id, 
+      email: user.email, 
+      userId: user.id 
+    });
 
     const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
       body: {
         planType: 'student',
-        productId: productId, // This should be stripe_product_id from the database
+        productId: product.stripe_product_id, // Use the Stripe product ID from our database
         email: user.email,
         userId: user.id
       }
