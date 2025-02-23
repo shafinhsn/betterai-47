@@ -52,10 +52,9 @@ export const handleSubscribe = async (productId: string, planName: string) => {
       userId: user.id 
     });
 
-    const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
+    const { data: { url }, error } = await supabase.functions.invoke('create-paypal-checkout', {
       body: {
-        planType: 'student',
-        productId: product.payment_processor_id,
+        planId: product.payment_processor_id,
         email: user.email,
         userId: user.id
       }
@@ -82,14 +81,32 @@ export const handleSubscribe = async (productId: string, planName: string) => {
 
 export const handleManageSubscription = async () => {
   try {
-    const { data: { url }, error } = await supabase.functions.invoke('create-portal-session', {});
-    if (error) throw error;
-    if (!url) throw new Error('No portal URL returned');
-    return url;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Please sign in to manage your subscription');
+      return null;
+    }
+
+    // Get the user's active subscription
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (!subscription?.payment_subscription_id) {
+      toast.error('No active subscription found');
+      return null;
+    }
+
+    // For PayPal, redirect to their subscription management page
+    return `${Deno.env.get('PAYPAL_MODE') === 'sandbox' ? 
+      'https://www.sandbox.paypal.com' : 
+      'https://www.paypal.com'}/myaccount/autopay`;
   } catch (error: any) {
     console.error('Portal session error:', error);
     toast.error('Failed to open subscription portal: ' + (error.message || 'Unknown error occurred'));
     return null;
   }
 };
-

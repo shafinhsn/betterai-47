@@ -1,11 +1,48 @@
 
-[functions]
-[functions.create-checkout]
+project_id = "igfpasvqbjczyohitymc"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+
+[realtime]
+enabled = true
+
+[[functions]]
+name = "chat"
 verify_jwt = true
 
-[functions.create-portal-session]
+[[functions]]
+name = "format-citation"
 verify_jwt = true
 
-[functions.stripe-webhook]
+[[functions]]
+name = "process-document"
+verify_jwt = true
+
+[[functions]]
+name = "create-paypal-checkout"
+verify_jwt = true
+
+[[functions]]
+name = "paypal-webhook"
 verify_jwt = false
 
