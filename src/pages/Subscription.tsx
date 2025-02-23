@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
@@ -64,7 +65,7 @@ export const SubscriptionPage = () => {
 
       const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          planType: planName === 'Student Plan' ? 'student' : 'business',
+          planType: planName.toLowerCase().includes('student') ? 'student' : 'business',
           productId: productId,
           email: user.email,
           userId: user.id
@@ -100,17 +101,20 @@ export const SubscriptionPage = () => {
   };
 
   const getFeatures = (planType: string) => {
-    return [
-      'Unlimited messages',
-      `${STUDENT_TRIAL_DAYS}-day free trial`,
-      'Advanced document editing',
-      'Citation generation',
-      'Academic formatting (APA, MLA)',
-      'Essay structure improvements',
-      'Smart formatting',
-      'Email support',
-      '150 messages per day'
-    ];
+    if (planType.toLowerCase().includes('student')) {
+      return [
+        'Unlimited messages',
+        `${STUDENT_TRIAL_DAYS}-day free trial`,
+        'Advanced document editing',
+        'Citation generation',
+        'Academic formatting (APA, MLA)',
+        'Essay structure improvements',
+        'Smart formatting',
+        'Email support',
+        '150 messages per day'
+      ];
+    }
+    return [];
   };
 
   if (isLoadingProducts) {
@@ -142,7 +146,7 @@ export const SubscriptionPage = () => {
         </div>
 
         <div className="space-y-6">
-          {products?.filter(product => product.name === 'Student Plan').map((product) => (
+          {products?.filter(product => product.name.toLowerCase().includes('student')).map((product) => (
             <SubscriptionCard
               key={product.id}
               name={product.name}

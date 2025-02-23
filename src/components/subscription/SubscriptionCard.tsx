@@ -31,7 +31,7 @@ export const SubscriptionCard = ({
         className="w-full"
         onClick={() => onSubscribe(stripeProductId, name)}
         disabled={isProcessing}
-        variant={name === 'Student Plan' ? 'default' : 'outline'}
+        variant={name.toLowerCase().includes('student') ? 'default' : 'outline'}
       >
         {isProcessing ? (
           <>
@@ -39,7 +39,7 @@ export const SubscriptionCard = ({
             Processing...
           </>
         ) : (
-          name === 'Student Plan' ? 'Start Free Trial' : 'Subscribe Now'
+          name.toLowerCase().includes('student') ? 'Start Free Trial' : 'Subscribe Now'
         )}
       </Button>
     </div>
