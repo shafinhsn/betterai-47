@@ -22,7 +22,6 @@ export const PayPalButton = ({
   isProcessing
 }: PayPalButtonProps) => {
   const paypalButtonRef = useRef<HTMLDivElement>(null);
-  const buttonInstanceRef = useRef<any>(null);
   const navigate = useNavigate();
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -42,78 +41,68 @@ export const PayPalButton = ({
     }
   });
 
-  // Cleanup function to remove existing buttons
-  const cleanupPayPalButton = () => {
-    if (buttonInstanceRef.current) {
-      buttonInstanceRef.current.close();
-      buttonInstanceRef.current = null;
-    }
-    if (paypalButtonRef.current) {
-      paypalButtonRef.current.innerHTML = '';
-    }
-  };
-
   useEffect(() => {
     if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded) {
       return;
     }
 
-    // Cleanup any existing buttons before creating new ones
-    cleanupPayPalButton();
+    // Clean up any existing content
+    if (paypalButtonRef.current) {
+      paypalButtonRef.current.innerHTML = '';
+    }
+
+    const buttonConfig = {
+      style: {
+        layout: 'horizontal',
+        color: 'blue',
+        shape: 'rect',
+        label: 'paypal'
+      },
+      createSubscription: async () => {
+        try {
+          setIsPayPalProcessing(true);
+          setLoadError(null);
+          const subscriptionId = await onSubscribe(stripeProductId, planName);
+          
+          if (!subscriptionId) {
+            throw new Error('Failed to create subscription');
+          }
+          
+          console.log('Created subscription:', subscriptionId);
+          return subscriptionId;
+        } catch (error: any) {
+          console.error('Subscription creation error:', error);
+          toast.error('Failed to create subscription: ' + error.message);
+          throw error;
+        } finally {
+          setIsPayPalProcessing(false);
+        }
+      },
+      onApprove: (data: any) => {
+        console.log('Subscription approved:', data);
+        toast.success('Your subscription has been created successfully!');
+        navigate('/manage-subscription');
+      },
+      onError: (err: Error) => {
+        console.error('PayPal error:', err);
+        if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
+          console.log('Cookies are blocked during button interaction - showing alert');
+          setCookiesBlocked(true);
+          return;
+        }
+        setLoadError(err.message || 'PayPal encountered an error');
+        toast.error('PayPal encountered an error: ' + err.message);
+      },
+      onCancel: () => {
+        console.log('Subscription was cancelled by user');
+        toast.error('Subscription was cancelled');
+      }
+    };
 
     try {
-      const buttonConfig = {
-        style: {
-          layout: 'horizontal' as const,
-          color: 'blue' as const,
-          shape: 'rect' as const,
-          label: 'paypal' as const
-        },
-        createSubscription: async () => {
-          try {
-            setIsPayPalProcessing(true);
-            setLoadError(null);
-            const subscriptionId = await onSubscribe(stripeProductId, planName);
-            
-            if (!subscriptionId) {
-              throw new Error('Failed to create subscription');
-            }
-            
-            console.log('Created subscription:', subscriptionId);
-            return subscriptionId;
-          } catch (error: any) {
-            console.error('Subscription creation error:', error);
-            toast.error('Failed to create subscription: ' + error.message);
-            throw error;
-          } finally {
-            setIsPayPalProcessing(false);
-          }
-        },
-        onApprove: (data: any) => {
-          console.log('Subscription approved:', data);
-          toast.success('Your subscription has been created successfully!');
-          navigate('/manage-subscription');
-        },
-        onError: (err: Error) => {
-          console.error('PayPal error:', err);
-          if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
-            console.log('Cookies are blocked during button interaction - showing alert');
-            setCookiesBlocked(true);
-            return;
-          }
-          setLoadError(err.message || 'PayPal encountered an error');
-          toast.error('PayPal encountered an error: ' + err.message);
-        },
-        onCancel: () => {
-          console.log('Subscription was cancelled by user');
-          toast.error('Subscription was cancelled');
-        }
-      };
-
-      buttonInstanceRef.current = window.paypal?.Buttons(buttonConfig);
-      
-      if (buttonInstanceRef.current) {
-        buttonInstanceRef.current.render(paypalButtonRef.current);
+      const button = window.paypal?.Buttons(buttonConfig);
+      if (button) {
+        button.render(paypalButtonRef.current);
         console.log('PayPal button rendered successfully');
       } else {
         throw new Error('Failed to create PayPal button');
@@ -132,7 +121,9 @@ export const PayPalButton = ({
     }
 
     return () => {
-      cleanupPayPalButton();
+      if (paypalButtonRef.current) {
+        paypalButtonRef.current.innerHTML = '';
+      }
     };
   }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
