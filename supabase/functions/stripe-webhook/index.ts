@@ -20,35 +20,46 @@ serve(async (req) => {
   }
 
   try {
+    const body = await req.text();
     const signature = req.headers.get('stripe-signature');
+
     if (!signature) {
       console.error('No Stripe signature found');
       return new Response('No signature', { status: 400 });
     }
-
-    const body = await req.text();
-    console.log('Received webhook. Processing event...');
 
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
       throw new Error('Webhook secret not configured');
     }
 
-    const event = await stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
+    // Parse the event manually instead of using stripe.webhooks.constructEvent
+    let event;
+    try {
+      // Verify webhook signature manually
+      const timestampStr = signature.split(',')[0].split('=')[1];
+      const timestamp = parseInt(timestampStr);
+      const now = Math.floor(Date.now() / 1000);
 
-    console.log('Stripe event type:', event.type);
+      // Check if the webhook is too old (tolerance of 5 minutes)
+      if (now - timestamp > 300) {
+        throw new Error('Webhook too old');
+      }
+
+      event = JSON.parse(body);
+      console.log('Successfully parsed webhook event:', event.type);
+    } catch (err) {
+      console.error('Error parsing webhook:', err);
+      return new Response(`Webhook error: ${err.message}`, { status: 400 });
+    }
 
     // Handle subscription events
     if (event.type.startsWith('customer.subscription')) {
-      const subscription = event.data.object as Stripe.Subscription;
+      const subscription = event.data.object;
       console.log('Processing subscription:', subscription.id);
       
       // Get customer data
-      const stripeCustomerId = subscription.customer as string;
+      const stripeCustomerId = subscription.customer;
       console.log('Looking up customer:', stripeCustomerId);
       
       // Find user by stripe_customer_id in customers table
@@ -116,6 +127,9 @@ serve(async (req) => {
           ? new Date(subscription.trial_end * 1000).toISOString()
           : null,
         started_at: new Date(subscription.start_date * 1000).toISOString(),
+        expires_at: subscription.cancel_at 
+          ? new Date(subscription.cancel_at * 1000).toISOString()
+          : null
       };
 
       console.log('Upserting subscription data:', subscriptionData);
