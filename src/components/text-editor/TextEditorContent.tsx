@@ -1,5 +1,9 @@
+
 import React, { useRef, useEffect, useCallback } from 'react';
 import { ScrollArea } from '../ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Button } from '../ui/button';
+import { Bold, Italic } from 'lucide-react';
 
 interface TextEditorContentProps {
   content: string;
@@ -122,57 +126,97 @@ export const TextEditorContent = ({
     }
   }, [saveSelection, isEditable]);
 
-  const handleCompositionStart = useCallback(() => {
+  const handleFormatting = (command: string) => {
     if (!isEditable) return;
-    isComposingRef.current = true;
-  }, [isEditable]);
-
-  const handleCompositionEnd = useCallback(() => {
-    if (!isEditable) return;
-    isComposingRef.current = false;
+    document.execCommand(command, false);
     if (editorRef.current) {
       handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
     }
-  }, [handleInput, isEditable]);
+  };
 
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
+  const handleFontSize = (size: string) => {
+    if (!isEditable) return;
+    document.execCommand('fontSize', false, size);
+    if (editorRef.current) {
+      handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
+    }
+  };
 
-    const handleSelectionChange = () => {
-      if (document.activeElement === editor) {
-        saveSelection();
-      }
-    };
-
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
-    };
-  }, [saveSelection]);
+  const handleFontFamily = (font: string) => {
+    if (!isEditable) return;
+    document.execCommand('fontName', false, font);
+    if (editorRef.current) {
+      handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
+    }
+  };
 
   return (
-    <ScrollArea 
-      className="h-full overflow-y-auto border border-border/20 rounded-lg bg-[#1a1a1a]"
-      ref={scrollAreaRef}
-    >
-      <div 
-        ref={editorRef}
-        className="p-6 min-h-[200px] w-full focus:outline-none"
-        contentEditable={isEditable}
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onKeyDown={handleKeyDown}
-        onCompositionStart={handleCompositionStart}
-        onCompositionEnd={handleCompositionEnd}
-        dangerouslySetInnerHTML={{ __html: content }}
-        style={{
-          whiteSpace: 'pre-wrap',
-          wordWrap: 'break-word',
-          overflowWrap: 'break-word',
-          lineHeight: '1.5',
-        }}
-      />
-    </ScrollArea>
+    <div className="flex flex-col gap-2">
+      {isEditable && (
+        <div className="flex items-center gap-2 p-2 bg-[#1a1a1a] rounded-t-lg">
+          <Select onValueChange={handleFontSize}>
+            <SelectTrigger className="w-[100px]">
+              <SelectValue placeholder="Size" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Small</SelectItem>
+              <SelectItem value="3">Normal</SelectItem>
+              <SelectItem value="5">Large</SelectItem>
+              <SelectItem value="7">Huge</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={handleFontFamily}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Font" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Arial">Arial</SelectItem>
+              <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+              <SelectItem value="Courier New">Courier New</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleFormatting('bold')}
+            className="hover:bg-emerald-900/20"
+          >
+            <Bold className="h-4 w-4 text-emerald-500" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleFormatting('italic')}
+            className="hover:bg-emerald-900/20"
+          >
+            <Italic className="h-4 w-4 text-emerald-500" />
+          </Button>
+        </div>
+      )}
+
+      <ScrollArea 
+        className="h-full overflow-y-auto border border-border/20 rounded-lg bg-[#1a1a1a]"
+        ref={scrollAreaRef}
+      >
+        <div 
+          ref={editorRef}
+          className="p-6 min-h-[200px] w-full focus:outline-none"
+          contentEditable={isEditable}
+          suppressContentEditableWarning
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          dangerouslySetInnerHTML={{ __html: content }}
+          style={{
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
+            lineHeight: '1.5',
+          }}
+        />
+      </ScrollArea>
+    </div>
   );
 };

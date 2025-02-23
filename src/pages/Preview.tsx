@@ -17,12 +17,14 @@ const Preview = () => {
   useEffect(() => {
     if (location.state) {
       const { content, updatedContent, filename, fileType } = location.state;
-      setContent(content);
-      setUpdatedContent(updatedContent);
+      setContent(content || '');
+      setUpdatedContent(updatedContent || content || '');
       setFilename(filename);
       setFileType(fileType);
+    } else {
+      navigate('/');
     }
-  }, [location.state]);
+  }, [location.state, navigate]);
 
   const handleUpdate = () => {
     if (updatedContent && filename && fileType) {
