@@ -26,6 +26,17 @@ export const TextEditorPanel = ({
     setEditableContent(updatedContent || content);
   }, [updatedContent, content]);
 
+  const handleNavigateToPreview = () => {
+    navigate('/preview', {
+      state: {
+        content: content,
+        updatedContent: editableContent,
+        filename: 'document.txt', // Default filename if none is provided
+        fileType: 'text/plain' // Default file type if none is provided
+      }
+    });
+  };
+
   return (
     <div className="bg-[#1f1f1f] rounded-lg p-6 h-full flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -35,7 +46,7 @@ export const TextEditorPanel = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/preview')}
+              onClick={handleNavigateToPreview}
               className="hover:bg-emerald-900/20"
             >
               <Pencil className="h-4 w-4 text-emerald-500" />
@@ -55,3 +66,4 @@ export const TextEditorPanel = ({
     </div>
   );
 };
+
