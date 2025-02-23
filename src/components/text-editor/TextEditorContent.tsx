@@ -5,19 +5,12 @@ import { ScrollArea } from '../ui/scroll-area';
 interface TextEditorContentProps {
   content: string;
   onContentChange: (content: string) => void;
-  format: string[];
-  font: string;
-  size: string;
-  alignment: string;
   lastCaretPosition: number | null;
 }
 
 export const TextEditorContent = ({
   content,
   onContentChange,
-  font,
-  size,
-  alignment
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -90,13 +83,8 @@ export const TextEditorContent = ({
         selection.removeAllRanges();
         selection.addRange(range);
 
-        // After setting the selection, restore the scroll position
         if (lastSelectionRef.current.scrollTop !== undefined && scrollAreaRef.current) {
-          requestAnimationFrame(() => {
-            if (scrollAreaRef.current) {
-              scrollAreaRef.current.scrollTop = lastSelectionRef.current!.scrollTop!;
-            }
-          });
+          scrollAreaRef.current.scrollTop = lastSelectionRef.current.scrollTop;
         }
       } catch (error) {
         console.error('Error restoring selection:', error);
@@ -109,9 +97,6 @@ export const TextEditorContent = ({
     saveSelection();
     const newContent = e.currentTarget.innerHTML;
     onContentChange(newContent);
-    requestAnimationFrame(() => {
-      restoreSelection();
-    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -141,18 +126,6 @@ export const TextEditorContent = ({
       };
     }
   };
-
-  useEffect(() => {
-    if (editorRef.current) {
-      const fontSize = parseInt(size) || 16;
-      const containerStyle = {
-        fontFamily: font || 'inherit',
-        fontSize: `${fontSize}px`,
-        textAlign: alignment as 'left' | 'center' | 'right' | 'justify',
-      };
-      Object.assign(editorRef.current.style, containerStyle);
-    }
-  }, [font, size, alignment]);
 
   return (
     <ScrollArea 
@@ -184,3 +157,4 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
+
