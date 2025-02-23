@@ -12,6 +12,20 @@ interface PayPalButtonProps {
   isProcessing: boolean;
 }
 
+// Define PayPal specific types to match their API
+interface PayPalSubscriptionData {
+  subscriptionID: string;
+  orderID?: string;
+  facilitatorAccessToken?: string;
+}
+
+interface PayPalActions {
+  subscription: {
+    get: () => Promise<any>;
+    activate: () => Promise<any>;
+  };
+}
+
 export const PayPalButton = ({
   onSubscribe,
   stripeProductId,
@@ -45,7 +59,7 @@ export const PayPalButton = ({
         }
 
         const button = window.paypal.Buttons({
-          createSubscription: async (data: any, actions: any) => {
+          createSubscription: async (_data: any, _actions: any) => {
             try {
               const subscriptionId = await onSubscribe(stripeProductId, planName);
               if (!subscriptionId) {
@@ -58,7 +72,7 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: async (data: any, actions: any) => {
+          onApprove: async (data: PayPalSubscriptionData, actions: PayPalActions) => {
             console.log('Subscription approved:', data);
             toast.success('Subscription created successfully!');
             navigate('/manage-subscription');
