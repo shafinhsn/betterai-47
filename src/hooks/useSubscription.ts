@@ -34,7 +34,7 @@ export const useSubscription = () => {
           .eq('user_id', user.id)
           .in('status', ['active', 'trialing'])
           .order('created_at', { ascending: false })
-          .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
+          .maybeSingle();
         
         if (activeSubsError) {
           console.error('Error fetching active subscription:', activeSubsError);
