@@ -1,7 +1,7 @@
 
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 
-export const createDocxFromText = async (text: string): Promise<Buffer> => {
+export const createDocxFromText = async (text: string): Promise<Uint8Array> => {
   // Split text into paragraphs
   const paragraphs = text.split('\n').map(line => {
     return new Paragraph({
@@ -22,6 +22,6 @@ export const createDocxFromText = async (text: string): Promise<Buffer> => {
     }]
   });
 
-  // Generate and return document buffer
+  // Generate and return document as Uint8Array for browser compatibility
   return await Packer.toBuffer(doc);
 };

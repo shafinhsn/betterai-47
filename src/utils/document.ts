@@ -78,8 +78,8 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
       document.body.removeChild(a);
     } else {
       // Generate new DOCX for Word documents
-      const docxBuffer = await createDocxFromText(content);
-      const blob = new Blob([docxBuffer], { 
+      const docxBytes = await createDocxFromText(content);
+      const blob = new Blob([docxBytes], { 
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
       });
       const url = URL.createObjectURL(blob);
