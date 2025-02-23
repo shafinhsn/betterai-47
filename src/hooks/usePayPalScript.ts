@@ -36,6 +36,15 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
           script.id = 'paypal-sdk';
           script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`;
           script.async = true;
+          script.crossOrigin = 'anonymous';
+          
+          // Add error event listener before setting src
+          script.addEventListener('error', (event) => {
+            const error = new Error('Failed to load PayPal SDK');
+            console.error('PayPal script error:', event);
+            onError?.(error);
+            reject(error);
+          });
 
           const handleLoad = () => {
             if (window.paypal) {
@@ -52,12 +61,6 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
           };
 
           script.addEventListener('load', handleLoad);
-          script.addEventListener('error', (event) => {
-            const error = new Error('Failed to load PayPal SDK');
-            console.error('PayPal script error:', event);
-            onError?.(error);
-            reject(error);
-          });
 
           // Set a timeout to detect if script loading takes too long
           timeoutId = window.setTimeout(() => {
