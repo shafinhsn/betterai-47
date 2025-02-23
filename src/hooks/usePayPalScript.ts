@@ -31,11 +31,15 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
 
         const script = document.createElement('script');
         script.id = 'paypal-sdk';
-        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription&components=buttons`;
+        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription&components=buttons&enable-funding=venmo,paylater`;
         script.async = true;
+        script.defer = true;
         script.crossOrigin = "anonymous";
+        
+        // Add script attributes to help with CORS
+        script.setAttribute('data-namespace', 'paypal-sdk');
+        script.setAttribute('data-csp-nonce', 'random-nonce');
 
-        // Add error handlers before setting src
         const handleError = (event: Event | string) => {
           console.error('PayPal script loading error:', event);
           if (isSubscribed) {
@@ -50,7 +54,7 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
           }
         }, { once: true });
 
-        const handleLoad = () => {
+        script.onload = () => {
           if (window.paypal && isSubscribed) {
             console.log('PayPal SDK loaded successfully');
             setScriptLoaded(true);
@@ -62,16 +66,14 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
           }
         };
 
-        script.addEventListener('load', handleLoad);
-
-        // Set timeout for script loading
+        // Increased timeout to 30 seconds for slower connections
         timeoutId = window.setTimeout(() => {
           if (isSubscribed) {
             const error = new Error('PayPal SDK load timeout');
             console.error('PayPal script timeout');
             onError?.(error);
           }
-        }, 15000); // Increased timeout to 15 seconds
+        }, 30000);
 
         document.head.appendChild(script);
       } catch (error) {
@@ -97,3 +99,4 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
     scriptLoaded
   };
 };
+

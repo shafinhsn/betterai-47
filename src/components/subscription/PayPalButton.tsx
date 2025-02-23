@@ -27,24 +27,32 @@ export const PayPalButton = ({
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Use sandbox client ID for development
   const clientId = process.env.NODE_ENV === 'production'
     ? 'PRODUCTION_CLIENT_ID' // This will be updated when going to production
     : 'AcMPwQd6TE8DnV2pOgoM-4Fqx8VopnQKtVjIJ2ce0V-YmeEmpuZruuFCOgFEvQB_HB4GcXd89c9SHndi';
 
+  const handleError = (error: Error) => {
+    console.error('PayPal script error:', error);
+    if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
+      console.log('Cookies are blocked - showing alert');
+      setCookiesBlocked(true);
+    } else if (retryCount < 3) {
+      // Retry loading the script up to 3 times
+      console.log(`Retrying PayPal script load (attempt ${retryCount + 1})`);
+      setRetryCount(prev => prev + 1);
+      setLoadError(null);
+    } else {
+      setLoadError(error.message);
+      toast.error('Failed to load PayPal: ' + error.message);
+    }
+  };
+
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId,
-    onError: (error) => {
-      console.error('PayPal script error:', error);
-      if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
-        console.log('Cookies are blocked - showing alert');
-        setCookiesBlocked(true);
-      } else {
-        setLoadError(error.message);
-        toast.error('Failed to load PayPal: ' + error.message);
-      }
-    }
+    onError: handleError
   });
 
   usePayPalButtonRenderer({
@@ -66,7 +74,14 @@ export const PayPalButton = ({
   if (loadError) {
     return (
       <div className="text-red-500 text-sm p-4 border border-red-200 rounded-md bg-red-50">
-        Error: {loadError}. Please try refreshing the page or check your connection.
+        <p>Error: {loadError}</p>
+        <p className="text-sm mt-2">Please try:</p>
+        <ul className="list-disc ml-6 text-sm">
+          <li>Refreshing the page</li>
+          <li>Checking your internet connection</li>
+          <li>Disabling any ad blockers</li>
+          <li>Using a different browser</li>
+        </ul>
       </div>
     );
   }
@@ -86,4 +101,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-
