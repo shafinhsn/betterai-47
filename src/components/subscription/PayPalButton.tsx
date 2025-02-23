@@ -48,6 +48,8 @@ export const PayPalButton = ({
 
   useEffect(() => {
     let isMounted = true;
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
 
     const renderButton = async () => {
       if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded || !isMounted) {
@@ -66,30 +68,29 @@ export const PayPalButton = ({
             shape: 'rect',
             label: 'subscribe'
           } as PayPalButtonStyle,
-          createSubscription: () => {
-            return new Promise<string>(async (resolve, reject) => {
-              try {
-                console.log('Creating subscription with:', {
-                  productId: stripeProductId,
-                  planName: planName
-                });
-                
-                setLoadError(null);
-                const subscriptionId = await onSubscribe(stripeProductId, planName);
-                
-                if (!subscriptionId) {
-                  throw new Error('Failed to create subscription');
-                }
-                
-                console.log('Created subscription:', subscriptionId);
-                resolve(subscriptionId);
-              } catch (error: any) {
-                console.error('Subscription creation error:', error);
-                setLoadError(error.message || 'Failed to create subscription');
-                toast.error('Failed to create subscription: ' + (error.message || 'Unknown error'));
-                reject(error);
+          createSubscription: async () => {
+            try {
+              console.log('Creating subscription with:', {
+                productId: stripeProductId,
+                planName: planName
+              });
+              
+              setLoadError(null);
+              const subscriptionId = await onSubscribe(stripeProductId, planName);
+              
+              if (!subscriptionId) {
+                throw new Error('Failed to create subscription');
               }
-            });
+              
+              console.log('Created subscription:', subscriptionId);
+              return subscriptionId;
+            } catch (error: any) {
+              console.error('Subscription creation error:', error);
+              const errorMessage = error.message || 'Unknown error';
+              setLoadError('Failed to create subscription: ' + errorMessage);
+              toast.error('Failed to create subscription: ' + errorMessage);
+              throw error;
+            }
           },
           onApprove: (data: any) => {
             console.log('Subscription approved:', data);
@@ -101,10 +102,19 @@ export const PayPalButton = ({
             if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
               console.log('Cookies are blocked during button interaction - showing alert');
               setCookiesBlocked(true);
-            } else {
-              setLoadError(err.message || 'PayPal encountered an error');
-              toast.error('PayPal encountered an error: ' + err.message);
+              return;
             }
+
+            // Retry on non-cookie related errors
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              console.log(`Retrying PayPal button render (attempt ${retryCount})`);
+              setTimeout(renderButton, 1000 * retryCount);
+              return;
+            }
+
+            setLoadError(err.message || 'PayPal encountered an error');
+            toast.error('PayPal encountered an error: ' + err.message);
           },
           onCancel: () => {
             console.log('Subscription was cancelled by user');
@@ -118,6 +128,7 @@ export const PayPalButton = ({
           if (buttonInstanceRef.current.isEligible()) {
             await buttonInstanceRef.current.render(paypalButtonRef.current);
             console.log('PayPal button rendered successfully');
+            retryCount = 0; // Reset retry count on successful render
           } else {
             console.error('PayPal button is not eligible for rendering');
             setLoadError('PayPal payment method is not available');
@@ -130,6 +141,10 @@ export const PayPalButton = ({
           if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
             console.log('Cookies are blocked during render - showing alert');
             setCookiesBlocked(true);
+          } else if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`Retrying PayPal button render (attempt ${retryCount})`);
+            setTimeout(renderButton, 1000 * retryCount);
           } else {
             setLoadError(error.message);
             toast.error('Failed to render PayPal button: ' + error.message);
@@ -170,7 +185,7 @@ export const PayPalButton = ({
           Error: {loadError}. Please try refreshing the page or check your connection.
         </div>
       ) : (
-        <div ref={paypalButtonRef} className="min-h-[150px]">
+        <div ref={paypalButtonRef} className="min-h-[150px] relative">
           {(isProcessing || isLoading) && <PayPalLoading />}
         </div>
       )}

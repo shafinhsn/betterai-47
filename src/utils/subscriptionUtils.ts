@@ -19,55 +19,62 @@ export const getFeatures = () => {
 
 export const handleSubscribe = async (productId: string, planName: string): Promise<string> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error('Please sign in to subscribe');
-      return Promise.reject('User not authenticated');
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('Please sign in to subscribe');
     }
 
     console.log('Creating subscription for:', { productId, planName, userId: user.id });
 
-    const { data, error } = await supabase.functions.invoke('create-paypal-checkout', {
+    const response = await supabase.functions.invoke('create-paypal-checkout', {
       body: {
         planId: productId,
         userId: user.id,
         planName: planName
+      },
+      headers: {
+        'Content-Type': 'application/json'
       }
     });
 
-    if (error) {
-      console.error('Checkout error:', error);
-      throw error;
+    if (response.error) {
+      console.error('Checkout error:', response.error);
+      throw new Error(response.error.message || 'Failed to create subscription');
     }
 
-    if (!data?.subscription_id) {
-      console.error('No subscription ID returned', data);
-      throw new Error('Failed to create subscription');
+    if (!response.data?.subscription_id) {
+      console.error('No subscription ID returned', response.data);
+      throw new Error('Failed to create subscription: Invalid response from server');
     }
 
-    console.log('Created subscription with ID:', data.subscription_id);
-    return data.subscription_id;
+    console.log('Created subscription:', response.data.subscription_id);
+    return response.data.subscription_id;
   } catch (error: any) {
     console.error('Subscription error:', error);
-    toast.error('Failed to start checkout: ' + (error.message || 'Unknown error occurred'));
+    const errorMessage = error.message || 'Unknown error occurred';
+    toast.error('Failed to start checkout: ' + errorMessage);
     throw error;
   }
 };
 
 export const handleManageSubscription = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       toast.error('Please sign in to manage your subscription');
       return null;
     }
 
-    const { data: subscription } = await supabase
+    const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .maybeSingle();
+
+    if (subError) {
+      throw subError;
+    }
 
     if (!subscription?.payment_subscription_id) {
       toast.error('No active subscription found');
