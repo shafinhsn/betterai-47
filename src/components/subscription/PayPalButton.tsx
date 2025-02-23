@@ -66,30 +66,32 @@ export const PayPalButton = ({
             shape: 'rect',
             label: 'subscribe'
           } as PayPalButtonStyle,
-          createSubscription: async (data: any, actions: any) => {
-            try {
-              console.log('Creating subscription with:', {
-                productId: stripeProductId,
-                planName: planName
-              });
-              
-              // Reset any previous errors
-              setLoadError(null);
-              
-              const subscriptionId = await onSubscribe(stripeProductId, planName);
-              if (!subscriptionId) {
-                throw new Error('Failed to create subscription');
+          createSubscription: () => {
+            return new Promise<string>(async (resolve, reject) => {
+              try {
+                console.log('Creating subscription with:', {
+                  productId: stripeProductId,
+                  planName: planName
+                });
+                
+                setLoadError(null);
+                const subscriptionId = await onSubscribe(stripeProductId, planName);
+                
+                if (!subscriptionId) {
+                  throw new Error('Failed to create subscription');
+                }
+                
+                console.log('Created subscription:', subscriptionId);
+                resolve(subscriptionId);
+              } catch (error: any) {
+                console.error('Subscription creation error:', error);
+                setLoadError(error.message || 'Failed to create subscription');
+                toast.error('Failed to create subscription: ' + (error.message || 'Unknown error'));
+                reject(error);
               }
-              console.log('Created subscription:', subscriptionId);
-              return subscriptionId;
-            } catch (error: any) {
-              console.error('Subscription creation error:', error);
-              setLoadError(error.message || 'Failed to create subscription');
-              toast.error('Failed to create subscription: ' + (error.message || 'Unknown error'));
-              throw error;
-            }
+            });
           },
-          onApprove: async (data: any, actions: any) => {
+          onApprove: (data: any) => {
             console.log('Subscription approved:', data);
             toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
