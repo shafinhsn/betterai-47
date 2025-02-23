@@ -21,16 +21,11 @@ serve(async (req) => {
       throw new Error('Method not allowed')
     }
 
-    const body = await req.json()
-    const { planId, userId, planName } = body
+    const { planId, userId, planName } = await req.json()
 
     if (!planId || !userId || !planName) {
-      console.error('Missing required parameters:', body)
+      console.error('Missing required parameters:', { planId, userId, planName })
       throw new Error('Missing required parameters')
-    }
-
-    if (!['Student Plan', 'Professional Plan', 'Free Plan'].includes(planName)) {
-      throw new Error('Invalid plan type')
     }
 
     console.log('Creating PayPal subscription for:', { planId, userId, planName })
@@ -38,25 +33,23 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Create a subscription record in pending state
+    // Generate a UUID for the subscription
+    const subscriptionId = crypto.randomUUID()
+
+    // Create a subscription record
     const { data: subscription, error: subscriptionError } = await supabase
       .from('subscriptions')
       .insert([
         {
+          id: subscriptionId,
           user_id: userId,
-          plan_type: planName,
           status: 'pending',
-          is_student: planName === 'Student Plan',
-          payment_processor: 'paypal'
+          plan_type: planName,
+          payment_processor: 'paypal',
+          is_student: planName === 'Student Plan'
         }
       ])
       .select()
@@ -64,18 +57,12 @@ serve(async (req) => {
 
     if (subscriptionError) {
       console.error('Database error:', subscriptionError)
-      throw new Error('Failed to create subscription record: ' + subscriptionError.message)
+      throw new Error(`Failed to create subscription record: ${subscriptionError.message}`)
     }
-
-    if (!subscription) {
-      throw new Error('No subscription was created')
-    }
-
-    console.log('Created subscription:', subscription.id)
 
     return new Response(
       JSON.stringify({
-        subscription_id: subscription.id
+        subscription_id: subscriptionId
       }),
       {
         headers: {

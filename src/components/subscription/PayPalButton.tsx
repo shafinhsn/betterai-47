@@ -12,10 +12,17 @@ interface PayPalButtonProps {
   isProcessing: boolean;
 }
 
-interface PayPalActions {
-  subscription: {
-    create: (data: { plan_id: string }) => Promise<string>;
-  }
+interface PayPalButtonConfig {
+  style: {
+    layout: 'vertical';
+    color: 'blue';
+    shape: 'rect';
+    label: 'subscribe';
+  };
+  createSubscription: () => Promise<string>;
+  onApprove: (data: unknown) => void;
+  onError: (err: Error) => void;
+  onCancel?: () => void;
 }
 
 export const PayPalButton = ({
@@ -51,7 +58,7 @@ export const PayPalButton = ({
         }
 
         // PayPal button configuration
-        const button = window.paypal.Buttons({
+        const buttonConfig: PayPalButtonConfig = {
           createSubscription: async () => {
             try {
               console.log('Creating subscription with:', {
@@ -88,11 +95,11 @@ export const PayPalButton = ({
             shape: 'rect',
             label: 'subscribe'
           }
-        });
+        };
 
         if (isMounted) {
-          buttonInstanceRef.current = button;
-          await button.render(paypalButtonRef.current);
+          buttonInstanceRef.current = window.paypal.Buttons(buttonConfig);
+          await buttonInstanceRef.current.render(paypalButtonRef.current);
           console.log('PayPal button rendered successfully');
         }
       } catch (error) {
