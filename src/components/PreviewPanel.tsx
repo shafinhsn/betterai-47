@@ -27,8 +27,6 @@ export const PreviewPanel = ({
             <DocumentPreview 
               key={`preview-${previewKey}`} 
               content={contentToShow}
-              originalContent={content}
-              isUpdated={!!updatedContent}
             />
           </div>
         ) : (
@@ -40,3 +38,4 @@ export const PreviewPanel = ({
     </div>
   );
 };
+
