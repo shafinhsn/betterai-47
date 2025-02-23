@@ -38,9 +38,8 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
         // Add error handlers before setting src
         const handleError = (event: Event | string) => {
           console.error('PayPal script loading error:', event);
-          const error = new Error(typeof event === 'string' ? event : 'Failed to load PayPal SDK');
           if (isSubscribed) {
-            onError?.(error);
+            onError?.(new Error(typeof event === 'string' ? event : 'Failed to load PayPal SDK'));
           }
         };
 
@@ -52,18 +51,15 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
         }, { once: true });
 
         const handleLoad = () => {
-          // Wait a short moment to ensure PayPal object is initialized
-          setTimeout(() => {
-            if (window.paypal && isSubscribed) {
-              console.log('PayPal SDK loaded successfully');
-              setScriptLoaded(true);
-              setIsLoading(false);
-            } else if (isSubscribed) {
-              const error = new Error('PayPal SDK not available after load');
-              console.error('PayPal SDK load error:', error);
-              onError?.(error);
-            }
-          }, 100);
+          if (window.paypal && isSubscribed) {
+            console.log('PayPal SDK loaded successfully');
+            setScriptLoaded(true);
+            setIsLoading(false);
+          } else if (isSubscribed) {
+            const error = new Error('PayPal SDK not available after load');
+            console.error('PayPal SDK load error:', error);
+            onError?.(error);
+          }
         };
 
         script.addEventListener('load', handleLoad);
@@ -75,9 +71,8 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
             console.error('PayPal script timeout');
             onError?.(error);
           }
-        }, 10000);
+        }, 15000); // Increased timeout to 15 seconds
 
-        // Add the script to document head instead of body
         document.head.appendChild(script);
       } catch (error) {
         console.error('Script loading error:', error);

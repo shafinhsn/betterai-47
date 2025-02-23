@@ -28,10 +28,10 @@ export const PayPalButton = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
 
-  // Use live client ID in production, sandbox in development
+  // Use sandbox client ID for development - this should match the one in your Supabase secrets
   const clientId = process.env.NODE_ENV === 'production'
     ? 'PRODUCTION_CLIENT_ID' // This will be updated when going to production
-    : 'AcMPwQd6TE8DnV2pOgoM-4Fqx8VopnQKtVjIJ2ce0V-YmeEmpuZruuFCOgFEvQB_HB4GcXd89c9SHndi'; // Updated sandbox client ID
+    : Deno.env.get('PAYPAL_CLIENT_ID') || 'AcMPwQd6TE8DnV2pOgoM-4Fqx8VopnQKtVjIJ2ce0V-YmeEmpuZruuFCOgFEvQB_HB4GcXd89c9SHndi';
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId,
