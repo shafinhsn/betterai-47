@@ -46,10 +46,10 @@ export const PayPalButton = ({
     try {
       const buttonConfig = {
         style: {
-          layout: 'vertical',
-          color: 'blue',
-          shape: 'rect',
-          label: 'subscribe'
+          layout: 'vertical' as const,
+          color: 'blue' as const,
+          shape: 'rect' as const,
+          label: 'subscribe' as const
         },
         createSubscription: async () => {
           try {
@@ -95,15 +95,8 @@ export const PayPalButton = ({
       };
 
       const paypalButton = window.paypal.Buttons(buttonConfig);
-      
-      if (paypalButton.isEligible()) {
-        paypalButton.render(paypalButtonRef.current);
-        console.log('PayPal button rendered successfully');
-      } else {
-        console.error('PayPal button is not eligible for rendering');
-        setLoadError('PayPal payment method is not available');
-        toast.error('PayPal payment method is not available');
-      }
+      paypalButton.render(paypalButtonRef.current);
+      console.log('PayPal button rendered successfully');
     } catch (error) {
       console.error('Error rendering PayPal button:', error);
       if (error instanceof Error) {
@@ -144,3 +137,4 @@ export const PayPalButton = ({
     </div>
   );
 };
+

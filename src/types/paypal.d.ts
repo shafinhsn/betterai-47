@@ -18,9 +18,13 @@ interface PayPalNamespace {
     createSubscription: () => Promise<string>;
     onApprove: (data: any) => void;
     onError: (error: Error) => void;
+    onCancel?: () => void;
   }) => PayPalButtons;
 }
 
-interface Window {
-  paypal?: PayPalNamespace;
+declare global {
+  interface Window {
+    paypal?: PayPalNamespace;
+  }
 }
+
