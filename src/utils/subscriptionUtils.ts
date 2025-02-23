@@ -25,37 +25,11 @@ export const handleSubscribe = async (productId: string, planName: string): Prom
       return '/auth';
     }
 
-    console.log('Looking up product with ID:', productId);
-
-    // Get the specific product
-    const { data: product, error: productError } = await supabase
-      .from('payment_products')
-      .select('*')
-      .eq('payment_processor_id', productId)
-      .maybeSingle();
-
-    if (productError) {
-      console.error('Product lookup error:', productError);
-      throw new Error('Error looking up product');
-    }
-
-    if (!product) {
-      console.error('Product not found for ID:', productId);
-      throw new Error('Product not found in database');
-    }
-
-    console.log('Found product:', product);
-    console.log('Creating checkout for:', { 
-      planName, 
-      productId: product.payment_processor_id, 
-      email: user.email, 
-      userId: user.id 
-    });
+    console.log('Creating subscription for:', { productId, planName, userId: user.id });
 
     const { data: { subscription_id }, error } = await supabase.functions.invoke('create-paypal-checkout', {
       body: {
-        planId: product.payment_processor_id,
-        email: user.email,
+        planId: productId,
         userId: user.id
       }
     });
@@ -75,7 +49,7 @@ export const handleSubscribe = async (productId: string, planName: string): Prom
   } catch (error: any) {
     console.error('Subscription error:', error);
     toast.error('Failed to start checkout: ' + (error.message || 'Unknown error occurred'));
-    throw error; // Re-throw to handle in the component
+    throw error;
   }
 };
 
@@ -87,7 +61,6 @@ export const handleManageSubscription = async () => {
       return null;
     }
 
-    // Get the user's active subscription
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('*')
@@ -99,8 +72,7 @@ export const handleManageSubscription = async () => {
       toast.error('No active subscription found');
       return null;
     }
-
-    // For PayPal, redirect to their subscription management page
+      
     const paypalDomain = process.env.NODE_ENV === 'production' ? 
       'https://www.paypal.com' : 
       'https://www.sandbox.paypal.com';
@@ -112,4 +84,3 @@ export const handleManageSubscription = async () => {
     return null;
   }
 };
-

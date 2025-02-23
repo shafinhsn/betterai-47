@@ -10,16 +10,16 @@ export const useProducts = () => {
         .from('payment_products')
         .select('*')
         .eq('active', true)
-        .ilike('name', '%student%'); // Only fetch student plans
+        .ilike('name', '%student%');
       
       if (error) {
         console.error('Error fetching products:', error);
         throw error;
       }
+      console.log('Fetched products:', data);
       return data;
     },
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 5
   });
 };
-

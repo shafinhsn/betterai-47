@@ -20,8 +20,6 @@ export const SubscriptionPage = () => {
   const { data: subscription, isLoading: isLoadingSubscription } = useSubscription();
   const { data: products, isLoading: isLoadingProducts, error: productsError } = useProducts();
 
-  // If user has an active subscription and they're not on the management page,
-  // redirect them to manage subscription
   if (subscription && !isManagingSubscription && !isLoadingSubscription) {
     navigate('/manage-subscription');
     return null;
@@ -76,21 +74,17 @@ export const SubscriptionPage = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-lg mx-auto">
         <SubscriptionHeader />
-
         <div className="space-y-6">
-          {products?.map((product) => (
-            <SubscriptionCard
-              key={product.id}
-              name={product.name}
-              price={product.price}
-              features={getFeatures()}
-              stripeProductId={product.payment_processor_id}
-              isProcessing={processingPlanId === product.name}
-              onSubscribe={onSubscribe}
-            />
-          ))}
+          <SubscriptionCard
+            key="student-plan"
+            name="Student Plan"
+            price={8}
+            features={getFeatures()}
+            stripeProductId="P-7W301107DK9194909M65W3BA"
+            isProcessing={processingPlanId === "Student Plan"}
+            onSubscribe={onSubscribe}
+          />
         </div>
-
         <div className="mt-8 text-center">
           <Button variant="ghost" onClick={() => navigate('/')}>
             Return to Editor
@@ -102,4 +96,3 @@ export const SubscriptionPage = () => {
 };
 
 export default SubscriptionPage;
-

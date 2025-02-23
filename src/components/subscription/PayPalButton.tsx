@@ -1,8 +1,9 @@
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { usePayPalScript } from '@/hooks/usePayPalScript';
 import { PayPalLoading } from './PayPalLoading';
+import { useNavigate } from 'react-router-dom';
 
 interface PayPalButtonProps {
   onSubscribe: (productId: string, planName: string) => Promise<string>;
@@ -18,6 +19,7 @@ export const PayPalButton = ({
   isProcessing
 }: PayPalButtonProps) => {
   const paypalButtonRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const { isLoading, error } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
     onError: (error) => {
@@ -26,41 +28,43 @@ export const PayPalButton = ({
     }
   });
 
-  if (window.paypal && paypalButtonRef.current) {
-    window.paypal.Buttons({
-      style: {
-        shape: 'rect',
-        color: 'blue',
-        layout: 'vertical',
-        label: 'subscribe'
-      },
-      createSubscription: async () => {
-        try {
-          const subscriptionId = await onSubscribe(stripeProductId, planName);
-          return subscriptionId;
-        } catch (error: any) {
-          console.error('Subscription creation error:', error);
-          toast.error('Failed to create subscription: ' + (error.message || 'Please try again'));
-          throw error;
+  useEffect(() => {
+    if (window.paypal && paypalButtonRef.current) {
+      window.paypal.Buttons({
+        style: {
+          shape: 'rect',
+          color: 'black',
+          layout: 'vertical',
+          label: 'subscribe'
+        },
+        createSubscription: async () => {
+          try {
+            const subscriptionId = await onSubscribe('P-7W301107DK9194909M65W3BA', planName);
+            return subscriptionId;
+          } catch (error: any) {
+            console.error('Subscription creation error:', error);
+            toast.error('Failed to create subscription: ' + (error.message || 'Please try again'));
+            throw error;
+          }
+        },
+        onApprove: (data: { subscriptionID: string }) => {
+          console.log('Subscription approved:', data.subscriptionID);
+          toast.success('Subscription created successfully!');
+          navigate('/manage-subscription');
+        },
+        onError: (err: Error) => {
+          console.error('PayPal error:', err);
+          toast.error('PayPal encountered an error: ' + err.message);
+        },
+        onCancel: () => {
+          toast.info('Subscription cancelled');
         }
-      },
-      onApprove: (data: { subscriptionID: string }) => {
-        console.log('Subscription approved:', data.subscriptionID);
-        toast.success('Subscription created successfully!');
-        window.location.href = '/manage-subscription';
-      },
-      onError: (err: Error) => {
-        console.error('PayPal error:', err);
-        toast.error('PayPal encountered an error: ' + err.message);
-      },
-      onCancel: () => {
-        toast.info('Subscription cancelled');
-      }
-    }).render(paypalButtonRef.current);
-  }
+      }).render(paypalButtonRef.current);
+    }
+  }, [window.paypal, paypalButtonRef.current]);
 
   return (
-    <div ref={paypalButtonRef} className="w-full">
+    <div ref={paypalButtonRef} id="paypal-button-container-P-7W301107DK9194909M65W3BA" className="w-full">
       {(isProcessing || isLoading) && <PayPalLoading />}
       {error && (
         <div className="text-red-500 text-center text-sm mt-2">
