@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const useProducts = () => {
   return useQuery({
-    queryKey: ['stripe-products'],
+    queryKey: ['payment-products'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('stripe_products')
+        .from('payment_products')
         .select('*')
         .eq('active', true)
         .ilike('name', '%student%'); // Only fetch student plans
@@ -22,3 +22,4 @@ export const useProducts = () => {
     gcTime: 1000 * 60 * 5
   });
 };
+

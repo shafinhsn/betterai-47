@@ -29,7 +29,7 @@ export const useSubscription = () => {
           .from('subscriptions')
           .select(`
             *,
-            prices:stripe_products(
+            prices:payment_products(
               price,
               name,
               description
@@ -46,8 +46,8 @@ export const useSubscription = () => {
         }
 
         // Check if subscription is ending soon (7 days)
-        if (subscription?.stripe_current_period_end) {
-          const endDate = new Date(subscription.stripe_current_period_end);
+        if (subscription?.current_period_end) {
+          const endDate = new Date(subscription.current_period_end);
           const now = new Date();
           const daysUntilEnd = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           
@@ -71,3 +71,4 @@ export const useSubscription = () => {
     refetchOnReconnect: true,
   });
 };
+

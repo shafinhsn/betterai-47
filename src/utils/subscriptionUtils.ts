@@ -29,9 +29,9 @@ export const handleSubscribe = async (productId: string, planName: string) => {
 
     // Get the specific product
     const { data: product, error: productError } = await supabase
-      .from('stripe_products')
+      .from('payment_products')
       .select('*')
-      .eq('stripe_product_id', productId)
+      .eq('payment_processor_id', productId)
       .maybeSingle();
 
     if (productError) {
@@ -47,7 +47,7 @@ export const handleSubscribe = async (productId: string, planName: string) => {
     console.log('Found product:', product);
     console.log('Creating checkout for:', { 
       planName, 
-      productId: product.stripe_product_id, 
+      productId: product.payment_processor_id, 
       email: user.email, 
       userId: user.id 
     });
@@ -55,7 +55,7 @@ export const handleSubscribe = async (productId: string, planName: string) => {
     const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
       body: {
         planType: 'student',
-        productId: product.stripe_product_id,
+        productId: product.payment_processor_id,
         email: user.email,
         userId: user.id
       }
@@ -92,3 +92,4 @@ export const handleManageSubscription = async () => {
     return null;
   }
 };
+

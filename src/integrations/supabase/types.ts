@@ -32,21 +32,24 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
-          stripe_customer_id: string | null
+          payment_customer_id: string | null
+          payment_processor: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           email?: string | null
           id: string
-          stripe_customer_id?: string | null
+          payment_customer_id?: string | null
+          payment_processor?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string | null
           id?: string
-          stripe_customer_id?: string | null
+          payment_customer_id?: string | null
+          payment_processor?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -119,6 +122,39 @@ export type Database = {
           },
         ]
       }
+      payment_products: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          payment_price_id: string
+          payment_processor_id: string
+          price: number
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          payment_price_id: string
+          payment_processor_id: string
+          price?: number
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          payment_price_id?: string
+          payment_processor_id?: string
+          price?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -140,81 +176,51 @@ export type Database = {
         }
         Relationships: []
       }
-      stripe_products: {
-        Row: {
-          active: boolean | null
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          price: number
-          stripe_price_id: string
-          stripe_product_id: string
-        }
-        Insert: {
-          active?: boolean | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          price?: number
-          stripe_price_id: string
-          stripe_product_id: string
-        }
-        Update: {
-          active?: boolean | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          price?: number
-          stripe_price_id?: string
-          stripe_product_id?: string
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           created_at: string | null
+          current_period_end: string | null
           expires_at: string | null
           id: string
           is_student: boolean | null
+          payment_price_id: string | null
+          payment_processor: string | null
+          payment_subscription_id: string | null
           plan_type: string
           started_at: string | null
           status: string
-          stripe_current_period_end: string | null
-          stripe_price_id: string | null
-          stripe_subscription_id: string | null
           trial_end_at: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          current_period_end?: string | null
           expires_at?: string | null
           id?: string
           is_student?: boolean | null
+          payment_price_id?: string | null
+          payment_processor?: string | null
+          payment_subscription_id?: string | null
           plan_type: string
           started_at?: string | null
           status: string
-          stripe_current_period_end?: string | null
-          stripe_price_id?: string | null
-          stripe_subscription_id?: string | null
           trial_end_at?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          current_period_end?: string | null
           expires_at?: string | null
           id?: string
           is_student?: boolean | null
+          payment_price_id?: string | null
+          payment_processor?: string | null
+          payment_subscription_id?: string | null
           plan_type?: string
           started_at?: string | null
           status?: string
-          stripe_current_period_end?: string | null
-          stripe_price_id?: string | null
-          stripe_subscription_id?: string | null
           trial_end_at?: string | null
           updated_at?: string | null
           user_id?: string
@@ -222,10 +228,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fk_stripe_product"
-            columns: ["stripe_price_id"]
+            columns: ["payment_price_id"]
             isOneToOne: false
-            referencedRelation: "stripe_products"
-            referencedColumns: ["stripe_price_id"]
+            referencedRelation: "payment_products"
+            referencedColumns: ["payment_price_id"]
           },
           {
             foreignKeyName: "subscriptions_user_id_fkey"
