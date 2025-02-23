@@ -75,7 +75,9 @@ export const PayPalButton = ({
       }
     };
 
-    renderButton();
+    if (scriptLoaded) {
+      renderButton();
+    }
 
     return () => {
       if (buttonInstanceRef.current?.close) {

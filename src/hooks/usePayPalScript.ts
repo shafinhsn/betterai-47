@@ -20,28 +20,41 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
 
         const script = document.createElement('script');
         script.id = 'paypal-sdk';
-        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=subscription`;
+        // Add all required parameters and set them correctly
+        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`;
         script.async = true;
+        script.crossOrigin = "anonymous";
 
-        script.onload = () => {
+        const handleLoad = () => {
           if (window.paypal) {
             setScriptLoaded(true);
             setIsLoading(false);
             resolve();
           } else {
-            reject(new Error('PayPal SDK not available after script load'));
+            const error = new Error('PayPal SDK not available after script load');
+            console.error('PayPal SDK not found:', error);
+            onError?.(error);
+            reject(error);
           }
         };
 
-        script.onerror = (error) => {
-          console.error('PayPal script failed to load:', error);
-          const loadError = new Error('Failed to load PayPal SDK');
-          onError?.(loadError);
+        const handleError = (event: Event | string) => {
+          const error = new Error('Failed to load PayPal SDK');
+          console.error('PayPal script failed to load:', event);
+          onError?.(error);
           setIsLoading(false);
-          reject(loadError);
+          reject(error);
         };
 
+        script.addEventListener('load', handleLoad);
+        script.addEventListener('error', handleError);
+
         document.body.appendChild(script);
+
+        return () => {
+          script.removeEventListener('load', handleLoad);
+          script.removeEventListener('error', handleError);
+        };
       });
     };
 
