@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { PlanFeatures } from './PlanFeatures';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface SubscriptionCardProps {
@@ -22,31 +22,47 @@ export const SubscriptionCard = ({
   isProcessing,
   onSubscribe
 }: SubscriptionCardProps) => {
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
+  const [isLoadingScript, setIsLoadingScript] = useState(false);
   const paypalButtonRef = useRef<HTMLDivElement>(null);
+  const paypalScriptId = 'paypal-sdk';
 
   useEffect(() => {
-    if (name.toLowerCase().includes('student')) {
-      // Cleanup any existing PayPal scripts first
-      const existingScript = document.querySelector('script[src*="paypal.com/sdk/js"]');
-      if (existingScript) {
-        existingScript.remove();
-      }
+    if (!name.toLowerCase().includes('student')) return;
 
-      // Create new script element
-      const script = document.createElement('script');
-      script.src = 'https://www.paypal.com/sdk/js?client-id=Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe&vault=true&intent=subscription';
-      script.async = true;
-      script.crossOrigin = "anonymous";
-      script.dataset.sdkIntegrationSource = 'button-factory';
-      
-      // Add error handler for script loading
-      script.onerror = (error) => {
-        console.error('PayPal script loading error:', error);
-        toast.error('Failed to load PayPal. Please try again later.');
-      };
-      
-      script.onload = () => {
+    const loadPayPalScript = async () => {
+      try {
+        setIsLoadingScript(true);
+
+        // Remove any existing PayPal scripts and buttons
+        const existingScript = document.getElementById(paypalScriptId);
+        if (existingScript) {
+          existingScript.remove();
+        }
+
+        if (paypalButtonRef.current) {
+          paypalButtonRef.current.innerHTML = '';
+        }
+
+        // Create new script element
+        const script = document.createElement('script');
+        script.id = paypalScriptId;
+        script.src = 'https://www.paypal.com/sdk/js?client-id=Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe&vault=true&intent=subscription';
+        script.async = true;
+        script.dataset.sdkIntegrationSource = 'button-factory';
+
+        // Create a promise to handle script loading
+        const scriptLoaded = new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+        });
+
+        // Add script to document
+        document.body.appendChild(script);
+
+        // Wait for script to load
+        await scriptLoaded;
+
+        // Initialize PayPal button
         if (window.paypal && paypalButtonRef.current) {
           try {
             window.paypal.Buttons({
@@ -59,9 +75,6 @@ export const SubscriptionCard = ({
               createSubscription: async () => {
                 try {
                   const subscriptionId = await onSubscribe(stripeProductId, name);
-                  if (!subscriptionId) {
-                    throw new Error('Failed to create subscription');
-                  }
                   return subscriptionId;
                 } catch (error) {
                   console.error('Subscription creation error:', error);
@@ -77,6 +90,9 @@ export const SubscriptionCard = ({
               onError: (err: Error) => {
                 console.error('PayPal error:', err);
                 toast.error('PayPal encountered an error. Please try again.');
+              },
+              onCancel: () => {
+                toast.info('Subscription cancelled');
               }
             }).render(paypalButtonRef.current);
           } catch (error) {
@@ -84,26 +100,34 @@ export const SubscriptionCard = ({
             toast.error('Failed to initialize PayPal. Please refresh the page.');
           }
         }
-      };
+      } catch (error) {
+        console.error('PayPal script loading error:', error);
+        toast.error('Failed to load PayPal. Please try again later.');
+      } finally {
+        setIsLoadingScript(false);
+      }
+    };
 
-      // Store reference and append script
-      scriptRef.current = script;
-      document.body.appendChild(script);
-      
-      return () => {
-        // Safe cleanup of script element
-        if (scriptRef.current && document.body.contains(scriptRef.current)) {
-          document.body.removeChild(scriptRef.current);
-        }
-        // Reset reference
-        scriptRef.current = null;
+    loadPayPalScript();
 
-        // Clean up any PayPal buttons
-        if (paypalButtonRef.current) {
-          paypalButtonRef.current.innerHTML = '';
-        }
-      };
-    }
+    // Cleanup function
+    return () => {
+      const script = document.getElementById(paypalScriptId);
+      if (script) {
+        script.remove();
+      }
+      if (paypalButtonRef.current) {
+        paypalButtonRef.current.innerHTML = '';
+      }
+      if (window.paypal) {
+        // @ts-ignore - PayPal types don't include this cleanup method
+        window.paypal.Buttons.instances.forEach((instance: any) => {
+          if (instance.close) {
+            instance.close();
+          }
+        });
+      }
+    };
   }, [name, stripeProductId, onSubscribe]);
 
   return (
@@ -115,7 +139,7 @@ export const SubscriptionCard = ({
       />
       {name.toLowerCase().includes('student') ? (
         <div ref={paypalButtonRef} className="w-full">
-          {isProcessing && (
+          {(isProcessing || isLoadingScript) && (
             <div className="flex items-center justify-center p-4">
               <Loader2 className="w-6 h-6 animate-spin" />
             </div>
