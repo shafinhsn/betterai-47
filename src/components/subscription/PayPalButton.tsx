@@ -45,9 +45,12 @@ export const PayPalButton = ({
         }
 
         const button = window.paypal.Buttons({
-          createSubscription: async () => {
+          createSubscription: async (data: any, actions: any) => {
             try {
               const subscriptionId = await onSubscribe(stripeProductId, planName);
+              if (!subscriptionId) {
+                throw new Error('Failed to create subscription');
+              }
               return subscriptionId;
             } catch (error: any) {
               console.error('Subscription creation error:', error);

@@ -22,15 +22,16 @@ export const handleSubscribe = async (productId: string, planName: string): Prom
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error('Please sign in to subscribe');
-      return '/auth';
+      return Promise.reject('User not authenticated');
     }
 
     console.log('Creating subscription for:', { productId, planName, userId: user.id });
 
-    const { data: { subscription_id }, error } = await supabase.functions.invoke('create-paypal-checkout', {
+    const { data, error } = await supabase.functions.invoke('create-paypal-checkout', {
       body: {
         planId: productId,
-        userId: user.id
+        userId: user.id,
+        planName: planName
       }
     });
 
@@ -39,13 +40,13 @@ export const handleSubscribe = async (productId: string, planName: string): Prom
       throw error;
     }
 
-    if (!subscription_id) {
-      console.error('No subscription ID returned');
-      throw new Error('No subscription ID returned');
+    if (!data?.subscription_id) {
+      console.error('No subscription ID returned', data);
+      throw new Error('Failed to create subscription');
     }
 
-    console.log('Created subscription with ID:', subscription_id);
-    return subscription_id;
+    console.log('Created subscription with ID:', data.subscription_id);
+    return data.subscription_id;
   } catch (error: any) {
     console.error('Subscription error:', error);
     toast.error('Failed to start checkout: ' + (error.message || 'Unknown error occurred'));
