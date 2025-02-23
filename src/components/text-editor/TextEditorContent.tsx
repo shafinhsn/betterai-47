@@ -68,12 +68,15 @@ export const TextEditorContent = ({
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
       e.preventDefault();
       if (e.shiftKey) {
-        handleRedo();
+        document.execCommand('redo', false);
       } else {
-        handleUndo();
+        document.execCommand('undo', false);
+      }
+      if (editorRef.current) {
+        handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
       }
     }
-  }, [handleSaveSelection, isEditable]);
+  }, [handleSaveSelection, handleInput, isEditable]);
 
   const handleFormatting = (command: string) => {
     if (!isEditable) return;
@@ -110,13 +113,13 @@ export const TextEditorContent = ({
 
   const handleUndo = () => {
     if (!isEditable || !editorRef.current) return;
-    document.execCommand('undo');
+    document.execCommand('undo', false);
     handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
   };
 
   const handleRedo = () => {
     if (!isEditable || !editorRef.current) return;
-    document.execCommand('redo');
+    document.execCommand('redo', false);
     handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
   };
 
@@ -178,4 +181,3 @@ export const TextEditorContent = ({
     </div>
   );
 };
-

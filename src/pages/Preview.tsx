@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TextEditorPanel } from '@/components/TextEditorPanel';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, Save } from 'lucide-react';
 import { downloadUpdatedDocument, downloadOriginalDocument } from '@/utils/document';
 import { ProcessedDocument } from '@/types/document';
+import { useToast } from '@/hooks/use-toast';
 
 const Preview = () => {
   const location = useLocation();
@@ -14,6 +15,7 @@ const Preview = () => {
   const [updatedContent, setUpdatedContent] = useState('');
   const [filename, setFilename] = useState('');
   const [fileType, setFileType] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     if (location.state) {
@@ -26,6 +28,21 @@ const Preview = () => {
       navigate('/');
     }
   }, [location.state, navigate]);
+
+  const handleSave = () => {
+    navigate('/', {
+      state: {
+        content,
+        updatedContent,
+        filename,
+        fileType
+      }
+    });
+    toast({
+      title: "Changes saved",
+      description: "Your changes have been saved successfully."
+    });
+  };
 
   const handleUpdate = () => {
     if (updatedContent && filename && fileType) {
@@ -70,6 +87,13 @@ const Preview = () => {
             >
               <Download className="mr-2 h-4 w-4" />
               Download Updated
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Save Changes
             </Button>
           </div>
         </div>

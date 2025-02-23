@@ -126,17 +126,6 @@ export const DocumentControls = ({
             </Button>
           </div>
         )}
-        {updatedContent && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleDownload(updatedContent, 'updated')}
-            className="w-full"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Save Updated Version
-          </Button>
-        )}
         <Button
           variant="destructive"
           size="sm"
