@@ -20,65 +20,34 @@ export const useSubscription = () => {
           return null;
         }
         
-        console.log('Checking subscription for user:', user.id);
-        
-        // First, let's check if we can find the customer in our customers table
-        const { data: customer, error: customerError } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (customerError) {
-          console.error('Error fetching customer:', customerError);
-        } else {
-          console.log('Found customer:', customer);
-        }
-
-        // Get active/trialing subscriptions
+        // Get active/trialing subscriptions with product details
         const { data: activeSubs, error: activeSubsError } = await supabase
           .from('subscriptions')
-          .select('*, stripe_products(name, price)')
+          .select(`
+            *,
+            product:stripe_products(
+              name,
+              price,
+              description
+            )
+          `)
           .eq('user_id', user.id)
           .in('status', ['active', 'trialing'])
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .single(); // Get only the most recent subscription
         
         if (activeSubsError) {
-          console.error('Error fetching active subscriptions:', activeSubsError);
+          console.error('Error fetching active subscription:', activeSubsError);
           toast.error('Failed to fetch subscription status');
           return null;
         }
 
-        console.log('Active subscriptions response:', activeSubs);
-        
-        // If we have any active subscriptions, return the most recent one
-        if (activeSubs && activeSubs.length > 0) {
-          console.log('Found active subscription:', activeSubs[0]);
-          return activeSubs[0];
+        if (activeSubs) {
+          console.log('Found active subscription:', activeSubs);
+          return activeSubs;
         }
 
-        // If no active subscription was found, let's check all subscriptions for debugging
-        const { data: allSubs, error: allSubsError } = await supabase
-          .from('subscriptions')
-          .select('*, stripe_products(name, price)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-        
-        if (allSubsError) {
-          console.error('Error fetching all subscriptions:', allSubsError);
-          return null;
-        }
-
-        console.log('All subscriptions for user:', allSubs);
-        
-        if (!allSubs || allSubs.length === 0) {
-          console.log('No subscriptions found for user');
-          return null;
-        }
-
-        // Log the status of the most recent subscription
-        console.log('Most recent subscription status:', allSubs[0].status);
-        
+        console.log('No active subscription found for user:', user.id);
         return null;
       } catch (error) {
         console.error('Error in useSubscription hook:', error);
@@ -86,6 +55,6 @@ export const useSubscription = () => {
         return null;
       }
     },
-    refetchInterval: 5000, // Refetch every 5 seconds while the component is mounted
+    refetchInterval: 5000, // Refetch every 5 seconds while component is mounted
   });
 };

@@ -63,9 +63,11 @@ export const ProfileMenu = () => {
             <span className="ml-auto text-xs opacity-60">Loading...</span>
           ) : subscription ? (
             <span className="ml-auto text-xs opacity-60">
-              {subscription.plan_type}
+              {subscription.product?.name || subscription.plan_type}
             </span>
-          ) : null}
+          ) : (
+            <span className="ml-auto text-xs opacity-60">None</span>
+          )}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
