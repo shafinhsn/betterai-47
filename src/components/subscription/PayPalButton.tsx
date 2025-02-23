@@ -21,8 +21,9 @@ export const PayPalButton = ({
   const paypalButtonRef = useRef<HTMLDivElement>(null);
   const buttonInstanceRef = useRef<any>(null);
   const navigate = useNavigate();
+  const buttonRenderedRef = useRef(false);
 
-  const { isLoading, error } = usePayPalScript({
+  const { isLoading, error, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
     onError: (error) => {
       console.error('PayPal script error:', error);
@@ -31,11 +32,14 @@ export const PayPalButton = ({
   });
 
   useEffect(() => {
-    if (!window.paypal || !paypalButtonRef.current || isLoading) {
+    // Only proceed if we have everything we need and haven't rendered the button yet
+    if (!window.paypal?.Buttons || !paypalButtonRef.current || isLoading || !scriptLoaded || buttonRenderedRef.current) {
       console.log('PayPal not ready:', { 
-        hasPayPal: !!window.paypal, 
+        hasPayPal: !!window.paypal?.Buttons, 
         hasButtonRef: !!paypalButtonRef.current, 
-        isLoading 
+        isLoading,
+        scriptLoaded,
+        buttonRendered: buttonRenderedRef.current
       });
       return;
     }
@@ -84,6 +88,7 @@ export const PayPalButton = ({
 
         console.log('Rendering PayPal button...');
         await buttonInstanceRef.current.render(paypalButtonRef.current);
+        buttonRenderedRef.current = true;
         console.log('PayPal button rendered successfully');
       } catch (error: any) {
         console.error('Error rendering PayPal button:', error);
@@ -97,12 +102,15 @@ export const PayPalButton = ({
       if (buttonInstanceRef.current?.close) {
         buttonInstanceRef.current.close();
       }
+      buttonRenderedRef.current = false;
     };
-  }, [window.paypal, isLoading, onSubscribe, planName, navigate, stripeProductId]);
+  }, [window.paypal, isLoading, scriptLoaded, onSubscribe, planName, navigate, stripeProductId]);
 
   return (
-    <div ref={paypalButtonRef} className="w-full min-h-[150px]">
-      {(isProcessing || isLoading) && <PayPalLoading />}
+    <div>
+      <div ref={paypalButtonRef} className="w-full min-h-[150px] bg-white rounded-md">
+        {(isProcessing || isLoading) && <PayPalLoading />}
+      </div>
       {error && (
         <div className="text-red-500 text-center text-sm mt-2">
           {error}
