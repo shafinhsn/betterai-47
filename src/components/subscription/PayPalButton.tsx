@@ -20,35 +20,6 @@ interface PayPalButtonStyle {
   label: 'subscribe';
 }
 
-interface CreateSubscriptionData {
-  subscriber: {
-    name: {
-      given_name: string;
-      surname: string;
-    };
-    email_address: string;
-  };
-}
-
-interface CreateSubscriptionActions {
-  subscription: {
-    create: (data: {
-      plan_id: string;
-    }) => Promise<string>;
-  };
-}
-
-interface OnApproveData {
-  orderID: string;
-  subscriptionID: string;
-}
-
-interface OnApproveActions {
-  subscription: {
-    get: () => Promise<any>;
-  };
-}
-
 export const PayPalButton = ({
   onSubscribe,
   stripeProductId,
@@ -64,7 +35,6 @@ export const PayPalButton = ({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
     onError: (error) => {
       console.error('PayPal script error:', error);
-      // Check if the error is related to third-party cookies being blocked
       if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
         console.log('Cookies are blocked - showing alert');
         setCookiesBlocked(true);
@@ -83,7 +53,6 @@ export const PayPalButton = ({
       }
 
       try {
-        // Clean up previous button instance
         if (buttonInstanceRef.current?.close) {
           buttonInstanceRef.current.close();
         }
@@ -95,7 +64,7 @@ export const PayPalButton = ({
             shape: 'rect',
             label: 'subscribe'
           } as PayPalButtonStyle,
-          createSubscription: async (data: CreateSubscriptionData, actions: CreateSubscriptionActions) => {
+          createSubscription: async () => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -113,14 +82,13 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: async (data: OnApproveData, actions: OnApproveActions) => {
+          onApprove: async (data: any) => {
             console.log('Subscription approved:', data);
             toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
           },
           onError: (err: Error) => {
             console.error('PayPal error:', err);
-            // Check if the error is related to third-party cookies being blocked
             if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
               console.log('Cookies are blocked during button interaction - showing alert');
               setCookiesBlocked(true);
