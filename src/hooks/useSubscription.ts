@@ -12,6 +12,7 @@ export const useSubscription = () => {
         
         if (userError) {
           console.error('Error getting user:', userError);
+          toast.error('Authentication error');
           return null;
         }
 
@@ -21,6 +22,17 @@ export const useSubscription = () => {
         }
 
         console.log('Fetching subscription for user:', user.id);
+        
+        // First check if we have any subscriptions at all for debugging
+        const { data: allSubs, error: allSubsError } = await supabase
+          .from('subscriptions')
+          .select('*');
+          
+        if (allSubsError) {
+          console.error('Error checking all subscriptions:', allSubsError);
+        } else {
+          console.log('Total subscriptions in database:', allSubs?.length || 0);
+        }
         
         // Get active/trialing subscriptions with product details
         const { data: activeSubs, error: activeSubsError } = await supabase
@@ -34,7 +46,7 @@ export const useSubscription = () => {
             )
           `)
           .eq('user_id', user.id)
-          .in('status', ['active', 'trialing', 'canceled'])  // Include canceled subscriptions to check if they exist
+          .in('status', ['active', 'trialing', 'canceled'])
           .order('created_at', { ascending: false });
         
         if (activeSubsError) {
@@ -44,23 +56,28 @@ export const useSubscription = () => {
         }
 
         // Log all found subscriptions for debugging
-        console.log('Found subscriptions:', activeSubs);
+        console.log('Found subscriptions for user:', activeSubs);
 
         if (!activeSubs || activeSubs.length === 0) {
-          console.log('No subscriptions found at all for user:', user.id);
+          console.log('No active subscriptions found for user:', user.id);
           return null;
         }
 
         // Get the most recent subscription
         const latestSub = activeSubs[0];
-        console.log('Latest subscription status:', latestSub.status);
+        console.log('Latest subscription:', latestSub);
 
         if (latestSub.status === 'active' || latestSub.status === 'trialing') {
           console.log('Found active/trialing subscription:', latestSub);
           return latestSub;
         }
 
-        console.log('No active subscription found. Latest subscription details:', latestSub);
+        if (latestSub.status === 'canceled') {
+          console.log('Found canceled subscription:', latestSub);
+          return latestSub;
+        }
+
+        console.log('No valid subscription found');
         return null;
       } catch (error) {
         console.error('Error in useSubscription hook:', error);
