@@ -8,14 +8,17 @@ serve(async (req) => {
   try {
     // Handle CORS
     if (req.method === 'OPTIONS') {
-      return new Response('ok', { headers: corsHeaders });
+      return new Response(null, { headers: corsHeaders });
     }
 
     const { productId, email, userId } = await req.json();
 
     if (!productId || !email || !userId) {
+      console.error('Missing required fields:', { productId, email, userId });
       throw new Error('Missing required fields');
     }
+
+    console.log('Creating checkout with:', { productId, email, userId });
 
     // Get the product from Supabase
     const supabaseClient = createClient(
@@ -25,11 +28,14 @@ serve(async (req) => {
 
     const { data: product, error: productError } = await supabaseClient
       .from('stripe_products')
-      .select('stripe_price_id')
-      .eq('id', productId)
+      .select('*')
+      .eq('stripe_product_id', productId)
       .single();
 
+    console.log('Found product:', JSON.stringify(product, null, 2));
+
     if (productError || !product) {
+      console.error('Product lookup error:', productError);
       throw new Error('Product not found');
     }
 

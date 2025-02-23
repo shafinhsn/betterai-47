@@ -30,7 +30,7 @@ export const handleSubscribe = async (productId: string, planName: string) => {
     const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
       body: {
         planType: 'student',
-        productId: productId,
+        productId: productId, // This should be stripe_product_id from the database
         email: user.email,
         userId: user.id
       }
