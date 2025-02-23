@@ -31,12 +31,15 @@ export const PayPalButton = ({
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     const renderButton = async () => {
-      if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded) {
+      if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded || !isMounted) {
         return;
       }
 
       try {
+        // Cleanup previous button instance
         if (buttonInstanceRef.current?.close) {
           buttonInstanceRef.current.close();
         }
@@ -59,21 +62,29 @@ export const PayPalButton = ({
             }
           },
           onApprove: (data) => {
-            console.log('Subscription approved:', data);
-            toast.success('Subscription created successfully!');
-            navigate('/manage-subscription');
+            if (isMounted) {
+              console.log('Subscription approved:', data);
+              toast.success('Subscription created successfully!');
+              navigate('/manage-subscription');
+            }
           },
           onError: (err: Error) => {
-            console.error('PayPal error:', err);
-            toast.error('PayPal encountered an error: ' + err.message);
+            if (isMounted) {
+              console.error('PayPal error:', err);
+              toast.error('PayPal encountered an error: ' + err.message);
+            }
           }
         });
+
+        if (!isMounted) return;
 
         buttonInstanceRef.current = button;
         await button.render(paypalButtonRef.current);
       } catch (error) {
-        console.error('Error rendering PayPal button:', error);
-        toast.error('Failed to render PayPal button');
+        if (isMounted) {
+          console.error('Error rendering PayPal button:', error);
+          toast.error('Failed to render PayPal button');
+        }
       }
     };
 
@@ -82,6 +93,7 @@ export const PayPalButton = ({
     }
 
     return () => {
+      isMounted = false;
       if (buttonInstanceRef.current?.close) {
         buttonInstanceRef.current.close();
       }
