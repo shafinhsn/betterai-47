@@ -5,12 +5,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 }
-
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!
-const supabase = createClient(supabaseUrl, supabaseKey)
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -25,13 +21,27 @@ serve(async (req) => {
       throw new Error('Method not allowed')
     }
 
-    const { planId, userId, planName } = await req.json()
+    const body = await req.json()
+    const { planId, userId, planName } = body
 
     if (!planId || !userId || !planName) {
+      console.error('Missing required parameters:', body)
       throw new Error('Missing required parameters')
     }
 
     console.log('Creating PayPal subscription for:', { planId, userId, planName })
+
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
 
     // Create a subscription record in pending state
     const { data: subscription, error: subscriptionError } = await supabase
@@ -42,16 +52,19 @@ serve(async (req) => {
           plan_type: planName,
           status: 'pending',
           is_student: true,
-          payment_processor: 'paypal',
-          payment_subscription_id: null // Will be updated by webhook
+          payment_processor: 'paypal'
         }
       ])
       .select()
       .single()
 
-    if (subscriptionError || !subscription) {
+    if (subscriptionError) {
       console.error('Database error:', subscriptionError)
-      throw new Error('Failed to create subscription record')
+      throw new Error('Failed to create subscription record: ' + subscriptionError.message)
+    }
+
+    if (!subscription) {
+      throw new Error('No subscription was created')
     }
 
     console.log('Created subscription:', subscription.id)
