@@ -21,12 +21,14 @@ export const downloadOriginalDocument = async (currentDocument: ProcessedDocumen
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
   } else {
-    // For DOCX files, download as text
-    const blob = new Blob([content], { type: 'text/plain' });
+    // For DOCX files, download with proper MIME type
+    const blob = new Blob([content], { 
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentDocument.filename.replace(/\.[^/.]+$/, '')}.txt`;
+    a.download = currentDocument.filename;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
@@ -48,15 +50,18 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
   } else {
-    // Save as text for DOCX files
-    const blob = new Blob([content], { type: 'text/plain' });
+    // Save as DOCX for Word documents
+    const blob = new Blob([content], { 
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename.replace(/\.[^/.]+$/, '')}_updated.txt`;
+    a.download = `${filename.replace(/\.[^/.]+$/, '')}_updated.docx`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
     document.body.removeChild(a);
   }
 };
+
