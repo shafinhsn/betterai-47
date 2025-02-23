@@ -1,12 +1,12 @@
 
-import { useRef, useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { usePayPalScript } from '@/hooks/usePayPalScript';
-import { PayPalLoading } from './PayPalLoading';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePayPalScript } from '@/hooks/usePayPalScript';
+import { usePayPalButtonRenderer } from '@/hooks/usePayPalButtonRenderer';
+import { PayPalLoading } from './PayPalLoading';
 import { CookieAlert } from './CookieAlert';
-import { Button } from '@/components/ui/button';
-import { CreditCard } from 'lucide-react';
+import { CardPaymentButton } from './CardPaymentButton';
+import { openCookieSettings } from '@/utils/cookieSettings';
 
 interface PayPalButtonProps {
   onSubscribe: (productId: string, planName: string) => Promise<string>;
@@ -26,7 +26,6 @@ export const PayPalButton = ({
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
-  const [paypalButton, setPaypalButton] = useState<any>(null);
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
@@ -42,128 +41,20 @@ export const PayPalButton = ({
     }
   });
 
-  useEffect(() => {
-    if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded) {
-      return;
-    }
-
-    // Clean up existing button if present
-    if (paypalButton) {
-      paypalButton.close();
-      setPaypalButton(null);
-    }
-    
-    // Clean up any existing content
-    if (paypalButtonRef.current) {
-      paypalButtonRef.current.innerHTML = '';
-    }
-
-    const buttonConfig = {
-      style: {
-        layout: 'horizontal' as const,
-        color: 'blue' as const,
-        shape: 'rect' as const,
-        label: 'paypal' as const
-      },
-      createSubscription: async () => {
-        try {
-          setIsPayPalProcessing(true);
-          setLoadError(null);
-          const subscriptionId = await onSubscribe(stripeProductId, planName);
-          
-          if (!subscriptionId) {
-            throw new Error('Failed to create subscription');
-          }
-          
-          console.log('Created subscription:', subscriptionId);
-          return subscriptionId;
-        } catch (error: any) {
-          console.error('Subscription creation error:', error);
-          toast.error('Failed to create subscription: ' + error.message);
-          throw error;
-        } finally {
-          setIsPayPalProcessing(false);
-        }
-      },
-      onApprove: (data: any) => {
-        console.log('Subscription approved:', data);
-        toast.success('Your subscription has been created successfully!');
-        navigate('/manage-subscription');
-      },
-      onError: (err: Error) => {
-        console.error('PayPal error:', err);
-        if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
-          console.log('Cookies are blocked during button interaction - showing alert');
-          setCookiesBlocked(true);
-          return;
-        }
-        setLoadError(err.message || 'PayPal encountered an error');
-        toast.error('PayPal encountered an error: ' + err.message);
-      },
-      onCancel: () => {
-        console.log('Subscription was cancelled by user');
-        toast.error('Subscription was cancelled');
-      }
-    };
-
-    try {
-      const button = window.paypal?.Buttons(buttonConfig);
-      if (button) {
-        button.render(paypalButtonRef.current);
-        setPaypalButton(button);
-        console.log('PayPal button rendered successfully');
-      } else {
-        throw new Error('Failed to create PayPal button');
-      }
-    } catch (error) {
-      console.error('Error rendering PayPal button:', error);
-      if (error instanceof Error) {
-        if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
-          console.log('Cookies are blocked during render - showing alert');
-          setCookiesBlocked(true);
-        } else {
-          setLoadError(error.message);
-          toast.error('Failed to render PayPal button: ' + error.message);
-        }
-      }
-    }
-
-    return () => {
-      // Clean up on unmount
-      if (paypalButton) {
-        paypalButton.close();
-      }
-      if (paypalButtonRef.current) {
-        paypalButtonRef.current.innerHTML = '';
-      }
-    };
-  }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate, paypalButton]);
-
-  const handleCardPayment = async () => {
-    try {
-      setIsPayPalProcessing(true);
-      const subscriptionId = await onSubscribe(stripeProductId, planName);
-      window.location.href = `https://www.paypal.com/subscription/checkout?subscription_id=${subscriptionId}`;
-    } catch (error: any) {
-      console.error('Card payment error:', error);
-      toast.error('Failed to start card payment: ' + error.message);
-    } finally {
-      setIsPayPalProcessing(false);
-    }
-  };
-
-  const handleOpenCookieSettings = () => {
-    if (navigator.userAgent.includes('Chrome')) {
-      window.open('chrome://settings/cookies');
-    } else if (navigator.userAgent.includes('Firefox')) {
-      window.open('about:preferences#privacy');
-    } else {
-      window.open('about:settings');
-    }
-  };
+  usePayPalButtonRenderer({
+    paypalButtonRef,
+    scriptLoaded,
+    onSubscribe,
+    stripeProductId,
+    planName,
+    navigate,
+    setCookiesBlocked,
+    setLoadError,
+    setIsPayPalProcessing
+  });
 
   if (cookiesBlocked) {
-    return <CookieAlert onOpenSettings={handleOpenCookieSettings} />;
+    return <CookieAlert onOpenSettings={openCookieSettings} />;
   }
 
   if (loadError) {
@@ -179,23 +70,13 @@ export const PayPalButton = ({
       <div ref={paypalButtonRef} className="min-h-[45px] relative">
         {(isProcessing || isLoading || isPayPalProcessing) && <PayPalLoading />}
       </div>
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">or pay with card</span>
-        </div>
-      </div>
-      <Button
-        className="w-full"
-        onClick={handleCardPayment}
-        disabled={isProcessing || isPayPalProcessing}
-        variant="outline"
-      >
-        <CreditCard className="w-4 h-4 mr-2" />
-        Pay with Card
-      </Button>
+      <CardPaymentButton
+        onSubscribe={onSubscribe}
+        stripeProductId={stripeProductId}
+        planName={planName}
+        isProcessing={isProcessing}
+        isPayPalProcessing={isPayPalProcessing}
+      />
     </div>
   );
 };
