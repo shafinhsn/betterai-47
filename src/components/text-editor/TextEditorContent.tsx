@@ -20,10 +20,12 @@ export const TextEditorContent = ({
   alignment
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
   const lastSelectionRef = useRef<{
     start: number;
     end: number;
+    scrollTop?: number;
   } | null>(null);
 
   const saveSelection = () => {
@@ -38,13 +40,19 @@ export const TextEditorContent = ({
 
     lastSelectionRef.current = {
       start,
-      end: start + range.toString().length
+      end: start + range.toString().length,
+      scrollTop: scrollAreaRef.current?.scrollTop
     };
   };
 
   const restoreSelection = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || !lastSelectionRef.current || !editorRef.current) return;
+
+    // First restore scroll position if needed
+    if (lastSelectionRef.current.scrollTop !== undefined && scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = lastSelectionRef.current.scrollTop;
+    }
 
     let charCount = 0;
     let foundStart = false;
@@ -85,6 +93,12 @@ export const TextEditorContent = ({
       range.setEnd(endNode, endOffset);
       selection.removeAllRanges();
       selection.addRange(range);
+
+      // Ensure the selection is visible
+      const selectedElement = selection.focusNode?.parentElement;
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     }
   }, []);
 
@@ -117,11 +131,20 @@ export const TextEditorContent = ({
     }
   };
 
+  const handleScroll = () => {
+    if (scrollAreaRef.current) {
+      lastSelectionRef.current = {
+        ...lastSelectionRef.current!,
+        scrollTop: scrollAreaRef.current.scrollTop
+      };
+    }
+  };
+
   useEffect(() => {
     if (editorRef.current) {
       const fontSize = parseInt(size) || 16;
       const containerStyle = {
-        fontFamily: font,
+        fontFamily: font || 'inherit', // Use 'inherit' to preserve uploaded document's font
         fontSize: `${fontSize}px`,
         textAlign: alignment as 'left' | 'center' | 'right' | 'justify',
       };
@@ -130,7 +153,11 @@ export const TextEditorContent = ({
   }, [font, size, alignment]);
 
   return (
-    <ScrollArea className="h-[calc(100%-5rem)] overflow-y-auto">
+    <ScrollArea 
+      className="h-[calc(100%-5rem)] overflow-y-auto"
+      ref={scrollAreaRef}
+      onScrollCapture={handleScroll}
+    >
       <div 
         ref={editorRef}
         className="bg-[#242424] rounded p-6 min-h-[200px] w-full"
@@ -155,3 +182,4 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
+
