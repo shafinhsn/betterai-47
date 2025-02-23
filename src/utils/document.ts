@@ -11,17 +11,17 @@ export const downloadOriginalDocument = async (currentDocument: ProcessedDocumen
 
   try {
     // Get signed URL for download
-    const { data: { signedURL }, error: signedUrlError } = await supabase.storage
+    const { data: { signedUrl }, error: signedUrlError } = await supabase.storage
       .from('documents')
       .createSignedUrl(currentDocument.filePath, 60); // URL valid for 60 seconds
 
-    if (signedUrlError || !signedURL) {
+    if (signedUrlError || !signedUrl) {
       console.error('Error getting signed URL:', signedUrlError);
       throw new Error(`Failed to get download URL: ${signedUrlError?.message || 'Unknown error occurred'}`);
     }
 
     // Fetch the file using the signed URL
-    const response = await fetch(signedURL);
+    const response = await fetch(signedUrl);
     if (!response.ok) {
       throw new Error(`Failed to download document: HTTP error ${response.status}`);
     }
