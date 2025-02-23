@@ -7,6 +7,7 @@ import { PayPalLoading } from './PayPalLoading';
 import { CookieAlert } from './CookieAlert';
 import { CardPaymentButton } from './CardPaymentButton';
 import { openCookieSettings } from '@/utils/cookieSettings';
+import { toast } from 'sonner';
 
 interface PayPalButtonProps {
   onSubscribe: (productId: string, planName: string) => Promise<string>;
