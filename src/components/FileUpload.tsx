@@ -3,24 +3,10 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
 import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
-// Initialize PDF.js worker
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.mjs',
-    import.meta.url
-  ).toString();
-}
+import { FileTypeSelector } from './file-upload/FileTypeSelector';
+import { processPdf } from '@/utils/pdf-processor';
+import { processDocx } from '@/utils/docx-processor';
 
 interface FileUploadProps {
   onFileSelect: (file: File, content: string) => void;
@@ -29,54 +15,6 @@ interface FileUploadProps {
 export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const [documentType, setDocumentType] = useState<'docx' | 'pdf'>('docx');
   const { toast } = useToast();
-
-  const processDocx = async (file: File) => {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      return result.value;
-    } catch (error) {
-      console.error('Error processing DOCX:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to process DOCX file. Please try again.",
-      });
-      throw new Error('Failed to process DOCX file');
-    }
-  };
-
-  const processPdf = async (file: File) => {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({
-        data: arrayBuffer,
-        verbosity: pdfjsLib.VerbosityLevel.ERRORS
-      });
-      const pdf = await loadingTask.promise;
-      
-      const textContent: string[] = [];
-      
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const content = await page.getTextContent();
-        const pageText = content.items
-          .map((item: any) => item.str)
-          .join(' ');
-        textContent.push(pageText);
-      }
-      
-      return textContent.join('\n\n');
-    } catch (error) {
-      console.error('Error processing PDF:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to process PDF file. Please check if the file is valid and try again.",
-      });
-      throw new Error('Failed to process PDF file');
-    }
-  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles?.[0]) {
@@ -127,15 +65,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
 
   return (
     <div className="space-y-4">
-      <Select value={documentType} onValueChange={(value: 'docx' | 'pdf') => setDocumentType(value)}>
-        <SelectTrigger className="w-full bg-background">
-          <SelectValue placeholder="Select document type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="docx">Word Document (.docx)</SelectItem>
-          <SelectItem value="pdf">PDF Document (.pdf)</SelectItem>
-        </SelectContent>
-      </Select>
+      <FileTypeSelector value={documentType} onChange={setDocumentType} />
 
       <div
         {...getRootProps()}
