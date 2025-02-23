@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +22,20 @@ export const ManageSubscription = ({
   const navigate = useNavigate();
   const [isCancelling, setIsCancelling] = useState(false);
   const [isUpdatingAutoRenew, setIsUpdatingAutoRenew] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleCancelSubscription = async () => {
     try {
