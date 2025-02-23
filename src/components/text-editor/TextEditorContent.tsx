@@ -99,6 +99,10 @@ export const TextEditorContent = ({
       node = walker.nextNode();
     }
 
+    if (scrollAreaRef.current && lastSelectionRef.current.scrollTop) {
+      scrollAreaRef.current.scrollTop = lastSelectionRef.current.scrollTop;
+    }
+
     try {
       selection.removeAllRanges();
       selection.addRange(range);
@@ -113,7 +117,9 @@ export const TextEditorContent = ({
     saveSelection();
     const newContent = e.currentTarget.innerHTML;
     onContentChange(newContent);
-    requestAnimationFrame(restoreSelection);
+    requestAnimationFrame(() => {
+      restoreSelection();
+    });
   }, [onContentChange, saveSelection, restoreSelection, isEditable]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -135,20 +141,25 @@ export const TextEditorContent = ({
   };
 
   const handleFontSize = (size: string) => {
-    if (!isEditable) return;
+    if (!isEditable || !editorRef.current) return;
     document.execCommand('fontSize', false, size);
-    if (editorRef.current) {
-      handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
-    }
+    handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
   };
 
   const handleFontFamily = (font: string) => {
-    if (!isEditable) return;
+    if (!isEditable || !editorRef.current) return;
     document.execCommand('fontName', false, font);
-    if (editorRef.current) {
-      handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
-    }
+    handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
   };
+
+  const handleScroll = useCallback(() => {
+    if (scrollAreaRef.current) {
+      lastSelectionRef.current = {
+        ...lastSelectionRef.current!,
+        scrollTop: scrollAreaRef.current.scrollTop
+      };
+    }
+  }, []);
 
   return (
     <div className="flex flex-col gap-2">
@@ -159,10 +170,11 @@ export const TextEditorContent = ({
               <SelectValue placeholder="Size" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">Small</SelectItem>
-              <SelectItem value="3">Normal</SelectItem>
-              <SelectItem value="5">Large</SelectItem>
-              <SelectItem value="7">Huge</SelectItem>
+              {[8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36].map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size}px
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -200,10 +212,11 @@ export const TextEditorContent = ({
       <ScrollArea 
         className="h-full overflow-y-auto border border-border/20 rounded-lg bg-[#1a1a1a]"
         ref={scrollAreaRef}
+        onScroll={handleScroll}
       >
         <div 
           ref={editorRef}
-          className="p-6 min-h-[200px] w-full focus:outline-none"
+          className="p-6 min-h-[200px] w-full focus:outline-none text-base"
           contentEditable={isEditable}
           suppressContentEditableWarning
           onInput={handleInput}
@@ -214,9 +227,11 @@ export const TextEditorContent = ({
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
             lineHeight: '1.5',
+            maxWidth: '100%'
           }}
         />
       </ScrollArea>
     </div>
   );
 };
+
