@@ -19,18 +19,38 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the request body
-    let { planId, userId, planName } = await req.json();
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('Error parsing request body:', e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const { planId, userId, planName } = body;
 
     if (!planId || !userId || !planName) {
       console.error('Missing required fields:', { planId, userId, planName });
-      throw new Error('Missing required fields');
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Creating subscription for:', { planId, userId, planName });
 
     // Get PayPal access token
-    const tokenResponse = await fetch('https://api.paypal.com/v1/oauth2/token', {
+    const tokenResponse = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -44,18 +64,24 @@ serve(async (req: Request) => {
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
       console.error('PayPal auth error:', error);
-      throw new Error('Failed to authenticate with PayPal');
+      return new Response(
+        JSON.stringify({ error: 'Failed to authenticate with PayPal' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const { access_token } = await tokenResponse.json();
 
     // Create PayPal subscription
-    const subscriptionResponse = await fetch('https://api.paypal.com/v1/billing/subscriptions', {
+    const subscriptionResponse = await fetch('https://api-m.sandbox.paypal.com/v1/billing/subscriptions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${access_token}`,
-        'PayPal-Request-Id': `${userId}-${Date.now()}`, // Unique request ID
+        'PayPal-Request-Id': `${userId}-${Date.now()}`,
       },
       body: JSON.stringify({
         plan_id: planId,
@@ -74,7 +100,13 @@ serve(async (req: Request) => {
     if (!subscriptionResponse.ok) {
       const error = await subscriptionResponse.text();
       console.error('PayPal subscription error:', error);
-      throw new Error('Failed to create PayPal subscription');
+      return new Response(
+        JSON.stringify({ error: 'Failed to create PayPal subscription' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const paypalSubscription = await subscriptionResponse.json();
@@ -96,7 +128,13 @@ serve(async (req: Request) => {
 
     if (subError) {
       console.error('Database error:', subError);
-      throw new Error('Failed to create subscription record');
+      return new Response(
+        JSON.stringify({ error: 'Failed to create subscription record' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     return new Response(
@@ -115,7 +153,7 @@ serve(async (req: Request) => {
         error: error instanceof Error ? error.message : 'Unknown error occurred' 
       }),
       { 
-        status: 400,
+        status: 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
