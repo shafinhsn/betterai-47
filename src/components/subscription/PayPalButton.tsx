@@ -1,9 +1,10 @@
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { usePayPalScript } from '@/hooks/usePayPalScript';
 import { PayPalLoading } from './PayPalLoading';
 import { useNavigate } from 'react-router-dom';
+import { CookieAlert } from './CookieAlert';
 
 interface PayPalButtonProps {
   onSubscribe: (productId: string, planName: string) => Promise<string>;
@@ -34,12 +35,17 @@ export const PayPalButton = ({
   const paypalButtonRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const buttonInstanceRef = useRef<any>(null);
+  const [cookiesBlocked, setCookiesBlocked] = useState(false);
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
     onError: (error) => {
       console.error('PayPal script error:', error);
-      toast.error('Failed to load PayPal: ' + error.message);
+      if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+        setCookiesBlocked(true);
+      } else {
+        toast.error('Failed to load PayPal: ' + error.message);
+      }
     }
   });
 
@@ -121,11 +127,21 @@ export const PayPalButton = ({
     };
   }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
+  const handleOpenCookieSettings = () => {
+    // Open Chrome cookie settings
+    window.open('chrome://settings/cookies');
+  };
+
   return (
     <div className="w-full">
-      <div ref={paypalButtonRef} className="min-h-[150px]">
-        {(isProcessing || isLoading) && <PayPalLoading />}
-      </div>
+      {cookiesBlocked ? (
+        <CookieAlert onOpenSettings={handleOpenCookieSettings} />
+      ) : (
+        <div ref={paypalButtonRef} className="min-h-[150px]">
+          {(isProcessing || isLoading) && <PayPalLoading />}
+        </div>
+      )}
     </div>
   );
 };
+
