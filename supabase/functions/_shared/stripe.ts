@@ -1,5 +1,5 @@
 
-import Stripe from 'stripe';
+import Stripe from 'https://esm.sh/stripe@14.21.0';
 
 // Initialize Stripe with the secret key
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
