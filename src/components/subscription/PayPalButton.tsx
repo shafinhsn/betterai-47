@@ -20,8 +20,9 @@ interface PayPalButtonConfig {
     shape: 'rect';
     label: 'subscribe';
   };
-  createSubscription: () => Promise<string>;
-  onApprove: (data: { subscriptionID: string }) => void;
+  fundingSource: undefined;
+  createSubscription: (data: any, actions: any) => Promise<string>;
+  onApprove: (data: any, actions: any) => void;
   onError: (err: Error) => void;
   onCancel?: () => void;
 }
@@ -65,7 +66,14 @@ export const PayPalButton = ({
 
         // PayPal button configuration
         const buttonConfig: PayPalButtonConfig = {
-          createSubscription: async () => {
+          style: {
+            layout: 'vertical',
+            color: 'blue',
+            shape: 'rect',
+            label: 'subscribe'
+          },
+          fundingSource: undefined,
+          createSubscription: async (data: any, actions: any) => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -76,14 +84,14 @@ export const PayPalButton = ({
                 throw new Error('Failed to create subscription');
               }
               console.log('Created subscription:', subscriptionId);
-              return subscriptionId; // Return just the ID string
+              return subscriptionId;
             } catch (error: any) {
               console.error('Subscription creation error:', error);
               toast.error('Failed to create subscription: ' + (error.message || 'Unknown error'));
               throw error;
             }
           },
-          onApprove: (data) => {
+          onApprove: (data: any, actions: any) => {
             console.log('Subscription approved:', data);
             toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
@@ -94,19 +102,21 @@ export const PayPalButton = ({
           },
           onCancel: () => {
             toast.error('Subscription was cancelled');
-          },
-          style: {
-            layout: 'vertical',
-            color: 'blue',
-            shape: 'rect',
-            label: 'subscribe'
           }
         };
 
         if (isMounted) {
+          // Create the PayPal button instance with specific funding source
           buttonInstanceRef.current = window.paypal.Buttons(buttonConfig);
-          await buttonInstanceRef.current.render(paypalButtonRef.current);
-          console.log('PayPal button rendered successfully');
+          
+          // Check if the button can be rendered
+          if (buttonInstanceRef.current.isEligible()) {
+            await buttonInstanceRef.current.render(paypalButtonRef.current);
+            console.log('PayPal button rendered successfully');
+          } else {
+            console.error('PayPal button is not eligible for rendering');
+            toast.error('PayPal payment method is not available');
+          }
         }
       } catch (error) {
         console.error('Error rendering PayPal button:', error);
@@ -128,7 +138,6 @@ export const PayPalButton = ({
   }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
   const handleOpenCookieSettings = () => {
-    // Open Chrome cookie settings
     window.open('chrome://settings/cookies');
   };
 
@@ -144,4 +153,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-

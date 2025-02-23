@@ -30,8 +30,7 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
 
           const script = document.createElement('script');
           script.id = 'paypal-sdk';
-          // Add all required parameters and attributes for subscriptions
-          script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription&components=buttons`;
+          script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`;
           script.async = true;
 
           const handleLoad = () => {
