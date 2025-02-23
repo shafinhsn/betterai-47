@@ -94,9 +94,14 @@ export const PayPalButton = ({
         }
       };
 
-      const paypalButton = window.paypal.Buttons(buttonConfig);
-      paypalButton.render(paypalButtonRef.current);
-      console.log('PayPal button rendered successfully');
+      const paypalButton = window.paypal?.Buttons(buttonConfig);
+      
+      if (paypalButton) {
+        paypalButton.render(paypalButtonRef.current);
+        console.log('PayPal button rendered successfully');
+      } else {
+        throw new Error('Failed to create PayPal button');
+      }
     } catch (error) {
       console.error('Error rendering PayPal button:', error);
       if (error instanceof Error) {
@@ -137,4 +142,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-
