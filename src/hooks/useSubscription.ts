@@ -7,7 +7,10 @@ export const useSubscription = () => {
     queryKey: ['active-subscription'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) {
+        console.log('No user found');
+        return null;
+      }
       
       console.log('Fetching subscription for user:', user.id);
       
@@ -25,6 +28,8 @@ export const useSubscription = () => {
       
       console.log('Fetched subscription:', data);
       return data;
-    }
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds while the component is mounted
+    staleTime: 0 // Consider the data stale immediately
   });
 };

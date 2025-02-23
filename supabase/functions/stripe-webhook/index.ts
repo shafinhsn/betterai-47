@@ -2,22 +2,32 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { stripeWebhook, handleSubscriptionChange } from "../_shared/stripe-webhook.ts";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
     const signature = req.headers.get("stripe-signature");
     
     if (!signature) {
-      return new Response("No signature", { status: 400 });
+      throw new Error("No signature found");
     }
 
-    const body = await req.text();
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     
     if (!webhookSecret) {
       throw new Error('STRIPE_WEBHOOK_SECRET is not set');
     }
 
-    const event = stripeWebhook.webhooks.constructEvent(
+    const body = await req.text();
+    const event = await stripeWebhook.webhooks.constructEventAsync(
       body,
       signature,
       webhookSecret
@@ -39,11 +49,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
-      headers: { 
-        "Content-Type": "application/json",
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
   } catch (err) {
@@ -52,11 +58,7 @@ serve(async (req) => {
       JSON.stringify({ error: err.message }),
       { 
         status: 400,
-        headers: { 
-          "Content-Type": "application/json",
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        }
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }
