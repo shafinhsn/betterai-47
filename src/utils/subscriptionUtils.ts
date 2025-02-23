@@ -52,7 +52,7 @@ export const handleSubscribe = async (productId: string, planName: string) => {
       userId: user.id 
     });
 
-    const { data: { url }, error } = await supabase.functions.invoke('create-paypal-checkout', {
+    const { data: { subscription_id }, error } = await supabase.functions.invoke('create-paypal-checkout', {
       body: {
         planId: product.payment_processor_id,
         email: user.email,
@@ -65,13 +65,13 @@ export const handleSubscribe = async (productId: string, planName: string) => {
       throw error;
     }
 
-    if (!url) {
-      console.error('No checkout URL returned');
-      throw new Error('No checkout URL returned');
+    if (!subscription_id) {
+      console.error('No subscription ID returned');
+      throw new Error('No subscription ID returned');
     }
 
-    console.log('Redirecting to checkout URL:', url);
-    return url;
+    console.log('Created subscription with ID:', subscription_id);
+    return subscription_id;
   } catch (error: any) {
     console.error('Subscription error:', error);
     toast.error('Failed to start checkout: ' + (error.message || 'Unknown error occurred'));
@@ -112,4 +112,3 @@ export const handleManageSubscription = async () => {
     return null;
   }
 };
-
