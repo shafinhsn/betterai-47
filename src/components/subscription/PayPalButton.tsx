@@ -28,9 +28,10 @@ export const PayPalButton = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
 
-  const clientId = process.env.NODE_ENV === 'production' 
-    ? 'PRODUCTION_CLIENT_ID' // Replace with production client ID
-    : 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe'; // Sandbox client ID
+  // Use live client ID in production, sandbox in development
+  const clientId = process.env.NODE_ENV === 'production'
+    ? 'PRODUCTION_CLIENT_ID' // This will be updated when going to production
+    : 'AcMPwQd6TE8DnV2pOgoM-4Fqx8VopnQKtVjIJ2ce0V-YmeEmpuZruuFCOgFEvQB_HB4GcXd89c9SHndi'; // Updated sandbox client ID
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId,
