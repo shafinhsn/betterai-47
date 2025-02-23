@@ -1,7 +1,11 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
-import { corsHeaders } from '../_shared/cors.ts'
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 const PAYPAL_API_URL = Deno.env.get('PAYPAL_MODE') === 'sandbox' 
   ? 'https://api-m.sandbox.paypal.com' 
@@ -11,6 +15,10 @@ async function getPayPalAccessToken() {
   const clientId = Deno.env.get('PAYPAL_CLIENT_ID');
   const clientSecret = Deno.env.get('PAYPAL_SECRET_KEY');
   
+  if (!clientId || !clientSecret) {
+    throw new Error('PayPal credentials not configured');
+  }
+
   const response = await fetch(`${PAYPAL_API_URL}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
@@ -31,43 +39,53 @@ async function getPayPalAccessToken() {
 }
 
 async function createSubscription(accessToken: string, planId: string, userId: string) {
+  const webhookId = '1C641354TA816383R';
   const response = await fetch(`${PAYPAL_API_URL}/v1/billing/subscriptions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
+      'PayPal-Request-Id': crypto.randomUUID(), // Prevent duplicate subscriptions
     },
     body: JSON.stringify({
       plan_id: planId,
       application_context: {
+        brand_name: 'Student Writing Assistant',
+        shipping_preference: 'NO_SHIPPING',
+        user_action: 'SUBSCRIBE_NOW',
         return_url: `${Deno.env.get('PUBLIC_SITE_URL')}/subscription?success=true`,
         cancel_url: `${Deno.env.get('PUBLIC_SITE_URL')}/subscription?success=false`,
-        user_action: 'SUBSCRIBE_NOW',
-        shipping_preference: 'NO_SHIPPING',
       },
-      custom_id: userId, // Store the user ID for webhook processing
+      custom_id: userId,
     }),
   });
 
   const data = await response.json();
   if (!response.ok) {
-    console.error('PayPal subscription error:', data);
+    console.error('PayPal subscription creation error:', data);
     throw new Error('Failed to create PayPal subscription');
   }
 
+  console.log('PayPal subscription created:', data);
   return data;
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { planId, email, userId } = await req.json();
+    const { planId, userId } = await req.json();
+    
+    if (!planId || !userId) {
+      throw new Error('Missing required parameters');
+    }
 
-    console.log('Creating PayPal checkout with:', { planId, email, userId });
+    console.log('Creating PayPal subscription:', { planId, userId });
 
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -82,8 +100,8 @@ serve(async (req) => {
       .maybeSingle();
 
     if (productError || !product) {
-      console.error('Product lookup error:', productError);
-      throw new Error('Product not found or inactive');
+      console.error('Product verification error:', productError);
+      throw new Error('Invalid or inactive product');
     }
 
     // Get PayPal access token
@@ -92,17 +110,29 @@ serve(async (req) => {
     // Create PayPal subscription
     const subscription = await createSubscription(accessToken, planId, userId);
 
-    console.log('PayPal subscription created:', subscription);
+    console.log('Subscription created successfully');
 
+    // Return the approval URL
+    const approvalUrl = subscription.links.find((link: any) => link.rel === 'approve').href;
     return new Response(
-      JSON.stringify({ url: subscription.links.find((link: any) => link.rel === 'approve').href }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      JSON.stringify({ 
+        subscription_id: subscription.id,
+        url: approvalUrl 
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
     );
+
   } catch (error) {
     console.error('Checkout error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
     );
   }
 });
