@@ -72,7 +72,7 @@ export const PayPalButton = ({
           },
           onApprove: (data: unknown) => {
             console.log('Subscription approved:', data);
-            toast.success('Subscription created successfully!');
+            toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
           },
           onError: (err: Error) => {
@@ -122,3 +122,4 @@ export const PayPalButton = ({
     </div>
   );
 };
+

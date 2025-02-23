@@ -29,6 +29,10 @@ serve(async (req) => {
       throw new Error('Missing required parameters')
     }
 
+    if (!['Student Plan', 'Professional Plan', 'Free Plan'].includes(planName)) {
+      throw new Error('Invalid plan type')
+    }
+
     console.log('Creating PayPal subscription for:', { planId, userId, planName })
 
     // Initialize Supabase client
@@ -51,7 +55,7 @@ serve(async (req) => {
           user_id: userId,
           plan_type: planName,
           status: 'pending',
-          is_student: true,
+          is_student: planName === 'Student Plan',
           payment_processor: 'paypal'
         }
       ])
