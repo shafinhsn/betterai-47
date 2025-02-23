@@ -36,7 +36,7 @@ export const SubscriptionPage = () => {
     enabled: isManagingSubscription
   });
 
-  const { data: products, isLoading: isLoadingProducts } = useQuery({
+  const { data: products, isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: ['stripe-products'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,7 +44,10 @@ export const SubscriptionPage = () => {
         .select('*')
         .eq('active', true);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
       return data;
     },
     staleTime: 1000 * 60 * 5,
@@ -63,6 +66,8 @@ export const SubscriptionPage = () => {
         return;
       }
 
+      console.log('Creating checkout for:', { planName, productId, email: user.email, userId: user.id });
+
       const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           planType: planName.toLowerCase().includes('student') ? 'student' : 'business',
@@ -72,9 +77,17 @@ export const SubscriptionPage = () => {
         }
       });
 
-      if (error) throw error;
-      if (!url) throw new Error('No checkout URL returned');
+      if (error) {
+        console.error('Checkout error:', error);
+        throw error;
+      }
 
+      if (!url) {
+        console.error('No checkout URL returned');
+        throw new Error('No checkout URL returned');
+      }
+
+      console.log('Redirecting to checkout URL:', url);
       window.location.href = url;
     } catch (error: any) {
       console.error('Subscription error:', error);
@@ -121,6 +134,17 @@ export const SubscriptionPage = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  if (productsError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen flex-col gap-4">
+        <p className="text-red-500">Failed to load subscription plans</p>
+        <Button variant="ghost" onClick={() => navigate('/')}>
+          Return to Editor
+        </Button>
       </div>
     );
   }
