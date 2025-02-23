@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TextEditorPanel } from '@/components/TextEditorPanel';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { downloadUpdatedDocument } from '@/utils/document';
+import { ArrowLeft, Download } from 'lucide-react';
+import { downloadUpdatedDocument, downloadOriginalDocument } from '@/utils/document';
+import { ProcessedDocument } from '@/types/document';
 
 const Preview = () => {
   const location = useLocation();
@@ -32,6 +33,18 @@ const Preview = () => {
     }
   };
 
+  const handleDownloadOriginal = () => {
+    if (content && filename && fileType) {
+      const currentDocument: ProcessedDocument = {
+        content,
+        filename,
+        fileType,
+        filePath: ''
+      };
+      downloadOriginalDocument(currentDocument, content);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#121212] text-white p-4">
       <div className="max-w-6xl mx-auto">
@@ -43,12 +56,22 @@ const Preview = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Editor
           </Button>
-          <Button 
-            onClick={handleUpdate}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            Download Updated Document
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={handleDownloadOriginal}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Original
+            </Button>
+            <Button 
+              onClick={handleUpdate}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Updated
+            </Button>
+          </div>
         </div>
 
         <div className="h-[calc(100vh-8rem)]">

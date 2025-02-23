@@ -1,8 +1,9 @@
+
 import React, { useRef, useEffect, useCallback } from 'react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
-import { Bold, Italic } from 'lucide-react';
+import { Bold, Italic, Undo } from 'lucide-react';
 
 interface TextEditorContentProps {
   content: string;
@@ -129,7 +130,20 @@ export const TextEditorContent = ({
       document.execCommand('insertHTML', false, '\u00a0\u00a0\u00a0\u00a0');
       saveSelection();
     }
-  }, [saveSelection, isEditable]);
+
+    // Allow default browser undo/redo functionality
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        document.execCommand('redo');
+      } else {
+        document.execCommand('undo');
+      }
+      if (editorRef.current) {
+        handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
+      }
+    }
+  }, [saveSelection, isEditable, handleInput]);
 
   const handleFormatting = (command: string) => {
     if (!isEditable) return;
@@ -148,6 +162,12 @@ export const TextEditorContent = ({
   const handleFontFamily = (font: string) => {
     if (!isEditable || !editorRef.current) return;
     document.execCommand('fontName', false, font);
+    handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
+  };
+
+  const handleUndo = () => {
+    if (!isEditable || !editorRef.current) return;
+    document.execCommand('undo');
     handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
   };
 
@@ -204,6 +224,15 @@ export const TextEditorContent = ({
             className="hover:bg-emerald-900/20"
           >
             <Italic className="h-4 w-4 text-emerald-500" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleUndo}
+            className="hover:bg-emerald-900/20"
+          >
+            <Undo className="h-4 w-4 text-emerald-500" />
           </Button>
         </div>
       )}
