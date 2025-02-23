@@ -33,28 +33,30 @@ const Preview = () => {
   return (
     <div className="min-h-screen bg-[#121212] text-white p-4">
       <div className="max-w-6xl mx-auto">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/')}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Editor
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Editor
+          </Button>
+          <Button 
+            onClick={handleUpdate}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            Download Updated Document
+          </Button>
+        </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Preview & Edit</h1>
-          </div>
-
-          <div className="h-[calc(100vh-8rem)]">
-            <TextEditorPanel
-              content={content}
-              updatedContent={updatedContent}
-              previewKey={0}
-              onManualUpdate={handleUpdate}
-            />
-          </div>
+        <div className="h-[calc(100vh-8rem)]">
+          <TextEditorPanel
+            content={content}
+            updatedContent={updatedContent}
+            previewKey={0}
+            onManualUpdate={handleUpdate}
+            isEditable={true}
+          />
         </div>
       </div>
     </div>

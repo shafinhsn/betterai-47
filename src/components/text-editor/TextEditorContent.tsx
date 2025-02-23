@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useCallback } from 'react';
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -6,11 +5,13 @@ interface TextEditorContentProps {
   content: string;
   onContentChange: (content: string) => void;
   lastCaretPosition: number | null;
+  isEditable?: boolean;
 }
 
 export const TextEditorContent = ({
   content,
   onContentChange,
+  isEditable = true
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -103,32 +104,36 @@ export const TextEditorContent = ({
   }, []);
 
   const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
-    if (isComposingRef.current) return;
+    if (!isEditable || isComposingRef.current) return;
     
     saveSelection();
     const newContent = e.currentTarget.innerHTML;
     onContentChange(newContent);
     requestAnimationFrame(restoreSelection);
-  }, [onContentChange, saveSelection, restoreSelection]);
+  }, [onContentChange, saveSelection, restoreSelection, isEditable]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isEditable) return;
+    
     if (e.key === 'Tab') {
       e.preventDefault();
       document.execCommand('insertHTML', false, '\u00a0\u00a0\u00a0\u00a0');
       saveSelection();
     }
-  }, [saveSelection]);
+  }, [saveSelection, isEditable]);
 
   const handleCompositionStart = useCallback(() => {
+    if (!isEditable) return;
     isComposingRef.current = true;
-  }, []);
+  }, [isEditable]);
 
   const handleCompositionEnd = useCallback(() => {
+    if (!isEditable) return;
     isComposingRef.current = false;
     if (editorRef.current) {
       handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
     }
-  }, [handleInput]);
+  }, [handleInput, isEditable]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -154,7 +159,7 @@ export const TextEditorContent = ({
       <div 
         ref={editorRef}
         className="p-6 min-h-[200px] w-full focus:outline-none"
-        contentEditable
+        contentEditable={isEditable}
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
