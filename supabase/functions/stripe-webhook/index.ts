@@ -37,9 +37,9 @@ serve(async (req) => {
     try {
       const timestampStr = signature.split(',')[0].split('=')[1];
       const timestamp = parseInt(timestampStr);
-      const now = Math.floor(Date.now() / 1000);
+      const currentTime = Math.floor(Date.now() / 1000);
 
-      if (now - timestamp > 300) {
+      if (currentTime - timestamp > 300) {
         throw new Error('Webhook too old');
       }
 
@@ -57,82 +57,104 @@ serve(async (req) => {
       const stripeCustomerId = subscription.customer;
       console.log('Looking up customer:', stripeCustomerId);
 
-      // Get customer from Stripe first
-      const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId);
-      if (!stripeCustomer.email) {
-        throw new Error('No email found for Stripe customer');
-      }
+      try {
+        // First try to find existing customer
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id, email')
+          .eq('stripe_customer_id', stripeCustomerId)
+          .maybeSingle();
 
-      // Get user by email from auth.users
-      const { data: { users }, error: usersError } = await supabase.auth.admin
-        .listUsers({
-          filters: {
-            email: stripeCustomer.email
+        let userId;
+        let customerEmail;
+
+        if (existingCustomer) {
+          console.log('Found existing customer:', existingCustomer);
+          userId = existingCustomer.id;
+          customerEmail = existingCustomer.email;
+        } else {
+          // If no customer found, get from Stripe and create new record
+          console.log('No existing customer found, fetching from Stripe');
+          const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId);
+          
+          if (!stripeCustomer || !stripeCustomer.email) {
+            throw new Error('Invalid customer data from Stripe');
           }
-        });
 
-      if (usersError || !users || users.length === 0) {
-        throw new Error(`No user found for email: ${stripeCustomer.email}`);
-      }
+          customerEmail = stripeCustomer.email;
 
-      const userId = users[0].id;
+          // Get user from auth.users
+          const { data: { users }, error: usersError } = await supabase.auth.admin
+            .listUsers({
+              filters: {
+                email: customerEmail
+              }
+            });
 
-      // Upsert the customer record to handle potential duplicates
-      console.log('Upserting customer record for user:', userId);
-      const { data: customerData, error: customerError } = await supabase
-        .from('customers')
-        .upsert({
-          id: userId,
-          email: stripeCustomer.email,
-          stripe_customer_id: stripeCustomerId,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'id'
-        })
-        .select()
-        .single();
+          if (usersError || !users || users.length === 0) {
+            throw new Error(`No user found for email: ${customerEmail}`);
+          }
 
-      if (customerError) {
-        console.error('Error upserting customer:', customerError);
-        throw customerError;
-      }
+          userId = users[0].id;
 
-      console.log('Customer record upserted successfully:', customerData);
+          // Create new customer record
+          const { error: createCustomerError } = await supabase
+            .from('customers')
+            .insert({
+              id: userId,
+              email: customerEmail,
+              stripe_customer_id: stripeCustomerId,
+              created_at: new Date().toISOString()
+            });
 
-      // Get price details
-      const priceId = subscription.items.data[0].price.id;
-      console.log('Price ID:', priceId);
+          if (createCustomerError) {
+            throw createCustomerError;
+          }
 
-      const subscriptionData = {
-        user_id: userId,
-        stripe_subscription_id: subscription.id,
-        stripe_price_id: priceId,
-        status: subscription.status,
-        plan_type: 'student',
-        is_student: true,
-        stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        trial_end_at: subscription.trial_end 
-          ? new Date(subscription.trial_end * 1000).toISOString()
-          : null,
-        started_at: new Date(subscription.start_date * 1000).toISOString(),
-        expires_at: subscription.cancel_at 
-          ? new Date(subscription.cancel_at * 1000).toISOString()
-          : null
-      };
+          console.log('Created new customer record for user:', userId);
+        }
 
-      console.log('Upserting subscription data:', subscriptionData);
+        // Get price details
+        const priceId = subscription.items.data[0].price.id;
+        console.log('Price ID:', priceId);
 
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .upsert(subscriptionData)
-        .select();
-      
-      if (error) {
-        console.error('Error upserting subscription:', error);
+        // Prepare subscription data
+        const subscriptionData = {
+          user_id: userId,
+          stripe_subscription_id: subscription.id,
+          stripe_price_id: priceId,
+          status: subscription.status,
+          plan_type: 'standard', // You might want to determine this based on the price
+          stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          trial_end_at: subscription.trial_end 
+            ? new Date(subscription.trial_end * 1000).toISOString()
+            : null,
+          started_at: new Date(subscription.start_date * 1000).toISOString(),
+          expires_at: subscription.cancel_at 
+            ? new Date(subscription.cancel_at * 1000).toISOString()
+            : null
+        };
+
+        console.log('Upserting subscription data:', subscriptionData);
+
+        // Upsert subscription record
+        const { error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .upsert(subscriptionData, {
+            onConflict: 'user_id',
+            ignoreDuplicates: false
+          });
+
+        if (subscriptionError) {
+          throw subscriptionError;
+        }
+
+        console.log('Successfully processed subscription update');
+
+      } catch (error) {
+        console.error('Error processing subscription:', error);
         throw error;
       }
-
-      console.log('Successfully updated subscription in database:', data);
     }
 
     return new Response(JSON.stringify({ received: true }), {
