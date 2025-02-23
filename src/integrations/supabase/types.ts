@@ -131,6 +131,7 @@ export type Database = {
           name: string
           payment_price_id: string
           payment_processor_id: string
+          paypal_product_id: string | null
           price: number
         }
         Insert: {
@@ -141,6 +142,7 @@ export type Database = {
           name: string
           payment_price_id: string
           payment_processor_id: string
+          paypal_product_id?: string | null
           price?: number
         }
         Update: {
@@ -151,6 +153,7 @@ export type Database = {
           name?: string
           payment_price_id?: string
           payment_processor_id?: string
+          paypal_product_id?: string | null
           price?: number
         }
         Relationships: []

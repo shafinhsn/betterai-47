@@ -101,9 +101,11 @@ export const handleManageSubscription = async () => {
     }
 
     // For PayPal, redirect to their subscription management page
-    return `${Deno.env.get('PAYPAL_MODE') === 'sandbox' ? 
-      'https://www.sandbox.paypal.com' : 
-      'https://www.paypal.com'}/myaccount/autopay`;
+    const paypalDomain = process.env.NODE_ENV === 'production' ? 
+      'https://www.paypal.com' : 
+      'https://www.sandbox.paypal.com';
+      
+    return `${paypalDomain}/myaccount/autopay`;
   } catch (error: any) {
     console.error('Portal session error:', error);
     toast.error('Failed to open subscription portal: ' + (error.message || 'Unknown error occurred'));
