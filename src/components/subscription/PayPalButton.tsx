@@ -5,6 +5,8 @@ import { usePayPalScript } from '@/hooks/usePayPalScript';
 import { PayPalLoading } from './PayPalLoading';
 import { useNavigate } from 'react-router-dom';
 import { CookieAlert } from './CookieAlert';
+import { Button } from '@/components/ui/button';
+import { CreditCard } from 'lucide-react';
 
 interface PayPalButtonProps {
   onSubscribe: (productId: string, planName: string) => Promise<string>;
@@ -23,6 +25,7 @@ export const PayPalButton = ({
   const navigate = useNavigate();
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
@@ -46,13 +49,14 @@ export const PayPalButton = ({
     try {
       const buttonConfig = {
         style: {
-          layout: 'vertical' as const,
-          color: 'blue' as const,
-          shape: 'rect' as const,
-          label: 'subscribe' as const
+          layout: 'horizontal',
+          color: 'blue',
+          shape: 'rect',
+          label: 'paypal'
         },
         createSubscription: async () => {
           try {
+            setIsPayPalProcessing(true);
             console.log('Creating subscription with:', {
               productId: stripeProductId,
               planName: planName
@@ -71,6 +75,8 @@ export const PayPalButton = ({
             console.error('Subscription creation error:', error);
             toast.error('Failed to create subscription: ' + error.message);
             throw error;
+          } finally {
+            setIsPayPalProcessing(false);
           }
         },
         onApprove: (data: any) => {
@@ -116,6 +122,19 @@ export const PayPalButton = ({
     }
   }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
+  const handleCardPayment = async () => {
+    try {
+      setIsPayPalProcessing(true);
+      const subscriptionId = await onSubscribe(stripeProductId, planName);
+      window.location.href = `https://www.paypal.com/subscription/checkout?subscription_id=${subscriptionId}`;
+    } catch (error: any) {
+      console.error('Card payment error:', error);
+      toast.error('Failed to start card payment: ' + error.message);
+    } finally {
+      setIsPayPalProcessing(false);
+    }
+  };
+
   const handleOpenCookieSettings = () => {
     if (navigator.userAgent.includes('Chrome')) {
       window.open('chrome://settings/cookies');
@@ -126,19 +145,40 @@ export const PayPalButton = ({
     }
   };
 
+  if (cookiesBlocked) {
+    return <CookieAlert onOpenSettings={handleOpenCookieSettings} />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="text-red-500 text-sm p-4 border border-red-200 rounded-md bg-red-50">
+        Error: {loadError}. Please try refreshing the page or check your connection.
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full">
-      {cookiesBlocked ? (
-        <CookieAlert onOpenSettings={handleOpenCookieSettings} />
-      ) : loadError ? (
-        <div className="text-red-500 text-sm p-4 border border-red-200 rounded-md bg-red-50">
-          Error: {loadError}. Please try refreshing the page or check your connection.
+    <div className="space-y-4">
+      <div ref={paypalButtonRef} className="min-h-[45px] relative">
+        {(isProcessing || isLoading || isPayPalProcessing) && <PayPalLoading />}
+      </div>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
         </div>
-      ) : (
-        <div ref={paypalButtonRef} className="min-h-[150px] relative">
-          {(isProcessing || isLoading) && <PayPalLoading />}
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">or pay with card</span>
         </div>
-      )}
+      </div>
+      <Button
+        className="w-full"
+        onClick={handleCardPayment}
+        disabled={isProcessing || isPayPalProcessing}
+        variant="outline"
+      >
+        <CreditCard className="w-4 h-4 mr-2" />
+        Pay with Card
+      </Button>
     </div>
   );
 };
