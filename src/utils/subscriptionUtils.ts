@@ -25,18 +25,37 @@ export const handleSubscribe = async (productId: string, planName: string) => {
       return '/auth';
     }
 
-    // First get the product details from our database
+    console.log('Looking up product with name:', planName);
+
+    // First get all products to debug
+    const { data: allProducts, error: allProductsError } = await supabase
+      .from('stripe_products')
+      .select('*');
+    
+    console.log('All available products:', allProducts);
+    
+    if (allProductsError) {
+      console.error('Error fetching all products:', allProductsError);
+    }
+
+    // Get the specific product
     const { data: product, error: productError } = await supabase
       .from('stripe_products')
       .select('*')
       .eq('name', planName)
-      .single();
+      .maybeSingle();
 
-    if (productError || !product) {
+    if (productError) {
       console.error('Product lookup error:', productError);
+      throw new Error('Error looking up product');
+    }
+
+    if (!product) {
+      console.error('Product not found for name:', planName);
       throw new Error('Product not found in database');
     }
 
+    console.log('Found product:', product);
     console.log('Creating checkout for:', { 
       planName, 
       productId: product.stripe_product_id, 
