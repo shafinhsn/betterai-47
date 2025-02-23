@@ -13,14 +13,12 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
 
   const cleanupPayPalScript = () => {
     try {
-      // Clean up existing script if present
       const existingScript = document.getElementById(paypalScriptId);
       if (existingScript) {
         console.log('Removing existing PayPal script');
         existingScript.remove();
       }
 
-      // Clean up any existing PayPal button instances
       if (window.paypal?.Buttons?.instances) {
         console.log('Cleaning up PayPal button instances');
         window.paypal.Buttons.instances.forEach((instance: any) => {
@@ -34,7 +32,6 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
         });
       }
 
-      // Clear the global paypal object
       if (window.paypal) {
         console.log('Clearing global PayPal object');
         delete window.paypal;
@@ -53,35 +50,35 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
         // Clean up any existing PayPal resources
         cleanupPayPalScript();
 
-        return new Promise<void>((resolve, reject) => {
-          console.log('Starting PayPal script load');
+        // Create a new promise to handle script loading
+        await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
           script.id = paypalScriptId;
           script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`;
           script.async = true;
-          script.crossOrigin = "anonymous";
           
-          // Add specific attributes for better error handling
-          script.setAttribute('data-namespace', 'paypal-sdk');
-          script.setAttribute('data-page-type', 'checkout');
+          // Important: Set these attributes before adding the script to the document
+          script.crossOrigin = "anonymous";
+          script.dataset.namespace = "paypal-sdk";
+          script.dataset.pageType = "checkout";
           
           script.onload = () => {
-            console.log('PayPal script loaded successfully');
-            if (window.paypal) {
-              console.log('PayPal object is available');
-              resolve();
-            } else {
-              const err = new Error('PayPal object not available after script load');
-              console.error(err);
-              reject(err);
-            }
+            // Add a small delay to ensure PayPal object is initialized
+            setTimeout(() => {
+              if (window.paypal) {
+                console.log('PayPal object is available');
+                resolve();
+              } else {
+                const err = new Error('PayPal object not available after script load');
+                console.error(err);
+                reject(err);
+              }
+            }, 100);
           };
           
-          script.onerror = (error) => {
-            console.error('PayPal script loading error:', error);
+          script.onerror = (event) => {
             const err = new Error('Failed to load PayPal SDK');
-            setError(err.message);
-            onError?.(err);
+            console.error('PayPal script loading error:', event);
             reject(err);
           };
 
@@ -89,9 +86,9 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
         });
       } catch (error: any) {
         console.error('PayPal script loading error:', error);
-        setError(error.message || 'Failed to load PayPal');
+        const errorMessage = error.message || 'Failed to load PayPal';
+        setError(errorMessage);
         onError?.(error);
-        throw error;
       } finally {
         setIsLoading(false);
       }
