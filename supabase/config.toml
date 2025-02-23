@@ -26,23 +26,18 @@ enabled = true
 [realtime]
 enabled = true
 
-[[functions]]
-name = "chat"
+[functions.chat]
 verify_jwt = true
 
-[[functions]]
-name = "format-citation"
+[functions.format-citation]
 verify_jwt = true
 
-[[functions]]
-name = "process-document"
+[functions.process-document]
 verify_jwt = true
 
-[[functions]]
-name = "create-paypal-checkout"
+[functions.create-paypal-checkout]
 verify_jwt = true
 
-[[functions]]
-name = "paypal-webhook"
+[functions.paypal-webhook]
 verify_jwt = false
 
