@@ -40,10 +40,13 @@ serve(async (req) => {
 
     let event;
     try {
-      event = await stripe.webhooks.constructEvent(
+      // Use constructEventAsync instead of constructEvent
+      event = await stripe.webhooks.constructEventAsync(
         body,
         signature,
-        webhookSecret
+        webhookSecret,
+        undefined,
+        Stripe.createSubtleCryptoProvider()
       );
     } catch (err) {
       console.error('Error verifying webhook signature:', err);
