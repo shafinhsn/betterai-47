@@ -12,36 +12,22 @@ export const FormatControls = ({
   format,
   onFormatChange,
 }: FormatControlsProps) => {
-  const handleFormatClick = (formatType: FormatOption, value?: string) => {
+  const handleFormatClick = (formatType: FormatOption) => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
     const selectedText = range.toString();
 
-    if (selectedText.length > 0) {
-      if (formatType === 'bold' || formatType === 'italic') {
-        document.execCommand(formatType, false);
-      } else {
-        const span = document.createElement('span');
-        if (formatType === 'fontName') {
-          span.style.fontFamily = value!;
-        } else if (formatType === 'fontSize') {
-          span.style.fontSize = value! + 'px';
-        }
-        span.appendChild(document.createTextNode(selectedText));
-        range.deleteContents();
-        range.insertNode(span);
-      }
-    } else {
-      // If no text is selected, apply formatting to the whole editor
+    if (formatType === 'bold' || formatType === 'italic') {
       document.execCommand(formatType, false);
+      
+      // Update format state after applying formatting
+      const newFormat = format.includes(formatType)
+        ? format.filter(f => f !== formatType)
+        : [...format, formatType];
+      onFormatChange(newFormat);
     }
-
-    const newFormat = format.includes(formatType)
-      ? format.filter(f => f !== formatType)
-      : [...format, formatType];
-    onFormatChange(newFormat);
   };
 
   return (

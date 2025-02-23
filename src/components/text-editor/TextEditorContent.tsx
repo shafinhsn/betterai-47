@@ -20,40 +20,52 @@ export const TextEditorContent = ({
   alignment
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const selectionRangeRef = useRef<Range | null>(null);
+  const selectionStateRef = useRef<{
+    start: number;
+    end: number;
+    node: Node | null;
+  }>({
+    start: 0,
+    end: 0,
+    node: null
+  });
 
-  const saveSelection = () => {
+  const saveSelectionState = () => {
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
+    if (!selection || !editorRef.current) return;
 
     const range = selection.getRangeAt(0);
-    if (editorRef.current?.contains(range.commonAncestorContainer)) {
-      selectionRangeRef.current = range.cloneRange();
-    }
+    if (!editorRef.current.contains(range.commonAncestorContainer)) return;
+
+    selectionStateRef.current = {
+      start: range.startOffset,
+      end: range.endOffset,
+      node: range.startContainer
+    };
   };
 
-  const restoreSelection = () => {
-    if (!editorRef.current || !selectionRangeRef.current) return;
+  const restoreSelectionState = () => {
+    if (!editorRef.current || !selectionStateRef.current.node) return;
 
     const selection = window.getSelection();
     if (!selection) return;
 
     try {
-      selection.removeAllRanges();
-      selection.addRange(selectionRangeRef.current);
-    } catch (e) {
       const range = document.createRange();
-      range.selectNodeContents(editorRef.current);
-      range.collapse(false);
+      range.setStart(selectionStateRef.current.node, selectionStateRef.current.start);
+      range.setEnd(selectionStateRef.current.node, selectionStateRef.current.end);
+      
       selection.removeAllRanges();
       selection.addRange(range);
+    } catch (e) {
+      console.warn('Failed to restore selection:', e);
     }
   };
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     const content = e.currentTarget.innerHTML;
+    saveSelectionState();
     onContentChange(content);
-    saveSelection();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -69,19 +81,14 @@ export const TextEditorContent = ({
       range.deleteContents();
       range.insertNode(tabNode);
       
+      // Update selection after inserting tab
       range.setStartAfter(tabNode);
       range.setEndAfter(tabNode);
       
       selection.removeAllRanges();
       selection.addRange(range);
       
-      saveSelection();
-    }
-
-    if (e.key === 'Backspace' || e.key === 'Enter') {
-      requestAnimationFrame(() => {
-        saveSelection();
-      });
+      saveSelectionState();
     }
   };
 
@@ -90,7 +97,11 @@ export const TextEditorContent = ({
       editorRef.current.style.fontFamily = font;
       editorRef.current.style.fontSize = `${size}px`;
       editorRef.current.style.textAlign = alignment;
-      restoreSelection();
+      
+      // Restore selection state after style changes
+      requestAnimationFrame(() => {
+        restoreSelectionState();
+      });
     }
   }, [font, size, alignment]);
 
@@ -103,8 +114,9 @@ export const TextEditorContent = ({
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        onSelect={saveSelection}
-        onBlur={saveSelection}
+        onSelect={saveSelectionState}
+        onBlur={saveSelectionState}
+        onFocus={restoreSelectionState}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',
