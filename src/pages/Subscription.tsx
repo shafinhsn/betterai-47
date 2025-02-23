@@ -24,13 +24,21 @@ export const SubscriptionPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
       
-      const { data } = await supabase
+      console.log('Fetching subscription for user:', user.id);
+      
+      const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .maybeSingle();
       
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        throw error;
+      }
+      
+      console.log('Fetched subscription:', data);
       return data;
     }
   });
@@ -48,7 +56,8 @@ export const SubscriptionPage = () => {
       const { data, error } = await supabase
         .from('stripe_products')
         .select('*')
-        .eq('active', true);
+        .eq('active', true)
+        .ilike('name', '%student%'); // Only fetch student plans
       
       if (error) {
         console.error('Error fetching products:', error);
@@ -76,7 +85,7 @@ export const SubscriptionPage = () => {
 
       const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          planType: planName.toLowerCase().includes('student') ? 'student' : 'business',
+          planType: 'student',
           productId: productId,
           email: user.email,
           userId: user.id
@@ -120,20 +129,17 @@ export const SubscriptionPage = () => {
   };
 
   const getFeatures = (planType: string) => {
-    if (planType.toLowerCase().includes('student')) {
-      return [
-        'Unlimited messages',
-        `${STUDENT_TRIAL_DAYS}-day free trial`,
-        'Advanced document editing',
-        'Citation generation',
-        'Academic formatting (APA, MLA)',
-        'Essay structure improvements',
-        'Smart formatting',
-        'Email support',
-        '150 messages per day'
-      ];
-    }
-    return [];
+    return [
+      'Unlimited messages',
+      `${STUDENT_TRIAL_DAYS}-day free trial`,
+      'Advanced document editing',
+      'Citation generation',
+      'Academic formatting (APA, MLA)',
+      'Essay structure improvements',
+      'Smart formatting',
+      'Email support',
+      '150 messages per day'
+    ];
   };
 
   if (isLoadingProducts || isLoadingSubscription) {
