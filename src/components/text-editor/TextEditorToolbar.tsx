@@ -2,20 +2,22 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
-import { Bold, Italic, Undo } from 'lucide-react';
+import { Bold, Italic, Undo, Redo } from 'lucide-react';
 
 interface TextEditorToolbarProps {
   onFormatting: (command: string) => void;
   onFontSize: (size: string) => void;
   onFontFamily: (font: string) => void;
   onUndo: () => void;
+  onRedo: () => void;
 }
 
 export const TextEditorToolbar = ({
   onFormatting,
   onFontSize,
   onFontFamily,
-  onUndo
+  onUndo,
+  onRedo
 }: TextEditorToolbarProps) => {
   return (
     <div className="flex items-center gap-2 p-2 bg-[#1a1a1a] rounded-t-lg">
@@ -68,6 +70,15 @@ export const TextEditorToolbar = ({
         className="hover:bg-emerald-900/20"
       >
         <Undo className="h-4 w-4 text-emerald-500" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onRedo}
+        className="hover:bg-emerald-900/20"
+      >
+        <Redo className="h-4 w-4 text-emerald-500" />
       </Button>
     </div>
   );

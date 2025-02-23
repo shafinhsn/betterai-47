@@ -55,19 +55,7 @@ export const TextEditorContent = ({
       document.execCommand('insertHTML', false, '\u00a0\u00a0\u00a0\u00a0');
       handleSaveSelection();
     }
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-      e.preventDefault();
-      if (e.shiftKey) {
-        document.execCommand('redo');
-      } else {
-        document.execCommand('undo');
-      }
-      if (editorRef.current) {
-        handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
-      }
-    }
-  }, [handleSaveSelection, isEditable, handleInput]);
+  }, [handleSaveSelection, isEditable]);
 
   const handleFormatting = (command: string) => {
     if (!isEditable) return;
@@ -95,6 +83,12 @@ export const TextEditorContent = ({
     handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
   };
 
+  const handleRedo = () => {
+    if (!isEditable || !editorRef.current) return;
+    document.execCommand('redo');
+    handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
+  };
+
   const handleScroll = useCallback(() => {
     if (scrollAreaRef.current) {
       lastSelectionRef.current = {
@@ -112,6 +106,7 @@ export const TextEditorContent = ({
           onFontSize={handleFontSize}
           onFontFamily={handleFontFamily}
           onUndo={handleUndo}
+          onRedo={handleRedo}
         />
       )}
 

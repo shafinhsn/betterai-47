@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +19,6 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Load document from local storage on mount
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
@@ -32,7 +30,6 @@ const Index = () => {
     }
   }, []);
 
-  // Save document to local storage whenever it changes
   useEffect(() => {
     if (currentDocument) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -129,18 +126,6 @@ const Index = () => {
     setUpdatedContent(newContent);
     setPreviewKey(prev => prev + 1);
     
-    // Navigate to preview page with content
-    if (currentDocument) {
-      navigate('/preview', {
-        state: {
-          content,
-          updatedContent: newContent,
-          filename: currentDocument.filename,
-          fileType: currentDocument.fileType
-        }
-      });
-    }
-
     toast({
       title: "Document updated",
       description: "The document has been modified based on your request.",
