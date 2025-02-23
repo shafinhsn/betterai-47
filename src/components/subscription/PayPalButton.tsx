@@ -13,13 +13,6 @@ interface PayPalButtonProps {
   isProcessing: boolean;
 }
 
-interface PayPalButtonStyle {
-  layout: 'vertical';
-  color: 'blue';
-  shape: 'rect';
-  label: 'subscribe';
-}
-
 export const PayPalButton = ({
   onSubscribe,
   stripeProductId,
@@ -28,7 +21,6 @@ export const PayPalButton = ({
 }: PayPalButtonProps) => {
   const paypalButtonRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const buttonInstanceRef = useRef<any>(null);
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -47,123 +39,83 @@ export const PayPalButton = ({
   });
 
   useEffect(() => {
-    let isMounted = true;
-    let retryCount = 0;
-    const MAX_RETRIES = 3;
-
-    const renderButton = async () => {
-      if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded || !isMounted) {
-        return;
-      }
-
-      try {
-        if (buttonInstanceRef.current?.close) {
-          buttonInstanceRef.current.close();
-        }
-
-        const buttonConfig = {
-          fundingSource: window.paypal.FUNDING.PAYPAL,
-          style: {
-            layout: 'vertical',
-            color: 'blue',
-            shape: 'rect',
-            label: 'subscribe'
-          } as PayPalButtonStyle,
-          createSubscription: async () => {
-            try {
-              console.log('Creating subscription with:', {
-                productId: stripeProductId,
-                planName: planName
-              });
-              
-              setLoadError(null);
-              const subscriptionId = await onSubscribe(stripeProductId, planName);
-              
-              if (!subscriptionId) {
-                throw new Error('Failed to create subscription');
-              }
-              
-              console.log('Created subscription:', subscriptionId);
-              return subscriptionId;
-            } catch (error: any) {
-              console.error('Subscription creation error:', error);
-              const errorMessage = error.message || 'Unknown error';
-              setLoadError('Failed to create subscription: ' + errorMessage);
-              toast.error('Failed to create subscription: ' + errorMessage);
-              throw error;
-            }
-          },
-          onApprove: (data: any) => {
-            console.log('Subscription approved:', data);
-            toast.success('Your subscription has been created successfully!');
-            navigate('/manage-subscription');
-          },
-          onError: (err: Error) => {
-            console.error('PayPal error:', err);
-            if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
-              console.log('Cookies are blocked during button interaction - showing alert');
-              setCookiesBlocked(true);
-              return;
-            }
-
-            if (retryCount < MAX_RETRIES) {
-              retryCount++;
-              console.log(`Retrying PayPal button render (attempt ${retryCount})`);
-              setTimeout(renderButton, 1000 * retryCount);
-              return;
-            }
-
-            setLoadError(err.message || 'PayPal encountered an error');
-            toast.error('PayPal encountered an error: ' + err.message);
-          },
-          onCancel: () => {
-            console.log('Subscription was cancelled by user');
-            toast.error('Subscription was cancelled');
-          }
-        };
-
-        if (isMounted) {
-          buttonInstanceRef.current = window.paypal.Buttons(buttonConfig);
-          
-          if (buttonInstanceRef.current.isEligible()) {
-            await buttonInstanceRef.current.render(paypalButtonRef.current);
-            console.log('PayPal button rendered successfully');
-            retryCount = 0; // Reset retry count on successful render
-          } else {
-            console.error('PayPal button is not eligible for rendering');
-            setLoadError('PayPal payment method is not available');
-            toast.error('PayPal payment method is not available');
-          }
-        }
-      } catch (error) {
-        console.error('Error rendering PayPal button:', error);
-        if (error instanceof Error) {
-          if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
-            console.log('Cookies are blocked during render - showing alert');
-            setCookiesBlocked(true);
-          } else if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            console.log(`Retrying PayPal button render (attempt ${retryCount})`);
-            setTimeout(renderButton, 1000 * retryCount);
-          } else {
-            setLoadError(error.message);
-            toast.error('Failed to render PayPal button: ' + error.message);
-          }
-        }
-      }
-    };
-
-    if (scriptLoaded && !isLoading) {
-      console.log('Attempting to render PayPal button');
-      renderButton();
+    if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded) {
+      return;
     }
 
-    return () => {
-      isMounted = false;
-      if (buttonInstanceRef.current?.close) {
-        buttonInstanceRef.current.close();
+    try {
+      const buttonConfig = {
+        style: {
+          layout: 'vertical',
+          color: 'blue',
+          shape: 'rect',
+          label: 'subscribe'
+        },
+        createSubscription: async () => {
+          try {
+            console.log('Creating subscription with:', {
+              productId: stripeProductId,
+              planName: planName
+            });
+            
+            setLoadError(null);
+            const subscriptionId = await onSubscribe(stripeProductId, planName);
+            
+            if (!subscriptionId) {
+              throw new Error('Failed to create subscription');
+            }
+            
+            console.log('Created subscription:', subscriptionId);
+            return subscriptionId;
+          } catch (error: any) {
+            console.error('Subscription creation error:', error);
+            toast.error('Failed to create subscription: ' + error.message);
+            throw error;
+          }
+        },
+        onApprove: (data: any) => {
+          console.log('Subscription approved:', data);
+          toast.success('Your subscription has been created successfully!');
+          navigate('/manage-subscription');
+        },
+        onError: (err: Error) => {
+          console.error('PayPal error:', err);
+          if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
+            console.log('Cookies are blocked during button interaction - showing alert');
+            setCookiesBlocked(true);
+            return;
+          }
+          setLoadError(err.message || 'PayPal encountered an error');
+          toast.error('PayPal encountered an error: ' + err.message);
+        },
+        onCancel: () => {
+          console.log('Subscription was cancelled by user');
+          toast.error('Subscription was cancelled');
+        }
+      };
+
+      const paypalButton = window.paypal.Buttons(buttonConfig);
+      
+      if (paypalButton.isEligible()) {
+        paypalButton.render(paypalButtonRef.current);
+        console.log('PayPal button rendered successfully');
+      } else {
+        console.error('PayPal button is not eligible for rendering');
+        setLoadError('PayPal payment method is not available');
+        toast.error('PayPal payment method is not available');
       }
-    };
+    } catch (error) {
+      console.error('Error rendering PayPal button:', error);
+      if (error instanceof Error) {
+        if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
+          console.log('Cookies are blocked during render - showing alert');
+          setCookiesBlocked(true);
+        } else {
+          setLoadError(error.message);
+          toast.error('Failed to render PayPal button: ' + error.message);
+        }
+      }
+    }
   }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
   const handleOpenCookieSettings = () => {
