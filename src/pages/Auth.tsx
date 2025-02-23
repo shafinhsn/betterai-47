@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogIn, UserPlus, PenLine } from "lucide-react";
+import { LogIn, UserPlus, PenLine, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const AuthPage = () => {
@@ -14,6 +14,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent, isSignUp: boolean) => {
@@ -87,15 +88,26 @@ const AuthPage = () => {
             
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-[#1a1a1a] border-[#2a2a2a]"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="bg-[#1a1a1a] border-[#2a2a2a] pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 text-gray-400 hover:text-gray-200"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">

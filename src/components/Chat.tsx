@@ -64,7 +64,18 @@ export const Chat = ({
   }, [subscription, isAdmin]);
 
   const checkUsageLimit = async () => {
-    if (subscription || isAdmin) return true;
+    if (subscription || isAdmin) {
+      // For student subscription, only apply the 150 messages per day limit
+      if (subscription?.plan_type === 'Student Plan' && dailyMessageCount >= DAILY_MESSAGE_LIMIT.creator) {
+        toast({
+          variant: "destructive",
+          title: "Daily limit reached",
+          description: "You've reached your daily message limit of 150 messages. Try again tomorrow.",
+        });
+        return false;
+      }
+      return true;
+    }
     
     if (messageCount >= FREE_TIER_LIMIT) {
       navigate('/subscription');

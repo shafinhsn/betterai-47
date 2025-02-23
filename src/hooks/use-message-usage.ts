@@ -86,6 +86,9 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
 
       if (selectError) throw selectError;
 
+      // If user has a student subscription, only apply the 150 messages per day limit
+      const isStudent = subscription?.plan_type === 'Student Plan' && subscription?.status === 'active';
+
       if (!usage) {
         const { error: insertError } = await supabase
           .from('message_usage')
@@ -129,4 +132,3 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     updateMessageCount
   };
 };
-
