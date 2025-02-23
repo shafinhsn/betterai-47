@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/database.types';
 import type { MessageUsage } from '@/types/chat';
 import { DAILY_MESSAGE_LIMIT, FREE_TIER_LIMIT } from '@/constants/subscription';
+import { useToast } from '@/hooks/use-toast';
 
 export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   updateMessageCount: () => Promise<void>;
@@ -11,6 +12,7 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   const [messageCount, setMessageCount] = useState(0);
   const [dailyMessageCount, setDailyMessageCount] = useState(0);
   const [subscription, setSubscription] = useState<Tables<'subscriptions'> | null>(null);
+  const { toast } = useToast();
 
   const checkMessageUsage = async () => {
     try {
@@ -30,7 +32,6 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
          lastReset.getFullYear() !== now.getFullYear());
 
       if (needsReset) {
-        // Reset daily count if it's a new day
         const { error: resetError } = await supabase
           .from('message_usage')
           .update({ 
@@ -75,10 +76,55 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     }
   };
 
+  const ensureProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      // Check if profile exists
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      // If profile doesn't exist, create it
+      if (!profile) {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: user.id,
+            email: user.email,
+            created_at: new Date().toISOString()
+          }]);
+
+        if (insertError) throw insertError;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error ensuring profile exists:', error);
+      return false;
+    }
+  };
+
   const updateMessageCount = async () => {
     if (isAdmin) return;
     
     try {
+      // Ensure profile exists before updating message count
+      const profileExists = await ensureProfile();
+      if (!profileExists) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Unable to update message count. Please try again.",
+        });
+        return;
+      }
+
       const { data: usage, error: selectError } = await supabase
         .from('message_usage')
         .select('*')
@@ -86,8 +132,8 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
 
       if (selectError) throw selectError;
 
-      // If user has a student subscription, only apply the 150 messages per day limit
-      const isStudent = subscription?.plan_type === 'Student Plan' && subscription?.status === 'active';
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
 
       if (!usage) {
         const { error: insertError } = await supabase
@@ -95,7 +141,8 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
           .insert([{ 
             message_count: 1,
             daily_message_count: 1,
-            user_id: (await supabase.auth.getUser()).data.user?.id
+            user_id: user.id,
+            last_message_at: new Date().toISOString()
           }]);
         if (insertError) throw insertError;
         
@@ -117,6 +164,11 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
       }
     } catch (error) {
       console.error('Error updating message count:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update message count. Please try again.",
+      });
     }
   };
 
