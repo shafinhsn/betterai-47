@@ -31,9 +31,6 @@ export const handleSubscribe = async (productId: string, planName: string): Prom
         planId: productId,
         userId: user.id,
         planName: planName
-      },
-      headers: {
-        'Content-Type': 'application/json'
       }
     });
 
@@ -45,6 +42,11 @@ export const handleSubscribe = async (productId: string, planName: string): Prom
     if (!response.data?.subscription_id) {
       console.error('No subscription ID returned', response.data);
       throw new Error('Failed to create subscription: Invalid response from server');
+    }
+
+    if (response.data.approve_url) {
+      window.location.href = response.data.approve_url;
+      return response.data.subscription_id;
     }
 
     console.log('Created subscription:', response.data.subscription_id);
@@ -92,3 +94,4 @@ export const handleManageSubscription = async () => {
     return null;
   }
 };
+
