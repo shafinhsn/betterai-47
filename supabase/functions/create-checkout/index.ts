@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
     console.log('Found product:', product);
 
-    // Create the checkout session with trial period
+    // Create the checkout session with trial period and redirect to manage subscription page
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
       client_reference_id: userId,
@@ -41,10 +41,10 @@ Deno.serve(async (req) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/subscription?success=true`,
+      success_url: `${req.headers.get('origin')}/manage-subscription?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/subscription?canceled=true`,
       subscription_data: {
-        trial_period_days: 14, // Add 14-day free trial
+        trial_period_days: 14,
         metadata: {
           user_id: userId,
           plan_type: planType
