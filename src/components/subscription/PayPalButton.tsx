@@ -13,6 +13,12 @@ interface PayPalButtonProps {
   isProcessing: boolean;
 }
 
+interface PayPalActions {
+  subscription: {
+    create: (options: any) => Promise<string>;
+  };
+}
+
 interface PayPalButtonConfig {
   style: {
     layout: 'vertical';
@@ -21,7 +27,7 @@ interface PayPalButtonConfig {
     label: 'subscribe';
   };
   fundingSource: undefined;
-  createSubscription: (data: any, actions: any) => Promise<string>;
+  createSubscription: (data: Record<string, unknown>, actions: PayPalActions) => Promise<string>;
   onApprove: (data: any, actions: any) => void;
   onError: (err: Error) => void;
   onCancel?: () => void;
@@ -73,7 +79,7 @@ export const PayPalButton = ({
             label: 'subscribe'
           },
           fundingSource: undefined,
-          createSubscription: async (data: any, actions: any) => {
+          createSubscription: async (data, actions) => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -106,7 +112,7 @@ export const PayPalButton = ({
         };
 
         if (isMounted) {
-          // Create the PayPal button instance with specific funding source
+          // Create the PayPal button instance
           buttonInstanceRef.current = window.paypal.Buttons(buttonConfig);
           
           // Check if the button can be rendered
