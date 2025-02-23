@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,6 +30,54 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
   const [documentType, setDocumentType] = useState<'docx' | 'pdf'>('docx');
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
+
+  // Cleanup function for Supabase documents
+  const cleanupDocuments = async () => {
+    try {
+      const { data: documentsToDelete, error: fetchError } = await supabase
+        .from('documents')
+        .select('file_path')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+      if (fetchError) throw fetchError;
+
+      // Delete files from storage
+      if (documentsToDelete && documentsToDelete.length > 0) {
+        const filePaths = documentsToDelete.map(doc => doc.file_path).filter(Boolean);
+        
+        if (filePaths.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from('documents')
+            .remove(filePaths);
+
+          if (storageError) throw storageError;
+        }
+
+        // Delete document records
+        const { error: deleteError } = await supabase
+          .from('documents')
+          .delete()
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+        if (deleteError) throw deleteError;
+      }
+    } catch (error) {
+      console.error('Error cleaning up documents:', error);
+    }
+  };
+
+  // Add event listener for page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      cleanupDocuments();
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
 
   const processDocx = async (file: File) => {
     try {
