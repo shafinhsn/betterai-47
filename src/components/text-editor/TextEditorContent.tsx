@@ -20,75 +20,82 @@ export const TextEditorContent = ({
   alignment
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const selectionStateRef = useRef<{
-    start: number;
-    end: number;
-    node: Node | null;
-  }>({
-    start: 0,
-    end: 0,
-    node: null
-  });
+  const isComposingRef = useRef(false);
 
-  const saveSelectionState = () => {
+  const saveCaretPosition = () => {
+    if (!editorRef.current) return;
     const selection = window.getSelection();
-    if (!selection || !editorRef.current) return;
+    if (!selection || !selection.rangeCount) return;
 
     const range = selection.getRangeAt(0);
     if (!editorRef.current.contains(range.commonAncestorContainer)) return;
 
-    selectionStateRef.current = {
-      start: range.startOffset,
-      end: range.endOffset,
-      node: range.startContainer
+    return {
+      range: range.cloneRange(),
+      node: range.startContainer,
+      offset: range.startOffset
     };
   };
 
-  const restoreSelectionState = () => {
-    if (!editorRef.current || !selectionStateRef.current.node) return;
+  const restoreCaretPosition = (savedSelection: any) => {
+    if (!savedSelection || !editorRef.current) return;
 
     const selection = window.getSelection();
     if (!selection) return;
 
     try {
-      const range = document.createRange();
-      range.setStart(selectionStateRef.current.node, selectionStateRef.current.start);
-      range.setEnd(selectionStateRef.current.node, selectionStateRef.current.end);
-      
       selection.removeAllRanges();
+      const range = document.createRange();
+      range.setStart(savedSelection.node, savedSelection.offset);
+      range.setEnd(savedSelection.node, savedSelection.offset);
       selection.addRange(range);
     } catch (e) {
-      console.warn('Failed to restore selection:', e);
+      console.warn('Failed to restore caret position:', e);
     }
   };
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    if (isComposingRef.current) return;
+    
+    const savedSelection = saveCaretPosition();
     const content = e.currentTarget.innerHTML;
-    saveSelectionState();
     onContentChange(content);
+
+    requestAnimationFrame(() => {
+      restoreCaretPosition(savedSelection);
+    });
+  };
+
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCompositionEnd = () => {
+    isComposingRef.current = false;
+    if (editorRef.current) {
+      const content = editorRef.current.innerHTML;
+      onContentChange(content);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Tab') {
       e.preventDefault();
-      
+      const savedSelection = saveCaretPosition();
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) return;
 
       const range = selection.getRangeAt(0);
       const tabNode = document.createTextNode('\t');
-      
-      range.deleteContents();
       range.insertNode(tabNode);
-      
-      // Update selection after inserting tab
       range.setStartAfter(tabNode);
       range.setEndAfter(tabNode);
-      
       selection.removeAllRanges();
       selection.addRange(range);
-      
-      saveSelectionState();
+
+      if (editorRef.current) {
+        onContentChange(editorRef.current.innerHTML);
+      }
     }
   };
 
@@ -97,11 +104,6 @@ export const TextEditorContent = ({
       editorRef.current.style.fontFamily = font;
       editorRef.current.style.fontSize = `${size}px`;
       editorRef.current.style.textAlign = alignment;
-      
-      // Restore selection state after style changes
-      requestAnimationFrame(() => {
-        restoreSelectionState();
-      });
     }
   }, [font, size, alignment]);
 
@@ -114,9 +116,8 @@ export const TextEditorContent = ({
         suppressContentEditableWarning
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        onSelect={saveSelectionState}
-        onBlur={saveSelectionState}
-        onFocus={restoreSelectionState}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',
