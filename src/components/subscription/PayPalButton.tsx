@@ -60,10 +60,10 @@ export const PayPalButton = ({
 
     const buttonConfig = {
       style: {
-        layout: 'horizontal',
-        color: 'blue',
-        shape: 'rect' as const, // Type assertion to fix TypeScript error
-        label: 'paypal'
+        layout: 'horizontal' as const,
+        color: 'blue' as const,
+        shape: 'rect' as const,
+        label: 'paypal' as const
       },
       createSubscription: async () => {
         try {
