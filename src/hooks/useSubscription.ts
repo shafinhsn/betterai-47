@@ -14,32 +14,38 @@ export const useSubscription = () => {
       
       console.log('Fetching subscription for user:', user.id);
       
-      // First, let's log all subscriptions for this user to debug
-      const allSubscriptions = await supabase
+      // First, check for any subscriptions in the database
+      const allSubs = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id);
+        
+      console.log('All subscriptions found:', allSubs);
       
-      console.log('All subscriptions for user:', allSubscriptions.data);
-      
-      // Then get the active/trialing subscription
-      const { data, error } = await supabase
+      // Then get only active/trialing ones
+      const activeSubs = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
         .in('status', ['active', 'trialing'])
-        .order('created_at', { ascending: false })
-        .maybeSingle();
+        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching subscription:', error);
-        throw error;
+      console.log('Active/trialing subscriptions:', activeSubs);
+
+      if (activeSubs.error) {
+        console.error('Error fetching active subscriptions:', activeSubs.error);
+        throw activeSubs.error;
       }
       
-      console.log('Fetched active/trialing subscription:', data);
-      return data;
+      // If we have any active subscriptions, return the most recent one
+      if (activeSubs.data && activeSubs.data.length > 0) {
+        console.log('Returning most recent active subscription:', activeSubs.data[0]);
+        return activeSubs.data[0];
+      }
+      
+      console.log('No active subscription found');
+      return null;
     },
     refetchInterval: 5000, // Refetch every 5 seconds while the component is mounted
   });
 };
-
