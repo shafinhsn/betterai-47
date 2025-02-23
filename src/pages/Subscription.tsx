@@ -27,15 +27,15 @@ export const SubscriptionPage = () => {
     return null;
   }
 
-  const onSubscribe = async (productId: string, planName: string) => {
+  const onSubscribe = async (productId: string, planName: string): Promise<string> => {
     setIsLoading(true);
     setProcessingPlanId(planName);
-    const url = await handleSubscribe(productId, planName);
-    if (url) {
-      window.location.href = url;
+    try {
+      return await handleSubscribe(productId, planName);
+    } finally {
+      setIsLoading(false);
+      setProcessingPlanId(null);
     }
-    setIsLoading(false);
-    setProcessingPlanId(null);
   };
 
   const onManageSubscription = async () => {
@@ -84,7 +84,7 @@ export const SubscriptionPage = () => {
               name={product.name}
               price={product.price}
               features={getFeatures()}
-              stripeProductId={product.stripe_product_id}
+              stripeProductId={product.payment_processor_id}
               isProcessing={processingPlanId === product.name}
               onSubscribe={onSubscribe}
             />
@@ -102,3 +102,4 @@ export const SubscriptionPage = () => {
 };
 
 export default SubscriptionPage;
+
