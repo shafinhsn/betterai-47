@@ -52,7 +52,7 @@ export const PayPalButton = ({
 
         // PayPal button configuration
         const button = window.paypal.Buttons({
-          createSubscription: async (_: unknown, actions: PayPalActions) => {
+          createSubscription: async () => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -122,4 +122,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-
