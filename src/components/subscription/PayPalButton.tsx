@@ -12,19 +12,10 @@ interface PayPalButtonProps {
   isProcessing: boolean;
 }
 
-// Define PayPal specific types
-interface PayPalSubscriptionData {
-  subscriptionID: string;
-  orderID?: string;
-  facilitatorAccessToken?: string;
-}
-
 interface PayPalActions {
   subscription: {
-    create: (options: { plan_id: string }) => Promise<string>;
-    get: () => Promise<any>;
-    activate: () => Promise<any>;
-  };
+    create: (data: { plan_id: string }) => Promise<string>;
+  }
 }
 
 export const PayPalButton = ({
@@ -59,8 +50,9 @@ export const PayPalButton = ({
           buttonInstanceRef.current.close();
         }
 
+        // PayPal button configuration
         const button = window.paypal.Buttons({
-          createSubscription: async function(data: any, actions: any) {
+          createSubscription: async (data: unknown, actions: PayPalActions) => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -74,11 +66,11 @@ export const PayPalButton = ({
               return subscriptionId;
             } catch (error: any) {
               console.error('Subscription creation error:', error);
-              toast.error('Failed to create subscription: ' + error.message);
+              toast.error('Failed to create subscription: ' + (error.message || 'Unknown error'));
               throw error;
             }
           },
-          onApprove: function(data: any, actions: any) {
+          onApprove: (data: unknown) => {
             console.log('Subscription approved:', data);
             toast.success('Subscription created successfully!');
             navigate('/manage-subscription');
@@ -86,6 +78,9 @@ export const PayPalButton = ({
           onError: (err: Error) => {
             console.error('PayPal error:', err);
             toast.error('PayPal encountered an error: ' + err.message);
+          },
+          onCancel: () => {
+            toast.error('Subscription was cancelled');
           },
           style: {
             layout: 'vertical',
