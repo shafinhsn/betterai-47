@@ -33,15 +33,12 @@ serve(async (req) => {
       throw new Error('Webhook secret not configured');
     }
 
-    // Parse the event manually instead of using stripe.webhooks.constructEvent
     let event;
     try {
-      // Verify webhook signature manually
       const timestampStr = signature.split(',')[0].split('=')[1];
       const timestamp = parseInt(timestampStr);
       const now = Math.floor(Date.now() / 1000);
 
-      // Check if the webhook is too old (tolerance of 5 minutes)
       if (now - timestamp > 300) {
         throw new Error('Webhook too old');
       }
@@ -53,71 +50,61 @@ serve(async (req) => {
       return new Response(`Webhook error: ${err.message}`, { status: 400 });
     }
 
-    // Handle subscription events
     if (event.type.startsWith('customer.subscription')) {
       const subscription = event.data.object;
       console.log('Processing subscription:', subscription.id);
       
-      // Get customer data
       const stripeCustomerId = subscription.customer;
       console.log('Looking up customer:', stripeCustomerId);
-      
-      // Find user by stripe_customer_id in customers table
-      let { data: customerData, error: customerError } = await supabase
+
+      // Get customer from Stripe first
+      const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId);
+      if (!stripeCustomer.email) {
+        throw new Error('No email found for Stripe customer');
+      }
+
+      // Get user by email from auth.users
+      const { data: { users }, error: usersError } = await supabase.auth.admin
+        .listUsers({
+          filters: {
+            email: stripeCustomer.email
+          }
+        });
+
+      if (usersError || !users || users.length === 0) {
+        throw new Error(`No user found for email: ${stripeCustomer.email}`);
+      }
+
+      const userId = users[0].id;
+
+      // Upsert the customer record to handle potential duplicates
+      console.log('Upserting customer record for user:', userId);
+      const { data: customerData, error: customerError } = await supabase
         .from('customers')
-        .select('id')
-        .eq('stripe_customer_id', stripeCustomerId)
+        .upsert({
+          id: userId,
+          email: stripeCustomer.email,
+          stripe_customer_id: stripeCustomerId,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
+        .select()
         .single();
 
-      if (customerError || !customerData) {
-        console.log('Customer not found, fetching from Stripe');
-        const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId);
-        
-        if (!stripeCustomer.email) {
-          throw new Error('No email found for Stripe customer');
-        }
-
-        // Get user by email from auth.users
-        const { data: { users }, error: usersError } = await supabase.auth.admin
-          .listUsers({
-            filters: {
-              email: stripeCustomer.email
-            }
-          });
-
-        if (usersError || !users || users.length === 0) {
-          throw new Error(`No user found for email: ${stripeCustomer.email}`);
-        }
-
-        // Create customer record
-        const { data: newCustomer, error: createError } = await supabase
-          .from('customers')
-          .insert({
-            id: users[0].id,
-            email: stripeCustomer.email,
-            stripe_customer_id: stripeCustomerId
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          throw createError;
-        }
-
-        console.log('Created new customer record:', newCustomer);
-        customerData = newCustomer;
+      if (customerError) {
+        console.error('Error upserting customer:', customerError);
+        throw customerError;
       }
 
-      if (!customerData) {
-        throw new Error('Failed to find or create customer record');
-      }
+      console.log('Customer record upserted successfully:', customerData);
 
       // Get price details
       const priceId = subscription.items.data[0].price.id;
       console.log('Price ID:', priceId);
 
       const subscriptionData = {
-        user_id: customerData.id,
+        user_id: userId,
         stripe_subscription_id: subscription.id,
         stripe_price_id: priceId,
         status: subscription.status,
