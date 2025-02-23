@@ -47,10 +47,10 @@ export const usePayPalButtonRenderer = ({
 
       const buttonConfig = {
         style: {
-          layout: 'horizontal',
-          color: 'blue',
-          shape: 'rect',
-          label: 'paypal'
+          layout: 'horizontal' as const,
+          color: 'blue' as const,
+          shape: 'rect' as const,
+          label: 'paypal' as const
         },
         createSubscription: async () => {
           try {
