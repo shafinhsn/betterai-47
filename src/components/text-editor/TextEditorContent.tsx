@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useCallback } from 'react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -210,7 +209,7 @@ export const TextEditorContent = ({
       )}
 
       <ScrollArea 
-        className="h-full overflow-y-auto border border-border/20 rounded-lg bg-[#1a1a1a]"
+        className="h-[500px] overflow-y-auto border border-border/20 rounded-lg bg-[#1a1a1a]"
         ref={scrollAreaRef}
         onScroll={handleScroll}
       >
@@ -227,11 +226,11 @@ export const TextEditorContent = ({
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
             lineHeight: '1.5',
-            maxWidth: '100%'
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }}
         />
       </ScrollArea>
     </div>
   );
 };
-
