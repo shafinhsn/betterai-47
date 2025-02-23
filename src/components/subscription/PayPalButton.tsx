@@ -24,10 +24,6 @@ interface CreateSubscriptionActions {
   subscription: {
     create: (data: {
       plan_id: string;
-      custom_id?: string;
-      application_context?: {
-        shipping_preference?: string;
-      };
     }) => Promise<string>;
   };
 }
@@ -56,7 +52,9 @@ export const PayPalButton = ({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
     onError: (error) => {
       console.error('PayPal script error:', error);
-      if (error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+      // Check if the error is related to third-party cookies being blocked
+      if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
+        console.log('Cookies are blocked - showing alert');
         setCookiesBlocked(true);
       } else {
         toast.error('Failed to load PayPal: ' + error.message);
@@ -85,7 +83,7 @@ export const PayPalButton = ({
             shape: 'rect',
             label: 'subscribe'
           } as PayPalButtonStyle,
-          createSubscription: async (_: unknown, actions: CreateSubscriptionActions) => {
+          createSubscription: async () => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -103,14 +101,20 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: async (data: OnApproveData, actions: OnApproveActions) => {
+          onApprove: async (data: OnApproveData) => {
             console.log('Subscription approved:', data);
             toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
           },
           onError: (err: Error) => {
             console.error('PayPal error:', err);
-            toast.error('PayPal encountered an error: ' + err.message);
+            // Check if the error is related to third-party cookies being blocked
+            if (err.message?.includes('blocked') || err.message?.includes('cookie')) {
+              console.log('Cookies are blocked during button interaction - showing alert');
+              setCookiesBlocked(true);
+            } else {
+              toast.error('PayPal encountered an error: ' + err.message);
+            }
           },
           onCancel: () => {
             toast.error('Subscription was cancelled');
@@ -118,10 +122,8 @@ export const PayPalButton = ({
         };
 
         if (isMounted) {
-          // Create the PayPal button instance
           buttonInstanceRef.current = window.paypal.Buttons(buttonConfig);
           
-          // Check if the button can be rendered
           if (buttonInstanceRef.current.isEligible()) {
             await buttonInstanceRef.current.render(paypalButtonRef.current);
             console.log('PayPal button rendered successfully');
@@ -132,7 +134,12 @@ export const PayPalButton = ({
         }
       } catch (error) {
         console.error('Error rendering PayPal button:', error);
-        toast.error('Failed to render PayPal button');
+        if (error instanceof Error && (error.message?.includes('blocked') || error.message?.includes('cookie'))) {
+          console.log('Cookies are blocked during render - showing alert');
+          setCookiesBlocked(true);
+        } else {
+          toast.error('Failed to render PayPal button');
+        }
       }
     };
 
@@ -150,7 +157,13 @@ export const PayPalButton = ({
   }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
   const handleOpenCookieSettings = () => {
-    window.open('chrome://settings/cookies');
+    if (navigator.userAgent.includes('Chrome')) {
+      window.open('chrome://settings/cookies');
+    } else if (navigator.userAgent.includes('Firefox')) {
+      window.open('about:preferences#privacy');
+    } else {
+      window.open('about:settings');
+    }
   };
 
   return (
@@ -165,4 +178,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-
