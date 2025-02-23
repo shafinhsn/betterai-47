@@ -26,6 +26,7 @@ export const PayPalButton = ({
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
+  const [paypalButton, setPaypalButton] = useState<any>(null);
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
@@ -46,6 +47,12 @@ export const PayPalButton = ({
       return;
     }
 
+    // Clean up existing button if present
+    if (paypalButton) {
+      paypalButton.close();
+      setPaypalButton(null);
+    }
+    
     // Clean up any existing content
     if (paypalButtonRef.current) {
       paypalButtonRef.current.innerHTML = '';
@@ -55,7 +62,7 @@ export const PayPalButton = ({
       style: {
         layout: 'horizontal',
         color: 'blue',
-        shape: 'rect',
+        shape: 'rect' as const, // Type assertion to fix TypeScript error
         label: 'paypal'
       },
       createSubscription: async () => {
@@ -103,6 +110,7 @@ export const PayPalButton = ({
       const button = window.paypal?.Buttons(buttonConfig);
       if (button) {
         button.render(paypalButtonRef.current);
+        setPaypalButton(button);
         console.log('PayPal button rendered successfully');
       } else {
         throw new Error('Failed to create PayPal button');
@@ -121,11 +129,15 @@ export const PayPalButton = ({
     }
 
     return () => {
+      // Clean up on unmount
+      if (paypalButton) {
+        paypalButton.close();
+      }
       if (paypalButtonRef.current) {
         paypalButtonRef.current.innerHTML = '';
       }
     };
-  }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
+  }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate, paypalButton]);
 
   const handleCardPayment = async () => {
     try {
@@ -187,3 +199,4 @@ export const PayPalButton = ({
     </div>
   );
 };
+
