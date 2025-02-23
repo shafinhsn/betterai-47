@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { PlanFeatures } from './PlanFeatures';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface SubscriptionCardProps {
   name: string;
@@ -21,6 +21,8 @@ export const SubscriptionCard = ({
   isProcessing,
   onSubscribe
 }: SubscriptionCardProps) => {
+  const scriptRef = useRef<HTMLScriptElement | null>(null);
+
   useEffect(() => {
     if (name.toLowerCase().includes('student')) {
       // Load PayPal SDK
@@ -40,12 +42,16 @@ export const SubscriptionCard = ({
               label: 'subscribe'
             },
             createSubscription: async () => {
-              // Use our existing handleSubscribe function
-              const url = await onSubscribe(stripeProductId, name);
-              if (!url) {
-                throw new Error('Failed to create subscription');
+              try {
+                const subscriptionId = await onSubscribe(stripeProductId, name);
+                if (!subscriptionId) {
+                  throw new Error('Failed to create subscription');
+                }
+                return subscriptionId;
+              } catch (error) {
+                console.error('Subscription creation error:', error);
+                throw error;
               }
-              return url;
             },
             onApprove: (data: { subscriptionID: string }) => {
               console.log('Subscription approved:', data.subscriptionID);
@@ -58,11 +64,17 @@ export const SubscriptionCard = ({
         }
       };
 
+      // Store reference to script element
+      scriptRef.current = script;
       document.body.appendChild(script);
       
       return () => {
-        // Cleanup PayPal script on unmount
-        document.body.removeChild(script);
+        // Safe cleanup of script element
+        if (scriptRef.current && document.body.contains(scriptRef.current)) {
+          document.body.removeChild(scriptRef.current);
+        }
+        // Reset reference
+        scriptRef.current = null;
       };
     }
   }, [name, stripeProductId, onSubscribe]);
