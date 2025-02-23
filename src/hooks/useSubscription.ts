@@ -34,7 +34,7 @@ export const useSubscription = () => {
           .eq('user_id', user.id)
           .in('status', ['active', 'trialing'])
           .order('created_at', { ascending: false })
-          .single(); // Get only the most recent subscription
+          .maybeSingle(); // Use maybeSingle instead of single to handle no rows gracefully
         
         if (activeSubsError) {
           console.error('Error fetching active subscription:', activeSubsError);
@@ -51,7 +51,7 @@ export const useSubscription = () => {
         return null;
       } catch (error) {
         console.error('Error in useSubscription hook:', error);
-        toast.error('Failed to check subscription status');
+        toast.error('Failed to fetch subscription status');
         return null;
       }
     },
