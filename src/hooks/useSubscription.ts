@@ -14,6 +14,15 @@ export const useSubscription = () => {
       
       console.log('Fetching subscription for user:', user.id);
       
+      // First, let's log all subscriptions for this user to debug
+      const allSubscriptions = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      console.log('All subscriptions for user:', allSubscriptions.data);
+      
+      // Then get the active/trialing subscription
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -27,9 +36,10 @@ export const useSubscription = () => {
         throw error;
       }
       
-      console.log('Fetched subscription:', data);
+      console.log('Fetched active/trialing subscription:', data);
       return data;
     },
     refetchInterval: 5000, // Refetch every 5 seconds while the component is mounted
   });
 };
+
