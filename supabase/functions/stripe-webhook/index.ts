@@ -59,59 +59,40 @@ serve(async (req) => {
 
       try {
         // First try to find existing customer
-        const { data: existingCustomer } = await supabase
+        const { data: stripeCustomer } = await stripe.customers.retrieve(stripeCustomerId);
+        
+        if (!stripeCustomer || !stripeCustomer.email) {
+          throw new Error('Invalid customer data from Stripe');
+        }
+
+        // Get user from auth.users
+        const { data: { users }, error: usersError } = await supabase.auth.admin
+          .listUsers({
+            filters: {
+              email: stripeCustomer.email
+            }
+          });
+
+        if (usersError || !users || users.length === 0) {
+          throw new Error(`No user found for email: ${stripeCustomer.email}`);
+        }
+
+        const userId = users[0].id;
+
+        // Upsert customer record
+        const { error: customerError } = await supabase
           .from('customers')
-          .select('id, email')
-          .eq('stripe_customer_id', stripeCustomerId)
-          .maybeSingle();
+          .upsert({
+            id: userId,
+            email: stripeCustomer.email,
+            stripe_customer_id: stripeCustomerId,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'id'
+          });
 
-        let userId;
-        let customerEmail;
-
-        if (existingCustomer) {
-          console.log('Found existing customer:', existingCustomer);
-          userId = existingCustomer.id;
-          customerEmail = existingCustomer.email;
-        } else {
-          // If no customer found, get from Stripe and create new record
-          console.log('No existing customer found, fetching from Stripe');
-          const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId);
-          
-          if (!stripeCustomer || !stripeCustomer.email) {
-            throw new Error('Invalid customer data from Stripe');
-          }
-
-          customerEmail = stripeCustomer.email;
-
-          // Get user from auth.users
-          const { data: { users }, error: usersError } = await supabase.auth.admin
-            .listUsers({
-              filters: {
-                email: customerEmail
-              }
-            });
-
-          if (usersError || !users || users.length === 0) {
-            throw new Error(`No user found for email: ${customerEmail}`);
-          }
-
-          userId = users[0].id;
-
-          // Create new customer record
-          const { error: createCustomerError } = await supabase
-            .from('customers')
-            .insert({
-              id: userId,
-              email: customerEmail,
-              stripe_customer_id: stripeCustomerId,
-              created_at: new Date().toISOString()
-            });
-
-          if (createCustomerError) {
-            throw createCustomerError;
-          }
-
-          console.log('Created new customer record for user:', userId);
+        if (customerError) {
+          throw customerError;
         }
 
         // Get price details
@@ -124,7 +105,7 @@ serve(async (req) => {
           stripe_subscription_id: subscription.id,
           stripe_price_id: priceId,
           status: subscription.status,
-          plan_type: 'standard', // You might want to determine this based on the price
+          plan_type: 'standard',
           stripe_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           trial_end_at: subscription.trial_end 
             ? new Date(subscription.trial_end * 1000).toISOString()
@@ -132,7 +113,8 @@ serve(async (req) => {
           started_at: new Date(subscription.start_date * 1000).toISOString(),
           expires_at: subscription.cancel_at 
             ? new Date(subscription.cancel_at * 1000).toISOString()
-            : null
+            : null,
+          updated_at: new Date().toISOString()
         };
 
         console.log('Upserting subscription data:', subscriptionData);
@@ -141,8 +123,7 @@ serve(async (req) => {
         const { error: subscriptionError } = await supabase
           .from('subscriptions')
           .upsert(subscriptionData, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
+            onConflict: 'user_id'
           });
 
         if (subscriptionError) {
@@ -177,3 +158,4 @@ serve(async (req) => {
     );
   }
 });
+
