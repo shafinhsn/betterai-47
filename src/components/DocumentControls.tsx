@@ -70,7 +70,7 @@ export const DocumentControls = ({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to download document. Please try again.",
+        description: error.message || "Failed to download document. Please try again.",
       });
     }
   };
