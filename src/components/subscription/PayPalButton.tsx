@@ -20,7 +20,7 @@ export const PayPalButton = ({
 }: PayPalButtonProps) => {
   const paypalButtonRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const buttonInstanceRef = useRef<{ close: () => void } | null>(null);
+  const buttonInstanceRef = useRef<any>(null);
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
@@ -39,18 +39,12 @@ export const PayPalButton = ({
       }
 
       try {
-        // Cleanup previous button instance
+        // Clean up previous button instance
         if (buttonInstanceRef.current?.close) {
           buttonInstanceRef.current.close();
         }
 
         const button = window.paypal.Buttons({
-          style: {
-            shape: 'rect',
-            color: 'blue',
-            layout: 'vertical',
-            label: 'subscribe'
-          },
           createSubscription: async () => {
             try {
               const subscriptionId = await onSubscribe(stripeProductId, planName);
@@ -61,34 +55,36 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: (data) => {
-            if (isMounted) {
-              console.log('Subscription approved:', data);
-              toast.success('Subscription created successfully!');
-              navigate('/manage-subscription');
-            }
+          onApprove: (data: any) => {
+            console.log('Subscription approved:', data);
+            toast.success('Subscription created successfully!');
+            navigate('/manage-subscription');
           },
           onError: (err: Error) => {
-            if (isMounted) {
-              console.error('PayPal error:', err);
-              toast.error('PayPal encountered an error: ' + err.message);
-            }
+            console.error('PayPal error:', err);
+            toast.error('PayPal encountered an error: ' + err.message);
+          },
+          style: {
+            layout: 'vertical',
+            color: 'blue',
+            shape: 'rect',
+            label: 'subscribe'
           }
         });
 
-        if (!isMounted) return;
-
-        buttonInstanceRef.current = button;
-        await button.render(paypalButtonRef.current);
-      } catch (error) {
         if (isMounted) {
-          console.error('Error rendering PayPal button:', error);
-          toast.error('Failed to render PayPal button');
+          buttonInstanceRef.current = button;
+          await button.render(paypalButtonRef.current);
+          console.log('PayPal button rendered successfully');
         }
+      } catch (error) {
+        console.error('Error rendering PayPal button:', error);
+        toast.error('Failed to render PayPal button');
       }
     };
 
-    if (scriptLoaded) {
+    if (scriptLoaded && !isLoading) {
+      console.log('Attempting to render PayPal button');
       renderButton();
     }
 
@@ -98,11 +94,11 @@ export const PayPalButton = ({
         buttonInstanceRef.current.close();
       }
     };
-  }, [scriptLoaded, onSubscribe, stripeProductId, planName, navigate]);
+  }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
   return (
-    <div>
-      <div ref={paypalButtonRef} className="w-full min-h-[150px] bg-white rounded-md">
+    <div className="w-full">
+      <div ref={paypalButtonRef} className="min-h-[150px]">
         {(isProcessing || isLoading) && <PayPalLoading />}
       </div>
     </div>
