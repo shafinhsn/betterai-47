@@ -49,11 +49,6 @@ export const TextEditorContent = ({
     const selection = window.getSelection();
     if (!selection || !lastSelectionRef.current || !editorRef.current) return;
 
-    // First restore scroll position if needed
-    if (lastSelectionRef.current.scrollTop !== undefined && scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = lastSelectionRef.current.scrollTop;
-    }
-
     let charCount = 0;
     let foundStart = false;
     let foundEnd = false;
@@ -88,16 +83,23 @@ export const TextEditorContent = ({
     traverse(editorRef.current);
 
     if (startNode && endNode) {
-      const range = document.createRange();
-      range.setStart(startNode, startOffset);
-      range.setEnd(endNode, endOffset);
-      selection.removeAllRanges();
-      selection.addRange(range);
+      try {
+        const range = document.createRange();
+        range.setStart(startNode, startOffset);
+        range.setEnd(endNode, endOffset);
+        selection.removeAllRanges();
+        selection.addRange(range);
 
-      // Ensure the selection is visible
-      const selectedElement = selection.focusNode?.parentElement;
-      if (selectedElement) {
-        selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        // After setting the selection, restore the scroll position
+        if (lastSelectionRef.current.scrollTop !== undefined && scrollAreaRef.current) {
+          requestAnimationFrame(() => {
+            if (scrollAreaRef.current) {
+              scrollAreaRef.current.scrollTop = lastSelectionRef.current!.scrollTop!;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error restoring selection:', error);
       }
     }
   }, []);
@@ -144,7 +146,7 @@ export const TextEditorContent = ({
     if (editorRef.current) {
       const fontSize = parseInt(size) || 16;
       const containerStyle = {
-        fontFamily: font || 'inherit', // Use 'inherit' to preserve uploaded document's font
+        fontFamily: font || 'inherit',
         fontSize: `${fontSize}px`,
         textAlign: alignment as 'left' | 'center' | 'right' | 'justify',
       };
@@ -182,4 +184,3 @@ export const TextEditorContent = ({
     </ScrollArea>
   );
 };
-
