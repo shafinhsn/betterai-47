@@ -1,0 +1,64 @@
+
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { TextEditorPanel } from '@/components/TextEditorPanel';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import { downloadUpdatedDocument } from '@/utils/document';
+
+const Preview = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [content, setContent] = useState('');
+  const [updatedContent, setUpdatedContent] = useState('');
+  const [filename, setFilename] = useState('');
+  const [fileType, setFileType] = useState('');
+
+  useEffect(() => {
+    if (location.state) {
+      const { content, updatedContent, filename, fileType } = location.state;
+      setContent(content);
+      setUpdatedContent(updatedContent);
+      setFilename(filename);
+      setFileType(fileType);
+    }
+  }, [location.state]);
+
+  const handleUpdate = () => {
+    if (updatedContent && filename && fileType) {
+      downloadUpdatedDocument(updatedContent, filename, fileType);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#121212] text-white p-4">
+      <div className="max-w-6xl mx-auto">
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/')}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Editor
+        </Button>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Preview & Edit</h1>
+          </div>
+
+          <div className="h-[calc(100vh-8rem)]">
+            <TextEditorPanel
+              content={content}
+              updatedContent={updatedContent}
+              previewKey={0}
+              onManualUpdate={handleUpdate}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Preview;

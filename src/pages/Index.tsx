@@ -128,6 +128,19 @@ const Index = () => {
     }
     setUpdatedContent(newContent);
     setPreviewKey(prev => prev + 1);
+    
+    // Navigate to preview page with content
+    if (currentDocument) {
+      navigate('/preview', {
+        state: {
+          content,
+          updatedContent: newContent,
+          filename: currentDocument.filename,
+          fileType: currentDocument.fileType
+        }
+      });
+    }
+
     toast({
       title: "Document updated",
       description: "The document has been modified based on your request.",
