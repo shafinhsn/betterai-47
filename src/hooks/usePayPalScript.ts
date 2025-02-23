@@ -15,10 +15,12 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
     try {
       const existingScript = document.getElementById(paypalScriptId);
       if (existingScript) {
+        console.log('Cleaning up existing PayPal script...');
         existingScript.remove();
       }
 
       if (window.paypal) {
+        console.log('Cleaning up window.paypal object...');
         delete window.paypal;
       }
     } catch (err) {
@@ -29,22 +31,28 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
   useEffect(() => {
     const loadScript = async () => {
       try {
+        console.log('Starting PayPal script load...');
         setIsLoading(true);
         setError(null);
         cleanupPayPalScript();
 
         const script = document.createElement('script');
         script.id = paypalScriptId;
-        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=subscription`;
+        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=subscription&components=buttons`;
         script.crossOrigin = "anonymous";
+
+        console.log('Loading PayPal script with URL:', script.src);
 
         // Create a promise that resolves when the script loads successfully
         await new Promise<void>((resolve, reject) => {
           script.onload = () => {
+            console.log('PayPal script loaded, checking for PayPal object...');
             const checkPayPal = () => {
               if (window.paypal) {
+                console.log('PayPal object found and initialized');
                 resolve();
               } else {
+                console.log('PayPal object not found, retrying...');
                 setTimeout(checkPayPal, 100);
               }
             };
@@ -52,6 +60,7 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
           };
 
           script.onerror = (event) => {
+            console.error('PayPal script failed to load:', event);
             reject(new Error('Failed to load PayPal SDK'));
           };
 
