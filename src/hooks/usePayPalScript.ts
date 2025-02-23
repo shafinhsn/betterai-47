@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 
 interface UsePayPalScriptOptions {
@@ -19,12 +20,11 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
 
         const script = document.createElement('script');
         script.id = 'paypal-sdk';
-        // Add all required parameters and set them correctly
         script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`;
         script.async = true;
         script.crossOrigin = "anonymous";
 
-        const handleLoad = () => {
+        script.addEventListener('load', () => {
           if (window.paypal) {
             setScriptLoaded(true);
             setIsLoading(false);
@@ -35,25 +35,17 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
             onError?.(error);
             reject(error);
           }
-        };
+        });
 
-        const handleError = (event: Event | string) => {
+        script.addEventListener('error', (event) => {
           const error = new Error('Failed to load PayPal SDK');
           console.error('PayPal script failed to load:', event);
           onError?.(error);
           setIsLoading(false);
           reject(error);
-        };
-
-        script.addEventListener('load', handleLoad);
-        script.addEventListener('error', handleError);
+        });
 
         document.body.appendChild(script);
-
-        return () => {
-          script.removeEventListener('load', handleLoad);
-          script.removeEventListener('error', handleError);
-        };
       });
     };
 
