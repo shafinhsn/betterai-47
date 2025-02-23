@@ -58,7 +58,7 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: (data: any) => {
+          onApprove: async (data: any, actions: any) => {
             console.log('Subscription approved:', data);
             toast.success('Subscription created successfully!');
             navigate('/manage-subscription');
