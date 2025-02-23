@@ -1,5 +1,5 @@
 
-import { serve } from "https://deno.fresh.dev/std@v1/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { stripeWebhook, handleSubscriptionChange } from "../_shared/stripe-webhook.ts";
 
 serve(async (req) => {
@@ -39,7 +39,11 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
-      headers: { "Content-Type": "application/json" }
+      headers: { 
+        "Content-Type": "application/json",
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      }
     });
 
   } catch (err) {
@@ -48,7 +52,11 @@ serve(async (req) => {
       JSON.stringify({ error: err.message }),
       { 
         status: 400,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        }
       }
     );
   }
