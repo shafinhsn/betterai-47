@@ -34,23 +34,22 @@ export const handleSubscribe = async (productId: string, planName: string): Prom
       }
     });
 
+    console.log('Edge function response:', response);
+
     if (response.error) {
       console.error('Checkout error:', response.error);
       throw new Error(response.error.message || 'Failed to create subscription');
     }
 
-    if (!response.data?.subscription_id) {
-      console.error('No subscription ID returned', response.data);
+    const { data } = response;
+    if (!data?.subscription_id || !data?.approve_url) {
+      console.error('Invalid response data:', data);
       throw new Error('Failed to create subscription: Invalid response from server');
     }
 
-    if (response.data.approve_url) {
-      window.location.href = response.data.approve_url;
-      return response.data.subscription_id;
-    }
-
-    console.log('Created subscription:', response.data.subscription_id);
-    return response.data.subscription_id;
+    // Redirect to PayPal approval page
+    window.location.href = data.approve_url;
+    return data.subscription_id;
   } catch (error: any) {
     console.error('Subscription error:', error);
     const errorMessage = error.message || 'Unknown error occurred';
@@ -94,4 +93,3 @@ export const handleManageSubscription = async () => {
     return null;
   }
 };
-

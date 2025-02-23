@@ -16,7 +16,7 @@ async function getPayPalAccessToken() {
     throw new Error('PayPal credentials not configured');
   }
 
-  console.log('Getting PayPal access token...');
+  console.log('Getting PayPal access token with client ID:', clientId);
   
   const response = await fetch(`${PAYPAL_API_URL}/v1/oauth2/token`, {
     method: 'POST',
@@ -24,23 +24,28 @@ async function getPayPalAccessToken() {
       'Accept': 'application/json',
       'Accept-Language': 'en_US',
       'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: 'grant_type=client_credentials'
   });
 
-  const data = await response.json();
   if (!response.ok) {
-    console.error('Failed to get PayPal access token:', data);
-    throw new Error('Failed to get PayPal access token');
+    const error = await response.text();
+    console.error('PayPal token error:', error);
+    throw new Error(`Failed to get PayPal access token: ${error}`);
   }
-  
+
+  const data = await response.json();
   console.log('Successfully obtained PayPal access token');
   return data.access_token;
 }
 
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -65,7 +70,7 @@ serve(async (req: Request) => {
     const accessToken = await getPayPalAccessToken();
 
     const origin = req.headers.get('origin') || 'http://localhost:3000';
-
+    
     // Create PayPal subscription
     const subscriptionResponse = await fetch(`${PAYPAL_API_URL}/v1/billing/subscriptions`, {
       method: 'POST',
@@ -73,24 +78,22 @@ serve(async (req: Request) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
         'PayPal-Request-Id': `${userId}-${Date.now()}`,
+        'Prefer': 'return=representation',
       },
       body: JSON.stringify({
         plan_id: planId,
-        subscriber: {
-          name: {
-            given_name: userId
-          },
-          email_address: userId,  // Using userId as email for now
-        },
         application_context: {
           user_action: 'SUBSCRIBE_NOW',
           payment_method: {
             payer_selected: 'PAYPAL',
-            payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED',
+            payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
           },
           return_url: `${origin}/manage-subscription`,
           cancel_url: `${origin}/subscription`,
-        },
+          brand_name: 'Your App Name',
+          shipping_preference: 'NO_SHIPPING',
+          payment_method_preference: 'IMMEDIATE_PAYMENT_REQUIRED'
+        }
       }),
     });
 
@@ -159,10 +162,15 @@ serve(async (req: Request) => {
       );
     }
 
+    const approveUrl = subscriptionData.links.find((link: any) => link.rel === 'approve')?.href;
+    if (!approveUrl) {
+      throw new Error('No approve URL found in PayPal response');
+    }
+
     return new Response(
       JSON.stringify({ 
         subscription_id: subscriptionData.id,
-        approve_url: subscriptionData.links.find((link: any) => link.rel === 'approve').href
+        approve_url: approveUrl
       }),
       { 
         headers: { 
@@ -189,4 +197,3 @@ serve(async (req: Request) => {
     );
   }
 });
-

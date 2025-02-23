@@ -28,8 +28,12 @@ export const PayPalButton = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isPayPalProcessing, setIsPayPalProcessing] = useState(false);
 
+  const clientId = process.env.NODE_ENV === 'production' 
+    ? 'PRODUCTION_CLIENT_ID' // Replace with production client ID
+    : 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe'; // Sandbox client ID
+
   const { isLoading, scriptLoaded } = usePayPalScript({
-    clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
+    clientId,
     onError: (error) => {
       console.error('PayPal script error:', error);
       if (error.message?.includes('blocked') || error.message?.includes('cookie')) {
@@ -81,4 +85,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-
