@@ -45,10 +45,8 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
       const pdfBytes = await createPDFFromText(content);
       blob = new Blob([pdfBytes], { type: 'application/pdf' });
     } else {
-      const docxBytes = await createDocxFromText(content);
-      blob = new Blob([docxBytes], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-      });
+      // Now createDocxFromText returns a Blob directly
+      blob = await createDocxFromText(content);
     }
 
     // Create and trigger download
@@ -69,4 +67,3 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
     throw error;
   }
 };
-
