@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { ProcessedDocument } from "@/types/document";
 import { createPDFFromText } from "./pdf";
 import { createDocxFromText } from "./docx";
@@ -10,18 +9,8 @@ export const downloadOriginalDocument = async (currentDocument: ProcessedDocumen
   }
 
   try {
-    // Get signed URL for download
-    const { data: { signedUrl }, error: signedUrlError } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(currentDocument.filePath, 60); // URL valid for 60 seconds
-
-    if (signedUrlError || !signedUrl) {
-      console.error('Error getting signed URL:', signedUrlError);
-      throw new Error(`Failed to get download URL: ${signedUrlError?.message || 'Unknown error occurred'}`);
-    }
-
-    // Fetch the file using the signed URL
-    const response = await fetch(signedUrl);
+    // Create a new blob from the file path (which is now a local object URL)
+    const response = await fetch(currentDocument.filePath);
     if (!response.ok) {
       throw new Error(`Failed to download document: HTTP error ${response.status}`);
     }
@@ -80,3 +69,4 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
     throw error;
   }
 };
+
