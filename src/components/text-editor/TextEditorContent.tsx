@@ -28,7 +28,13 @@ export const TextEditorContent = ({
 
   const handleSaveSelection = useCallback(() => {
     if (!editorRef.current) return;
-    lastSelectionRef.current = saveSelection(editorRef.current, scrollAreaRef.current);
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      if (editorRef.current.contains(range.commonAncestorContainer)) {
+        lastSelectionRef.current = saveSelection(editorRef.current, scrollAreaRef.current);
+      }
+    }
   }, []);
 
   const handleRestoreSelection = useCallback(() => {
@@ -39,12 +45,18 @@ export const TextEditorContent = ({
   const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
     if (!isEditable || isComposingRef.current) return;
     
-    handleSaveSelection();
-    const newContent = e.currentTarget.innerHTML;
-    onContentChange(newContent);
-    requestAnimationFrame(() => {
-      handleRestoreSelection();
-    });
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      handleSaveSelection();
+      const newContent = e.currentTarget.innerHTML;
+      onContentChange(newContent);
+      requestAnimationFrame(() => {
+        if (editorRef.current?.contains(range.commonAncestorContainer)) {
+          handleRestoreSelection();
+        }
+      });
+    }
   }, [onContentChange, handleSaveSelection, handleRestoreSelection, isEditable]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -125,12 +137,13 @@ export const TextEditorContent = ({
 
   const handleScroll = useCallback(() => {
     if (scrollAreaRef.current) {
+      handleSaveSelection();
       lastSelectionRef.current = {
         ...lastSelectionRef.current!,
         scrollTop: scrollAreaRef.current.scrollTop
       };
     }
-  }, []);
+  }, [handleSaveSelection]);
 
   useEffect(() => {
     if (editorRef.current) {
