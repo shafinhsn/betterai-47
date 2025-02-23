@@ -59,12 +59,17 @@ export const PayPalButton = ({
         }
 
         const button = window.paypal.Buttons({
-          createSubscription: async (_data: any, _actions: any) => {
+          createSubscription: async (data: any, actions: any) => {
             try {
+              console.log('Creating subscription with:', {
+                productId: stripeProductId,
+                planName: planName
+              });
               const subscriptionId = await onSubscribe(stripeProductId, planName);
               if (!subscriptionId) {
                 throw new Error('Failed to create subscription');
               }
+              console.log('Created subscription:', subscriptionId);
               return subscriptionId;
             } catch (error: any) {
               console.error('Subscription creation error:', error);
@@ -72,7 +77,7 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: async (data: PayPalSubscriptionData, actions: PayPalActions) => {
+          onApprove: async (data: any, actions: any) => {
             console.log('Subscription approved:', data);
             toast.success('Subscription created successfully!');
             navigate('/manage-subscription');
@@ -121,3 +126,4 @@ export const PayPalButton = ({
     </div>
   );
 };
+
