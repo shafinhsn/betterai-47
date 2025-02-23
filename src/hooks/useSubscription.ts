@@ -18,7 +18,8 @@ export const useSubscription = () => {
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'active')
+        .not('status', 'eq', 'canceled')
+        .order('created_at', { ascending: false })
         .maybeSingle();
       
       if (error) {
@@ -30,6 +31,5 @@ export const useSubscription = () => {
       return data;
     },
     refetchInterval: 5000, // Refetch every 5 seconds while the component is mounted
-    staleTime: 0 // Consider the data stale immediately
   });
 };

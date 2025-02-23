@@ -1,4 +1,5 @@
 
+[functions]
 [functions.create-checkout]
 verify_jwt = true
 
@@ -7,3 +8,4 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
