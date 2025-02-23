@@ -31,8 +31,9 @@ export const usePayPalScript = ({ clientId, onError }: UsePayPalScriptOptions) =
 
         const script = document.createElement('script');
         script.id = 'paypal-sdk';
-        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription`;
+        script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription&components=buttons`;
         script.async = true;
+        script.crossOrigin = "anonymous";
 
         // Add error handlers before setting src
         const handleError = (event: Event | string) => {

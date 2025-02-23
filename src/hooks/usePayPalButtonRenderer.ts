@@ -47,15 +47,16 @@ export const usePayPalButtonRenderer = ({
 
       const buttonConfig = {
         style: {
-          layout: 'horizontal' as const,
-          color: 'blue' as const,
-          shape: 'rect' as const,
-          label: 'paypal' as const
+          layout: 'horizontal',
+          color: 'blue',
+          shape: 'rect',
+          label: 'paypal'
         },
         createSubscription: async () => {
           try {
             setIsPayPalProcessing(true);
             setLoadError(null);
+            console.log('Creating subscription with:', { stripeProductId, planName });
             const subscriptionId = await onSubscribe(stripeProductId, planName);
             
             if (!subscriptionId) {
