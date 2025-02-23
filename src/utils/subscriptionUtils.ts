@@ -1,3 +1,4 @@
+
 import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

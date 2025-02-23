@@ -1,31 +1,22 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from '../_shared/cors.ts';
 import { stripe } from '../_shared/stripe.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { corsHeaders } from '../_shared/cors.ts';
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { planType, email, userId, productId } = await req.json();
-    
-    if (!planType || !email || !userId || !productId) {
-      console.error('Missing required fields:', { planType, email, userId, productId });
-      throw new Error('Missing required fields');
-    }
-
     console.log('Creating checkout session for:', { planType, email, userId, productId });
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get product details from Supabase
+    // Get the product and price IDs from our database
     const { data: product, error: productError } = await supabase
       .from('stripe_products')
       .select('*')
@@ -33,60 +24,51 @@ serve(async (req) => {
       .single();
 
     if (productError || !product) {
-      console.error('Error fetching product:', productError);
-      throw new Error(`Product not found: ${productId}`);
+      throw new Error('Product not found');
     }
 
     console.log('Found product:', product);
 
-    // Create Stripe checkout session
+    // Create the checkout session with trial period
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
+      client_reference_id: userId,
+      payment_method_types: ['card'],
       line_items: [
         {
           price: product.stripe_price_id,
-          quantity: 1
-        }
+          quantity: 1,
+        },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/`,
-      cancel_url: `${req.headers.get('origin')}/subscription`,
-      client_reference_id: userId,
-      metadata: {
-        supabase_user_id: userId,
-        plan_type: planType
-      }
+      success_url: `${req.headers.get('origin')}/subscription?success=true`,
+      cancel_url: `${req.headers.get('origin')}/subscription?canceled=true`,
+      subscription_data: {
+        trial_period_days: 14, // Add 14-day free trial
+        metadata: {
+          user_id: userId,
+          plan_type: planType
+        }
+      },
     });
 
-    if (!session?.url) {
-      console.error('No URL returned from Stripe session');
-      throw new Error('Failed to create checkout session');
-    }
-
     console.log('Checkout session created:', session.id);
-    
+
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
       }
     );
 
   } catch (error) {
-    console.error('Error in create-checkout:', error);
+    console.error('Error:', error.message);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unknown error occurred' 
-      }),
+      JSON.stringify({ error: error.message }),
       { 
-        status: 400,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
       }
     );
   }
