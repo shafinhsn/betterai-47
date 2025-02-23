@@ -1,14 +1,14 @@
 
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { STUDENT_TRIAL_DAYS } from '@/constants/subscription';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
 import { ManageSubscription } from '@/components/subscription/ManageSubscription';
+import { LoadingSpinner } from '@/components/subscription/LoadingSpinner';
+import { SubscriptionHeader } from '@/components/subscription/SubscriptionHeader';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useProducts } from '@/hooks/useProducts';
+import { getFeatures, handleSubscribe, handleManageSubscription } from '@/utils/subscriptionUtils';
 
 export const SubscriptionPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,31 +17,8 @@ export const SubscriptionPage = () => {
   const location = useLocation();
 
   const isManagingSubscription = location.pathname === '/manage-subscription';
-
-  const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
-    queryKey: ['active-subscription'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      
-      console.log('Fetching subscription for user:', user.id);
-      
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching subscription:', error);
-        throw error;
-      }
-      
-      console.log('Fetched subscription:', data);
-      return data;
-    }
-  });
+  const { data: subscription, isLoading: isLoadingSubscription } = useSubscription();
+  const { data: products, isLoading: isLoadingProducts, error: productsError } = useProducts();
 
   // If user has an active subscription and they're not on the management page,
   // redirect them to manage subscription
@@ -50,104 +27,28 @@ export const SubscriptionPage = () => {
     return null;
   }
 
-  const { data: products, isLoading: isLoadingProducts, error: productsError } = useQuery({
-    queryKey: ['stripe-products'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('stripe_products')
-        .select('*')
-        .eq('active', true)
-        .ilike('name', '%student%'); // Only fetch student plans
-      
-      if (error) {
-        console.error('Error fetching products:', error);
-        throw error;
-      }
-      return data;
-    },
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 5
-  });
-
-  const handleSubscribe = async (productId: string, planName: string) => {
-    try {
-      setIsLoading(true);
-      setProcessingPlanId(planName);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Please sign in to subscribe');
-        navigate('/auth');
-        return;
-      }
-
-      console.log('Creating checkout for:', { planName, productId, email: user.email, userId: user.id });
-
-      const { data: { url }, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          planType: 'student',
-          productId: productId,
-          email: user.email,
-          userId: user.id
-        }
-      });
-
-      if (error) {
-        console.error('Checkout error:', error);
-        throw error;
-      }
-
-      if (!url) {
-        console.error('No checkout URL returned');
-        throw new Error('No checkout URL returned');
-      }
-
-      console.log('Redirecting to checkout URL:', url);
+  const onSubscribe = async (productId: string, planName: string) => {
+    setIsLoading(true);
+    setProcessingPlanId(planName);
+    const url = await handleSubscribe(productId, planName);
+    if (url) {
       window.location.href = url;
-    } catch (error: any) {
-      console.error('Subscription error:', error);
-      toast.error('Failed to start checkout: ' + (error.message || 'Unknown error occurred'));
-    } finally {
-      setIsLoading(false);
-      setProcessingPlanId(null);
     }
+    setIsLoading(false);
+    setProcessingPlanId(null);
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      setIsLoading(true);
-      const { data: { url }, error } = await supabase.functions.invoke('create-portal-session', {});
-      if (error) throw error;
-      if (!url) throw new Error('No portal URL returned');
+  const onManageSubscription = async () => {
+    setIsLoading(true);
+    const url = await handleManageSubscription();
+    if (url) {
       window.location.href = url;
-    } catch (error: any) {
-      console.error('Portal session error:', error);
-      toast.error('Failed to open subscription portal: ' + (error.message || 'Unknown error occurred'));
-    } finally {
-      setIsLoading(false);
     }
-  };
-
-  const getFeatures = (planType: string) => {
-    return [
-      'Unlimited messages',
-      `${STUDENT_TRIAL_DAYS}-day free trial`,
-      'Advanced document editing',
-      'Citation generation',
-      'Academic formatting (APA, MLA)',
-      'Essay structure improvements',
-      'Smart formatting',
-      'Email support',
-      '150 messages per day'
-    ];
+    setIsLoading(false);
   };
 
   if (isLoadingProducts || isLoadingSubscription) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (productsError) {
@@ -166,7 +67,7 @@ export const SubscriptionPage = () => {
       <ManageSubscription
         subscription={subscription}
         isLoading={isLoading}
-        onManageSubscription={handleManageSubscription}
+        onManageSubscription={onManageSubscription}
       />
     );
   }
@@ -174,12 +75,7 @@ export const SubscriptionPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-lg mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
-          <p className="text-muted-foreground">
-            Start with a {STUDENT_TRIAL_DAYS}-day free trial. No credit card required.
-          </p>
-        </div>
+        <SubscriptionHeader />
 
         <div className="space-y-6">
           {products?.map((product) => (
@@ -187,19 +83,16 @@ export const SubscriptionPage = () => {
               key={product.id}
               name={product.name}
               price={product.price}
-              features={getFeatures(product.name)}
+              features={getFeatures()}
               stripeProductId={product.stripe_product_id}
               isProcessing={processingPlanId === product.name}
-              onSubscribe={handleSubscribe}
+              onSubscribe={onSubscribe}
             />
           ))}
         </div>
 
         <div className="mt-8 text-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-          >
+          <Button variant="ghost" onClick={() => navigate('/')}>
             Return to Editor
           </Button>
         </div>
