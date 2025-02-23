@@ -20,6 +20,16 @@ interface PayPalButtonStyle {
   label: 'subscribe';
 }
 
+interface CreateSubscriptionData {
+  subscriber: {
+    name: {
+      given_name: string;
+      surname: string;
+    };
+    email_address: string;
+  };
+}
+
 interface CreateSubscriptionActions {
   subscription: {
     create: (data: {
@@ -34,7 +44,9 @@ interface OnApproveData {
 }
 
 interface OnApproveActions {
-  redirect: () => void;
+  subscription: {
+    get: () => Promise<any>;
+  };
 }
 
 export const PayPalButton = ({
@@ -83,7 +95,7 @@ export const PayPalButton = ({
             shape: 'rect',
             label: 'subscribe'
           } as PayPalButtonStyle,
-          createSubscription: async () => {
+          createSubscription: async (data: CreateSubscriptionData, actions: CreateSubscriptionActions) => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -101,7 +113,7 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: async (data: OnApproveData) => {
+          onApprove: async (data: OnApproveData, actions: OnApproveActions) => {
             console.log('Subscription approved:', data);
             toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
@@ -178,3 +190,4 @@ export const PayPalButton = ({
     </div>
   );
 };
+
