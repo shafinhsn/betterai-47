@@ -63,7 +63,7 @@ export const ProfileMenu = () => {
             <span className="ml-auto text-xs opacity-60">Loading...</span>
           ) : subscription ? (
             <span className="ml-auto text-xs opacity-60">
-              {subscription.product?.name || subscription.plan_type}
+              {subscription.prices?.name || subscription.plan_type}
             </span>
           ) : (
             <span className="ml-auto text-xs opacity-60">None</span>
