@@ -1,5 +1,5 @@
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { ScrollArea } from '../ui/scroll-area';
 import { TextEditorToolbar } from './TextEditorToolbar';
 import { saveSelection, restoreSelection } from './utils/selection';
@@ -54,27 +54,58 @@ export const TextEditorContent = ({
       e.preventDefault();
       document.execCommand('insertHTML', false, '\u00a0\u00a0\u00a0\u00a0');
       handleSaveSelection();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      document.execCommand('insertHTML', false, '<br><br>');
+      handleSaveSelection();
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      document.execCommand('insertHTML', false, '\u00a0');
+      handleSaveSelection();
+    }
+
+    // Handle undo/redo keyboard shortcuts
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        handleRedo();
+      } else {
+        handleUndo();
+      }
     }
   }, [handleSaveSelection, isEditable]);
 
   const handleFormatting = (command: string) => {
     if (!isEditable) return;
+    handleSaveSelection();
     document.execCommand(command, false);
     if (editorRef.current) {
       handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
     }
+    handleRestoreSelection();
   };
 
   const handleFontSize = (size: string) => {
     if (!isEditable || !editorRef.current) return;
-    document.execCommand('fontSize', false, size);
+    handleSaveSelection();
+    document.execCommand('fontSize', false, '7');
+    const fonts = editorRef.current.getElementsByTagName('font');
+    for (let i = 0; i < fonts.length; i++) {
+      if (fonts[i].size === '7') {
+        fonts[i].removeAttribute('size');
+        fonts[i].style.fontSize = `${size}px`;
+      }
+    }
     handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
+    handleRestoreSelection();
   };
 
   const handleFontFamily = (font: string) => {
     if (!isEditable || !editorRef.current) return;
+    handleSaveSelection();
     document.execCommand('fontName', false, font);
     handleInput({ currentTarget: editorRef.current } as React.FormEvent<HTMLDivElement>);
+    handleRestoreSelection();
   };
 
   const handleUndo = () => {
@@ -95,6 +126,17 @@ export const TextEditorContent = ({
         ...lastSelectionRef.current!,
         scrollTop: scrollAreaRef.current.scrollTop
       };
+    }
+  }, []);
+
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.addEventListener('compositionstart', () => {
+        isComposingRef.current = true;
+      });
+      editorRef.current.addEventListener('compositionend', () => {
+        isComposingRef.current = false;
+      });
     }
   }, []);
 
@@ -136,3 +178,4 @@ export const TextEditorContent = ({
     </div>
   );
 };
+
