@@ -2,6 +2,9 @@
 import { DocumentPreview } from '@/components/DocumentPreview';
 import { TextEditorPanel } from '@/components/TextEditorPanel';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface PreviewPanelProps {
   content: string;
@@ -18,8 +21,24 @@ export const PreviewPanel = ({
   previewKey,
   onManualUpdate 
 }: PreviewPanelProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          WordEdit
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/preview')}
+            className="hover:bg-emerald-900/20"
+          >
+            <Pencil className="h-4 w-4 text-emerald-500" />
+          </Button>
+        </h2>
+      </div>
+
       <ResizablePanelGroup
         direction="vertical"
         className="min-h-[600px] rounded-lg"
