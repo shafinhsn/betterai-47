@@ -21,19 +21,89 @@ export const TextEditorContent = ({
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
+  const lastSelectionRef = useRef<{
+    start: number;
+    end: number;
+  } | null>(null);
 
-  const handleSelectionChange = useCallback(() => {
+  const saveSelection = () => {
     const selection = window.getSelection();
     if (!selection || !editorRef.current) return;
 
-    // Only handle selection changes within the editor
-    if (!editorRef.current.contains(selection.anchorNode)) return;
+    const range = selection.getRangeAt(0);
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(editorRef.current);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    const start = preSelectionRange.toString().length;
+
+    lastSelectionRef.current = {
+      start,
+      end: start + range.toString().length
+    };
+  };
+
+  const restoreSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || !lastSelectionRef.current || !editorRef.current) return;
+
+    let charCount = 0;
+    let foundStart = false;
+    let foundEnd = false;
+    let startNode: Node | null = null;
+    let startOffset = 0;
+    let endNode: Node | null = null;
+    let endOffset = 0;
+
+    const traverse = (node: Node) => {
+      if (foundStart && foundEnd) return;
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const nextCharCount = charCount + node.textContent!.length;
+        if (!foundStart && lastSelectionRef.current!.start >= charCount && lastSelectionRef.current!.start <= nextCharCount) {
+          startNode = node;
+          startOffset = lastSelectionRef.current!.start - charCount;
+          foundStart = true;
+        }
+        if (!foundEnd && lastSelectionRef.current!.end >= charCount && lastSelectionRef.current!.end <= nextCharCount) {
+          endNode = node;
+          endOffset = lastSelectionRef.current!.end - charCount;
+          foundEnd = true;
+        }
+        charCount = nextCharCount;
+      } else {
+        for (const childNode of Array.from(node.childNodes)) {
+          traverse(childNode);
+        }
+      }
+    };
+
+    traverse(editorRef.current);
+
+    if (startNode && endNode) {
+      const range = document.createRange();
+      range.setStart(startNode, startOffset);
+      range.setEnd(endNode, endOffset);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
   }, []);
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     if (isComposingRef.current) return;
+    saveSelection();
     const newContent = e.currentTarget.innerHTML;
     onContentChange(newContent);
+    requestAnimationFrame(() => {
+      restoreSelection();
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      document.execCommand('insertHTML', false, '\u00a0\u00a0\u00a0\u00a0');
+      saveSelection();
+    }
   };
 
   const handleCompositionStart = () => {
@@ -47,29 +117,17 @@ export const TextEditorContent = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      document.execCommand('insertHTML', false, '\u00a0\u00a0\u00a0\u00a0'); // 4 non-breaking spaces
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
-    };
-  }, [handleSelectionChange]);
-
   useEffect(() => {
     if (editorRef.current) {
+      const fontSize = parseInt(size) || 16;
       const containerStyle = {
         fontFamily: font,
+        fontSize: `${fontSize}px`,
         textAlign: alignment as 'left' | 'center' | 'right' | 'justify',
       };
       Object.assign(editorRef.current.style, containerStyle);
     }
-  }, [font, alignment]);
+  }, [font, size, alignment]);
 
   return (
     <ScrollArea className="h-[calc(100%-5rem)] overflow-y-auto">
@@ -82,6 +140,7 @@ export const TextEditorContent = ({
         onKeyDown={handleKeyDown}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
+        onSelect={saveSelection}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',
