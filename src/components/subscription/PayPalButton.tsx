@@ -13,24 +13,32 @@ interface PayPalButtonProps {
   isProcessing: boolean;
 }
 
-interface PayPalActions {
+interface PayPalButtonStyle {
+  layout: 'vertical';
+  color: 'blue';
+  shape: 'rect';
+  label: 'subscribe';
+}
+
+interface CreateSubscriptionActions {
   subscription: {
-    create: (options: any) => Promise<string>;
+    create: (data: {
+      plan_id: string;
+      custom_id?: string;
+      application_context?: {
+        shipping_preference?: string;
+      };
+    }) => Promise<string>;
   };
 }
 
-interface PayPalButtonConfig {
-  style: {
-    layout: 'vertical';
-    color: 'blue';
-    shape: 'rect';
-    label: 'subscribe';
-  };
-  fundingSource: undefined;
-  createSubscription: (data: Record<string, unknown>, actions: PayPalActions) => Promise<string>;
-  onApprove: (data: any, actions: any) => void;
-  onError: (err: Error) => void;
-  onCancel?: () => void;
+interface OnApproveData {
+  orderID: string;
+  subscriptionID: string;
+}
+
+interface OnApproveActions {
+  redirect: () => void;
 }
 
 export const PayPalButton = ({
@@ -70,16 +78,14 @@ export const PayPalButton = ({
           buttonInstanceRef.current.close();
         }
 
-        // PayPal button configuration
-        const buttonConfig: PayPalButtonConfig = {
+        const buttonConfig = {
           style: {
             layout: 'vertical',
             color: 'blue',
             shape: 'rect',
             label: 'subscribe'
-          },
-          fundingSource: undefined,
-          createSubscription: async (data, actions) => {
+          } as PayPalButtonStyle,
+          createSubscription: async (_: unknown, actions: CreateSubscriptionActions) => {
             try {
               console.log('Creating subscription with:', {
                 productId: stripeProductId,
@@ -97,7 +103,7 @@ export const PayPalButton = ({
               throw error;
             }
           },
-          onApprove: (data: any, actions: any) => {
+          onApprove: async (data: OnApproveData, actions: OnApproveActions) => {
             console.log('Subscription approved:', data);
             toast.success('Your subscription has been created successfully!');
             navigate('/manage-subscription');
@@ -159,3 +165,4 @@ export const PayPalButton = ({
     </div>
   );
 };
+
