@@ -32,19 +32,18 @@ export const PayPalButton = ({
   });
 
   useEffect(() => {
-    // Only proceed if we have everything we need and haven't rendered the button yet
-    if (!window.paypal?.Buttons || !paypalButtonRef.current || isLoading || !scriptLoaded || buttonRenderedRef.current) {
-      console.log('PayPal not ready:', { 
-        hasPayPal: !!window.paypal?.Buttons, 
-        hasButtonRef: !!paypalButtonRef.current, 
-        isLoading,
-        scriptLoaded,
-        buttonRendered: buttonRenderedRef.current
-      });
-      return;
-    }
-
     const initializePayPalButton = async () => {
+      if (!window.paypal?.Buttons || !paypalButtonRef.current || isLoading || !scriptLoaded || buttonRenderedRef.current) {
+        console.log('PayPal not ready:', { 
+          hasPayPal: !!window.paypal?.Buttons, 
+          hasButtonRef: !!paypalButtonRef.current, 
+          isLoading,
+          scriptLoaded,
+          buttonRendered: buttonRenderedRef.current
+        });
+        return;
+      }
+
       try {
         console.log('Initializing PayPal button...');
         if (buttonInstanceRef.current) {
