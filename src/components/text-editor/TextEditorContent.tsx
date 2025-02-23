@@ -21,52 +21,20 @@ export const TextEditorContent = ({
 }: TextEditorContentProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const isComposingRef = useRef(false);
-  const lastSelectionRef = useRef<{ node: Node; offset: number } | null>(null);
 
-  const saveCaretPosition = () => {
-    const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return null;
-
-    const range = selection.getRangeAt(0);
-    if (!editorRef.current?.contains(range.commonAncestorContainer)) return null;
-
-    lastSelectionRef.current = {
-      node: range.startContainer,
-      offset: range.startOffset
-    };
-
-    return lastSelectionRef.current;
-  };
-
-  const restoreCaretPosition = () => {
-    if (!lastSelectionRef.current) return;
-
-    const selection = window.getSelection();
-    if (!selection) return;
-
-    try {
-      const range = document.createRange();
-      range.setStart(lastSelectionRef.current.node, lastSelectionRef.current.offset);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      editorRef.current?.focus();
-    } catch (e) {
-      console.warn('Failed to restore caret position:', e);
-    }
+  const saveAndRestoreSelection = () => {
+    // Delay the selection restoration slightly to ensure DOM updates are complete
+    requestAnimationFrame(() => {
+      if (!editorRef.current) return;
+      editorRef.current.focus();
+    });
   };
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     if (isComposingRef.current) return;
-    
-    saveCaretPosition();
     const content = e.currentTarget.innerHTML;
     onContentChange(content);
-
-    // Use a more reliable way to restore the cursor position
-    window.requestAnimationFrame(() => {
-      restoreCaretPosition();
-    });
+    saveAndRestoreSelection();
   };
 
   const handleCompositionStart = () => {
@@ -83,7 +51,6 @@ export const TextEditorContent = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Tab') {
       e.preventDefault();
-      saveCaretPosition();
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) return;
 
@@ -99,14 +66,6 @@ export const TextEditorContent = ({
         onContentChange(editorRef.current.innerHTML);
       }
     }
-  };
-
-  const handleBlur = () => {
-    saveCaretPosition();
-  };
-
-  const handleFocus = () => {
-    restoreCaretPosition();
   };
 
   useEffect(() => {
@@ -128,8 +87,6 @@ export const TextEditorContent = ({
         onKeyDown={handleKeyDown}
         onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
-        onBlur={handleBlur}
-        onFocus={handleFocus}
         dangerouslySetInnerHTML={{ __html: content }}
         style={{
           whiteSpace: 'pre-wrap',
