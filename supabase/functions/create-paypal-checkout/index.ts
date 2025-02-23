@@ -1,46 +1,57 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
+// Add CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  'Content-Type': 'application/json'
+};
+
+interface RequestBody {
+  planId: string;
+  userId: string;
+  planName: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders
-    })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     if (req.method !== 'POST') {
-      throw new Error('Method not allowed')
+      throw new Error('Method not allowed');
     }
 
-    const { planId, userId, planName } = await req.json()
+    const { planId, userId, planName } = await req.json() as RequestBody;
 
     if (!planId || !userId || !planName) {
-      console.error('Missing required parameters:', { planId, userId, planName })
-      throw new Error('Missing required parameters')
+      console.error('Missing required parameters:', { planId, userId, planName });
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters' }),
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    console.log('Creating PayPal subscription for:', { planId, userId, planName })
+    console.log('Creating PayPal subscription for:', { planId, userId, planName });
 
     // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase credentials');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Generate a UUID for the subscription
-    const subscriptionId = crypto.randomUUID()
+    const subscriptionId = crypto.randomUUID();
 
     // Create a subscription record
-    const { data: subscription, error: subscriptionError } = await supabase
+    const { error: subscriptionError } = await supabase
       .from('subscriptions')
       .insert([
         {
@@ -49,41 +60,29 @@ serve(async (req) => {
           status: 'pending',
           plan_type: planName,
           payment_processor: 'paypal',
-          is_student: planName === 'Student Plan'
+          is_student: planName === 'Student Plan',
+          started_at: new Date().toISOString()
         }
-      ])
-      .select()
-      .single()
+      ]);
 
     if (subscriptionError) {
-      console.error('Database error:', subscriptionError)
-      throw new Error(`Failed to create subscription record: ${subscriptionError.message}`)
+      console.error('Database error:', subscriptionError);
+      return new Response(
+        JSON.stringify({ error: `Failed to create subscription record: ${subscriptionError.message}` }),
+        { status: 500, headers: corsHeaders }
+      );
     }
 
     return new Response(
-      JSON.stringify({
-        subscription_id: subscriptionId
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
+      JSON.stringify({ subscription_id: subscriptionId }),
+      { status: 200, headers: corsHeaders }
+    );
+
   } catch (error) {
-    console.error('Subscription error:', error)
+    console.error('Error:', error);
     return new Response(
-      JSON.stringify({
-        error: error.message
-      }),
-      {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: corsHeaders }
+    );
   }
-})
+});
