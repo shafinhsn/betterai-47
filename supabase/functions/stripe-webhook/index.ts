@@ -63,16 +63,16 @@ serve(async (req) => {
       console.log('Looking up customer:', stripeCustomerId);
       
       // Find user by stripe_customer_id in customers table
-      const { data: customerData, error: customerError } = await supabase
+      let { data: customerData, error: customerError } = await supabase
         .from('customers')
         .select('id')
         .eq('stripe_customer_id', stripeCustomerId)
         .single();
 
-      if (customerError) {
-        console.error('Error finding customer:', customerError);
-        // If customer not found, try to get customer from Stripe and create them
+      if (customerError || !customerData) {
+        console.log('Customer not found, fetching from Stripe');
         const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId);
+        
         if (!stripeCustomer.email) {
           throw new Error('No email found for Stripe customer');
         }
@@ -108,15 +108,16 @@ serve(async (req) => {
         customerData = newCustomer;
       }
 
-      const userId = customerData.id;
-      console.log('Found user ID:', userId);
+      if (!customerData) {
+        throw new Error('Failed to find or create customer record');
+      }
 
-      // Get price details from the subscription
+      // Get price details
       const priceId = subscription.items.data[0].price.id;
       console.log('Price ID:', priceId);
 
       const subscriptionData = {
-        user_id: userId,
+        user_id: customerData.id,
         stripe_subscription_id: subscription.id,
         stripe_price_id: priceId,
         status: subscription.status,
