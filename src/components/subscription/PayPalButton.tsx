@@ -31,22 +31,14 @@ export const PayPalButton = ({
   });
 
   useEffect(() => {
-    const initializePayPalButton = async () => {
-      if (!window.paypal || !paypalButtonRef.current) {
-        console.log('PayPal not ready or button container not found');
-        return;
-      }
+    if (!window.paypal || !paypalButtonRef.current || isLoading) {
+      return;
+    }
 
+    const initializePayPalButton = async () => {
       try {
-        console.log('Initializing PayPal button');
-        // Clean up previous instance if it exists
         if (buttonInstanceRef.current) {
-          console.log('Cleaning up previous button instance');
-          try {
-            await buttonInstanceRef.current.close();
-          } catch (err) {
-            console.error('Error closing previous button:', err);
-          }
+          await buttonInstanceRef.current.close();
         }
 
         buttonInstanceRef.current = window.paypal.Buttons({
@@ -57,19 +49,15 @@ export const PayPalButton = ({
             label: 'subscribe'
           },
           createSubscription: async (data: any, actions: any) => {
-            console.log('Creating subscription with data:', data);
             try {
-              const subscriptionId = await onSubscribe('P-7W301107DK9194909M65W3BA', planName);
-              console.log('Subscription created:', subscriptionId);
+              const subscriptionId = await onSubscribe(stripeProductId, planName);
               return subscriptionId;
             } catch (error: any) {
-              console.error('Subscription creation error:', error);
-              toast.error('Failed to create subscription: ' + (error.message || 'Please try again'));
+              toast.error('Failed to create subscription: ' + error.message);
               throw error;
             }
           },
           onApprove: (data: { subscriptionID: string }) => {
-            console.log('Subscription approved:', data.subscriptionID);
             toast.success('Subscription created successfully!');
             navigate('/manage-subscription');
           },
@@ -78,33 +66,25 @@ export const PayPalButton = ({
             toast.error('PayPal encountered an error: ' + err.message);
           },
           onCancel: () => {
-            console.log('Subscription cancelled by user');
             toast.info('Subscription cancelled');
           }
         });
 
         await buttonInstanceRef.current.render(paypalButtonRef.current);
-        console.log('PayPal button rendered successfully');
       } catch (error: any) {
         console.error('Error rendering PayPal button:', error);
         toast.error('Failed to initialize PayPal button: ' + error.message);
       }
     };
 
-    if (window.paypal && !isLoading) {
-      initializePayPalButton();
-    }
+    initializePayPalButton();
 
     return () => {
-      if (buttonInstanceRef.current) {
-        try {
-          buttonInstanceRef.current.close();
-        } catch (err) {
-          console.error('Error during button cleanup:', err);
-        }
+      if (buttonInstanceRef.current?.close) {
+        buttonInstanceRef.current.close();
       }
     };
-  }, [window.paypal, isLoading, onSubscribe, planName, navigate]);
+  }, [window.paypal, isLoading, onSubscribe, planName, navigate, stripeProductId]);
 
   return (
     <div ref={paypalButtonRef} className="w-full">
