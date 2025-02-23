@@ -62,6 +62,7 @@ export const PayPalButton = ({
         }
 
         const buttonConfig = {
+          fundingSource: window.paypal.FUNDING.PAYPAL,
           style: {
             layout: 'vertical',
             color: 'blue',
@@ -105,7 +106,6 @@ export const PayPalButton = ({
               return;
             }
 
-            // Retry on non-cookie related errors
             if (retryCount < MAX_RETRIES) {
               retryCount++;
               console.log(`Retrying PayPal button render (attempt ${retryCount})`);

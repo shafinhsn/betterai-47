@@ -1,7 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
-// Add CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -25,17 +24,15 @@ Deno.serve(async (req) => {
       throw new Error('Method not allowed');
     }
 
-    const { planId, userId, planName } = await req.json() as RequestBody;
+    const requestData = await req.json() as RequestBody;
+    const { planId, userId, planName } = requestData;
 
     if (!planId || !userId || !planName) {
       console.error('Missing required parameters:', { planId, userId, planName });
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
-        { status: 400, headers: corsHeaders }
-      );
+      throw new Error('Missing required parameters');
     }
 
-    console.log('Creating PayPal subscription for:', { planId, userId, planName });
+    console.log('Creating subscription for:', { planId, userId, planName });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -50,6 +47,18 @@ Deno.serve(async (req) => {
     // Generate a UUID for the subscription
     const subscriptionId = crypto.randomUUID();
 
+    // Check if user exists first
+    const { data: userExists, error: userCheckError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (userCheckError || !userExists) {
+      console.error('User check error:', userCheckError);
+      throw new Error('User not found');
+    }
+
     // Create a subscription record
     const { error: subscriptionError } = await supabase
       .from('subscriptions')
@@ -60,29 +69,38 @@ Deno.serve(async (req) => {
           status: 'pending',
           plan_type: planName,
           payment_processor: 'paypal',
-          is_student: planName === 'Student Plan',
+          is_student: planName.toLowerCase().includes('student'),
           started_at: new Date().toISOString()
         }
       ]);
 
     if (subscriptionError) {
       console.error('Database error:', subscriptionError);
-      return new Response(
-        JSON.stringify({ error: `Failed to create subscription record: ${subscriptionError.message}` }),
-        { status: 500, headers: corsHeaders }
-      );
+      throw new Error(`Failed to create subscription record: ${subscriptionError.message}`);
     }
 
     return new Response(
-      JSON.stringify({ subscription_id: subscriptionId }),
-      { status: 200, headers: corsHeaders }
+      JSON.stringify({ 
+        subscription_id: subscriptionId,
+        status: 'success'
+      }),
+      { 
+        status: 200, 
+        headers: corsHeaders 
+      }
     );
 
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: corsHeaders }
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        status: 'error'
+      }),
+      { 
+        status: 400, 
+        headers: corsHeaders 
+      }
     );
   }
 });
