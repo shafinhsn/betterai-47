@@ -18,7 +18,7 @@ export const useSubscription = () => {
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
-        .not('status', 'eq', 'canceled')
+        .in('status', ['active', 'trialing'])
         .order('created_at', { ascending: false })
         .maybeSingle();
       
