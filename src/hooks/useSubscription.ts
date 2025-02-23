@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/database.types';
 
-type SubscriptionWithProduct = Tables<'subscriptions'> & {
-  product?: {
-    name: string;
+type SubscriptionWithPrice = Tables<'subscriptions'> & {
+  prices?: {
     price: number;
+    name: string;
     description: string | null;
   };
 };
@@ -29,9 +29,9 @@ export const useSubscription = () => {
           .from('subscriptions')
           .select(`
             *,
-            product:stripe_products(
-              name,
+            prices:stripe_products(
               price,
+              name,
               description
             )
           `)
@@ -45,8 +45,19 @@ export const useSubscription = () => {
           return null;
         }
 
+        // Check if subscription is ending soon (7 days)
+        if (subscription?.stripe_current_period_end) {
+          const endDate = new Date(subscription.stripe_current_period_end);
+          const now = new Date();
+          const daysUntilEnd = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysUntilEnd <= 7 && subscription.status === 'active') {
+            toast.warning(`Your subscription will end in ${daysUntilEnd} days`);
+          }
+        }
+
         console.log('Fetched subscription:', subscription);
-        return subscription as SubscriptionWithProduct;
+        return subscription as SubscriptionWithPrice;
       } catch (error) {
         console.error('Subscription query error:', error);
         toast.error('Failed to fetch subscription status');

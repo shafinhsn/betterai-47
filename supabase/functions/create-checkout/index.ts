@@ -1,39 +1,69 @@
 
-import { stripe } from '../_shared/stripe.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0';
 import { corsHeaders } from '../_shared/cors.ts';
+import { stripe } from '../_shared/stripe.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(async (req) => {
   try {
-    const { planType, email, userId, productId } = await req.json();
-    console.log('Creating checkout session for:', { planType, email, userId, productId });
+    // Handle CORS
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders });
+    }
 
-    // Get the product and price IDs from our database
-    const { data: product, error: productError } = await supabase
+    const { productId, email, userId } = await req.json();
+
+    if (!productId || !email || !userId) {
+      throw new Error('Missing required fields');
+    }
+
+    // Get the product from Supabase
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    const { data: product, error: productError } = await supabaseClient
       .from('stripe_products')
-      .select('*')
-      .eq('stripe_product_id', productId)
+      .select('stripe_price_id')
+      .eq('id', productId)
       .single();
 
     if (productError || !product) {
       throw new Error('Product not found');
     }
 
-    console.log('Found product:', product);
+    // Create or get customer
+    const { data: customer } = await supabaseClient
+      .from('customers')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .maybeSingle();
 
-    // Create the checkout session with trial period and redirect to manage subscription page
+    let stripeCustomerId = customer?.stripe_customer_id;
+
+    if (!stripeCustomerId) {
+      const stripeCustomer = await stripe.customers.create({
+        email,
+        metadata: {
+          supabaseUUID: userId,
+        },
+      });
+      stripeCustomerId = stripeCustomer.id;
+
+      // Update the customer in Supabase
+      await supabaseClient
+        .from('customers')
+        .upsert({
+          id: userId,
+          stripe_customer_id: stripeCustomerId,
+          email,
+        });
+    }
+
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      customer_email: email,
-      client_reference_id: userId,
-      payment_method_types: ['card'],
+      customer: stripeCustomerId,
       line_items: [
         {
           price: product.stripe_price_id,
@@ -41,35 +71,30 @@ Deno.serve(async (req) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/manage-subscription?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/subscription?canceled=true`,
+      success_url: `${req.headers.get('origin')}/subscription?success=true`,
+      cancel_url: `${req.headers.get('origin')}/subscription?success=false`,
       subscription_data: {
-        trial_period_days: 14,
         metadata: {
-          user_id: userId,
-          plan_type: planType
-        }
+          supabaseUUID: userId,
+        },
       },
     });
 
-    console.log('Checkout session created:', session.id);
-
     return new Response(
       JSON.stringify({ url: session.url }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
+        status: 200,
+      },
     );
-
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Checkout error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
-      }
+        status: 400,
+      },
     );
   }
 });
