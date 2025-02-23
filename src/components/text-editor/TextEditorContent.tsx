@@ -18,6 +18,7 @@ export const TextEditorContent = ({
   const lastSelectionRef = useRef<{
     startOffset: number;
     endOffset: number;
+    node: Node | null;
     scrollTop: number;
   } | null>(null);
 
@@ -53,6 +54,7 @@ export const TextEditorContent = ({
     lastSelectionRef.current = {
       startOffset,
       endOffset,
+      node: range.startContainer,
       scrollTop: scrollAreaRef.current?.scrollTop || 0
     };
   }, []);
@@ -95,14 +97,6 @@ export const TextEditorContent = ({
     try {
       selection.removeAllRanges();
       selection.addRange(range);
-
-      if (scrollAreaRef.current) {
-        requestAnimationFrame(() => {
-          if (scrollAreaRef.current) {
-            scrollAreaRef.current.scrollTop = lastSelectionRef.current!.scrollTop;
-          }
-        });
-      }
     } catch (error) {
       console.error('Error restoring selection:', error);
     }
@@ -136,12 +130,6 @@ export const TextEditorContent = ({
     }
   }, [handleInput]);
 
-  const handleScroll = useCallback(() => {
-    if (scrollAreaRef.current && lastSelectionRef.current) {
-      lastSelectionRef.current.scrollTop = scrollAreaRef.current.scrollTop;
-    }
-  }, []);
-
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -162,7 +150,6 @@ export const TextEditorContent = ({
     <ScrollArea 
       className="h-full overflow-y-auto border border-border/20 rounded-lg bg-[#1a1a1a]"
       ref={scrollAreaRef}
-      onScrollCapture={handleScroll}
     >
       <div 
         ref={editorRef}
