@@ -13,34 +13,35 @@ serve(async (req) => {
   try {
     const { planId, userId, planName } = await req.json()
     
-    // Validate all required parameters
     if (!planId || !userId || !planName) {
-      console.error('Missing required parameters:', { planId, userId, planName });
-      return new Response(
-        JSON.stringify({
-          error: 'Missing required parameters',
-          details: { planId, userId, planName }
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      throw new Error('Missing required parameters');
     }
 
     console.log('Creating PayPal subscription for:', { planId, userId, planName });
 
-    // For now, simulate subscription creation to debug the flow
-    const subscription_id = `test_sub_${Date.now()}`;
-    
-    console.log('Created subscription:', subscription_id);
+    // Create a new subscription record in the database
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .insert([
+        {
+          user_id: userId,
+          plan_type: planName,
+          status: 'pending',
+          is_student: true,
+        }
+      ])
+      .select()
+      .single();
 
+    if (subscriptionError || !subscription) {
+      console.error('Database error:', subscriptionError);
+      throw new Error('Failed to create subscription record');
+    }
+
+    // Return the subscription ID for PayPal to use
     return new Response(
       JSON.stringify({
-        subscription_id
+        subscription_id: subscription.id
       }),
       {
         headers: {
@@ -67,4 +68,3 @@ serve(async (req) => {
     );
   }
 });
-
