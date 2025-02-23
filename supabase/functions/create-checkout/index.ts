@@ -10,10 +10,10 @@ serve(async (req) => {
   }
 
   try {
-    const { planType, email, userId } = await req.json();
+    const { planType, email, userId, productId } = await req.json();
     
-    if (!planType || !email || !userId) {
-      console.error('Missing required fields:', { planType, email, userId });
+    if (!planType || !email || !userId || !productId) {
+      console.error('Missing required fields:', { planType, email, userId, productId });
       throw new Error('Missing required fields');
     }
 
@@ -28,25 +28,30 @@ serve(async (req) => {
     const { data: products, error: productsError } = await supabase
       .from('stripe_products')
       .select('*')
-      .eq('name', planType === 'student' ? 'Student Plan' : 'Business Pro Plan')
+      .eq('stripe_product_id', productId)
       .single();
 
     if (productsError || !products) {
       console.error('Error fetching product:', productsError);
-      throw new Error(`Failed to fetch product for plan type: ${planType}`);
+      throw new Error(`Failed to fetch product with ID: ${productId}`);
     }
 
     console.log('Found product:', products);
 
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       customer_email: email,
-      line_items: [{ price: products.stripe_price_id, quantity: 1 }],
+      line_items: [{ 
+        price: products.stripe_price_id,
+        quantity: 1 
+      }],
       mode: 'subscription',
       success_url: `${req.headers.get('origin')}/`,
-      cancel_url: `${req.headers.get('origin')}/`,
+      cancel_url: `${req.headers.get('origin')}/subscription`,
       client_reference_id: userId,
       metadata: {
-        supabase_user_id: userId
+        supabase_user_id: userId,
+        plan_type: planType
       }
     });
 
