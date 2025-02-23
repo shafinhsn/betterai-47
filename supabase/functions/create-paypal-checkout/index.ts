@@ -20,38 +20,42 @@ serve(async (req: Request) => {
     );
 
     // Get the request body
-    const { planId, userId, planName } = await req.json();
+    let { planId, userId, planName } = await req.json();
 
     if (!planId || !userId || !planName) {
+      console.error('Missing required fields:', { planId, userId, planName });
       throw new Error('Missing required fields');
     }
 
     console.log('Creating subscription for:', { planId, userId, planName });
 
-    // Make the PayPal API request to create a subscription
-    const response = await fetch('https://api.paypal.com/v1/oauth2/token', {
+    // Get PayPal access token
+    const tokenResponse = await fetch('https://api.paypal.com/v1/oauth2/token', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Accept-Language': 'en_US',
         'Authorization': `Basic ${btoa(`${Deno.env.get('PAYPAL_CLIENT_ID')}:${Deno.env.get('PAYPAL_SECRET_KEY')}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: 'grant_type=client_credentials',
     });
 
-    if (!response.ok) {
-      const error = await response.text();
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.text();
       console.error('PayPal auth error:', error);
       throw new Error('Failed to authenticate with PayPal');
     }
 
-    const { access_token } = await response.json();
+    const { access_token } = await tokenResponse.json();
 
+    // Create PayPal subscription
     const subscriptionResponse = await fetch('https://api.paypal.com/v1/billing/subscriptions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${access_token}`,
+        'PayPal-Request-Id': `${userId}-${Date.now()}`, // Unique request ID
       },
       body: JSON.stringify({
         plan_id: planId,
@@ -83,10 +87,9 @@ serve(async (req: Request) => {
         user_id: userId,
         payment_subscription_id: paypalSubscription.id,
         status: 'pending',
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        cancel_at_period_end: false,
-        payment_provider: 'paypal',
+        started_at: new Date().toISOString(),
+        plan_type: planName,
+        payment_provider: 'paypal'
       })
       .select()
       .single();
@@ -106,16 +109,18 @@ serve(async (req: Request) => {
       },
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Function error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      }),
       { 
         status: 400,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-      },
+      }
     );
   }
 });

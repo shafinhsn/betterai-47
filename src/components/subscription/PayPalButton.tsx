@@ -22,6 +22,7 @@ export const PayPalButton = ({
   isProcessing
 }: PayPalButtonProps) => {
   const paypalButtonRef = useRef<HTMLDivElement>(null);
+  const buttonInstanceRef = useRef<any>(null);
   const navigate = useNavigate();
   const [cookiesBlocked, setCookiesBlocked] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -41,10 +42,24 @@ export const PayPalButton = ({
     }
   });
 
+  // Cleanup function to remove existing buttons
+  const cleanupPayPalButton = () => {
+    if (buttonInstanceRef.current) {
+      buttonInstanceRef.current.close();
+      buttonInstanceRef.current = null;
+    }
+    if (paypalButtonRef.current) {
+      paypalButtonRef.current.innerHTML = '';
+    }
+  };
+
   useEffect(() => {
     if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded) {
       return;
     }
+
+    // Cleanup any existing buttons before creating new ones
+    cleanupPayPalButton();
 
     try {
       const buttonConfig = {
@@ -57,11 +72,6 @@ export const PayPalButton = ({
         createSubscription: async () => {
           try {
             setIsPayPalProcessing(true);
-            console.log('Creating subscription with:', {
-              productId: stripeProductId,
-              planName: planName
-            });
-            
             setLoadError(null);
             const subscriptionId = await onSubscribe(stripeProductId, planName);
             
@@ -100,10 +110,10 @@ export const PayPalButton = ({
         }
       };
 
-      const paypalButton = window.paypal?.Buttons(buttonConfig);
+      buttonInstanceRef.current = window.paypal?.Buttons(buttonConfig);
       
-      if (paypalButton) {
-        paypalButton.render(paypalButtonRef.current);
+      if (buttonInstanceRef.current) {
+        buttonInstanceRef.current.render(paypalButtonRef.current);
         console.log('PayPal button rendered successfully');
       } else {
         throw new Error('Failed to create PayPal button');
@@ -120,6 +130,10 @@ export const PayPalButton = ({
         }
       }
     }
+
+    return () => {
+      cleanupPayPalButton();
+    };
   }, [scriptLoaded, isLoading, onSubscribe, stripeProductId, planName, navigate]);
 
   const handleCardPayment = async () => {
