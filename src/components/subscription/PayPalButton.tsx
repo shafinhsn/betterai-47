@@ -20,6 +20,7 @@ export const PayPalButton = ({
 }: PayPalButtonProps) => {
   const paypalButtonRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const buttonInstanceRef = useRef<{ close: () => void } | null>(null);
 
   const { isLoading, scriptLoaded } = usePayPalScript({
     clientId: 'Adj5TaOdSl2VqQgMJNt-en40d2bpOokFgrRqHsVeda7hIOMnNZXgN30newF-Mx8yc-utVNfbyprNNoXe',
@@ -30,41 +31,55 @@ export const PayPalButton = ({
   });
 
   useEffect(() => {
-    if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded) {
-      return;
-    }
-
-    const button = window.paypal.Buttons({
-      style: {
-        shape: 'rect',
-        color: 'blue',
-        layout: 'vertical',
-        label: 'subscribe'
-      },
-      createSubscription: async () => {
-        try {
-          const subscriptionId = await onSubscribe(stripeProductId, planName);
-          return subscriptionId;
-        } catch (error: any) {
-          toast.error('Failed to create subscription: ' + error.message);
-          throw error;
-        }
-      },
-      onApprove: () => {
-        toast.success('Subscription created successfully!');
-        navigate('/manage-subscription');
-      },
-      onError: (err: Error) => {
-        console.error('PayPal error:', err);
-        toast.error('PayPal encountered an error: ' + err.message);
+    const renderButton = async () => {
+      if (!window.paypal?.Buttons || !paypalButtonRef.current || !scriptLoaded) {
+        return;
       }
-    });
 
-    button.render(paypalButtonRef.current);
+      try {
+        if (buttonInstanceRef.current?.close) {
+          buttonInstanceRef.current.close();
+        }
+
+        const button = window.paypal.Buttons({
+          style: {
+            shape: 'rect',
+            color: 'blue',
+            layout: 'vertical',
+            label: 'subscribe'
+          },
+          createSubscription: async () => {
+            try {
+              const subscriptionId = await onSubscribe(stripeProductId, planName);
+              return subscriptionId;
+            } catch (error: any) {
+              toast.error('Failed to create subscription: ' + error.message);
+              throw error;
+            }
+          },
+          onApprove: () => {
+            toast.success('Subscription created successfully!');
+            navigate('/manage-subscription');
+          },
+          onError: (err: Error) => {
+            console.error('PayPal error:', err);
+            toast.error('PayPal encountered an error: ' + err.message);
+          }
+        });
+
+        buttonInstanceRef.current = button;
+        await button.render(paypalButtonRef.current);
+      } catch (error) {
+        console.error('Error rendering PayPal button:', error);
+        toast.error('Failed to render PayPal button');
+      }
+    };
+
+    renderButton();
 
     return () => {
-      if (button?.close) {
-        button.close();
+      if (buttonInstanceRef.current?.close) {
+        buttonInstanceRef.current.close();
       }
     };
   }, [scriptLoaded, onSubscribe, stripeProductId, planName, navigate]);
@@ -77,4 +92,3 @@ export const PayPalButton = ({
     </div>
   );
 };
-
