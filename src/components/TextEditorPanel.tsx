@@ -1,10 +1,9 @@
 
 import { useTextEditor } from '@/hooks/useTextEditor';
 import { Button } from './ui/button';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { TextEditorControls } from './text-editor/TextEditorControls';
 import { TextEditorContent } from './text-editor/TextEditorContent';
-import { useTextSelection } from '@/hooks/useTextSelection';
 
 export interface TextEditorPanelProps {
   updatedContent: string;
@@ -20,55 +19,30 @@ export const TextEditorPanel = ({
   onManualUpdate 
 }: TextEditorPanelProps) => {
   const [editableContent, setEditableContent] = useState(updatedContent || content);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const { lastCaretPosition, applyFormattingToSelection, applyFormattingToAll } = useTextSelection(editorRef);
   const textEditor = useTextEditor();
 
   useEffect(() => {
     setEditableContent(updatedContent || content);
   }, [updatedContent, content]);
 
-  const handleFormatWithSelection = (formatType: string) => {
-    const selection = window.getSelection();
-    if (!selection || !editorRef.current) return;
+  const applyFormat = (command: string, value: string | undefined = undefined) => {
+    document.execCommand(command, false, value);
+  };
 
-    if (selection.toString().length === 0) {
-      // If no text is selected, apply to the entire content
-      applyFormattingToAll(formatType, '');
-    } else {
-      // Apply formatting only to selected text
-      document.execCommand(formatType, false);
-    }
+  const handleFormatWithSelection = (formatType: string) => {
+    applyFormat(formatType);
   };
 
   const handleStyleWithSelection = (property: string, value: string) => {
-    const selection = window.getSelection();
-    if (!selection || !editorRef.current) return;
-
-    if (selection.toString().length === 0) {
-      // If no text is selected, apply to the entire content
-      applyFormattingToAll(property, value);
-    } else {
-      // Create a span with the specified style
-      const span = document.createElement('span');
-      if (property === 'fontSize') {
-        span.style.fontSize = value;
-      } else if (property === 'fontFamily') {
-        span.style.fontFamily = value;
-      }
-
-      // Get the selected range and surround it with the styled span
-      const range = selection.getRangeAt(0);
-      range.surroundContents(span);
+    if (property === 'fontSize') {
+      applyFormat('fontSize', value);
+    } else if (property === 'fontFamily') {
+      applyFormat('fontName', value);
     }
   };
 
   const handleUpdate = () => {
     onManualUpdate();
-    if (editorRef.current) {
-      const content = editorRef.current.innerHTML;
-      setEditableContent(content);
-    }
   };
 
   return (
@@ -99,11 +73,11 @@ export const TextEditorPanel = ({
             }}
             onSizeChange={(value) => {
               textEditor.handleSizeChange(value);
-              handleStyleWithSelection('fontSize', `${value}px`);
+              handleStyleWithSelection('fontSize', value);
             }}
             onAlignmentChange={(value) => {
               textEditor.handleAlignmentChange(value);
-              applyFormattingToAll('textAlign', value);
+              applyFormat('justifyLeft');
             }}
           />
         </div>
@@ -115,7 +89,7 @@ export const TextEditorPanel = ({
           font={textEditor.font}
           size={textEditor.size}
           alignment={textEditor.alignment}
-          lastCaretPosition={lastCaretPosition}
+          lastCaretPosition={null}
         />
       </div>
     </div>
