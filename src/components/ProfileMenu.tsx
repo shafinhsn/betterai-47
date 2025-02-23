@@ -13,29 +13,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { LogOut, User, CreditCard, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useRole } from "@/hooks/useRole";
 
 export const ProfileMenu = () => {
   const navigate = useNavigate();
   const { isAdmin } = useRole();
-
-  const { data: subscription } = useQuery({
-    queryKey: ['subscription'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      
-      const { data } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single();
-      
-      return data;
-    }
-  });
+  const { data: subscription, isError, isLoading } = useSubscription();
 
   const handleSignOut = async () => {
     try {
@@ -72,14 +56,16 @@ export const ProfileMenu = () => {
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/manage-subscription')}>
+        <DropdownMenuItem onClick={() => navigate('/manage-subscription')} disabled={isLoading}>
           <CreditCard className="mr-2 h-4 w-4" />
           Manage Subscription
-          {subscription && (
+          {isLoading ? (
+            <span className="ml-auto text-xs opacity-60">Loading...</span>
+          ) : subscription ? (
             <span className="ml-auto text-xs opacity-60">
               {subscription.plan_type}
             </span>
-          )}
+          ) : null}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
