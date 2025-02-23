@@ -19,7 +19,7 @@ interface PayPalButtonConfig {
     shape: 'rect';
     label: 'subscribe';
   };
-  createSubscription: () => Promise<{ id: string }>;
+  createSubscription: () => Promise<string>;
   onApprove: (data: { subscriptionID: string }) => void;
   onError: (err: Error) => void;
   onCancel?: () => void;
@@ -70,7 +70,7 @@ export const PayPalButton = ({
                 throw new Error('Failed to create subscription');
               }
               console.log('Created subscription:', subscriptionId);
-              return { id: subscriptionId };
+              return subscriptionId; // Return just the ID string
             } catch (error: any) {
               console.error('Subscription creation error:', error);
               toast.error('Failed to create subscription: ' + (error.message || 'Unknown error'));
