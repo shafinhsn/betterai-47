@@ -119,6 +119,10 @@ export type Database = {
           plan_type: string
           status: string
           created_at: string | null
+          stripe_current_period_end: string | null
+          is_student: boolean | null
+          stripe_subscription_id: string | null
+          stripe_price_id: string | null
         }
         Insert: {
           expires_at?: string | null
@@ -129,6 +133,10 @@ export type Database = {
           plan_type: string
           status: string
           created_at?: string | null
+          stripe_current_period_end?: string | null
+          is_student?: boolean | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
         }
         Update: {
           expires_at?: string | null
@@ -139,6 +147,10 @@ export type Database = {
           plan_type?: string
           status?: string
           created_at?: string | null
+          stripe_current_period_end?: string | null
+          is_student?: boolean | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
         }
       }
       user_roles: {
