@@ -1,7 +1,7 @@
 
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 
-export const createDocxFromText = async (text: string): Promise<Blob> {
+export const createDocxFromText = async (text: string): Promise<Blob> => {
   // Split text into paragraphs
   const paragraphs = text.split('\n').map(line => {
     return new Paragraph({
@@ -25,3 +25,4 @@ export const createDocxFromText = async (text: string): Promise<Blob> {
   // Generate and return document as Blob for browser compatibility
   return await Packer.toBlob(doc);
 };
+
