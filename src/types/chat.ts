@@ -9,7 +9,7 @@ export interface Message {
 }
 
 export interface ChatProps {
-  onSendMessage: (message: string, sender: 'user' | 'ai') => void;
+  onSendMessage: (message: string, sender: 'user' | 'ai', documentState?: string) => void;
   messages: Message[];
   documentContent?: string;
   onDocumentUpdate: (updatedContent: string) => void;
@@ -33,4 +33,3 @@ export interface MessageUsage {
   dailyMessageCount: number;
   subscription: Tables<'subscriptions'> | null;
 }
-
