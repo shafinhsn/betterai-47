@@ -22,7 +22,7 @@ export const Chat = ({
   const [chatPresets, setChatPresets] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [session, setSession] = useState<boolean>(false);
-  const { messageCount, dailyMessageCount, subscription, updateMessageCount } = useMessageUsage(isAdmin);
+  const { messageCount = 0, dailyMessageCount = 0, subscription, updateMessageCount } = useMessageUsage(isAdmin);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -58,7 +58,7 @@ export const Chat = ({
       }
     };
 
-    if (subscription?.plan_type === 'Business Pro' || isAdmin) {
+    if (subscription?.plan_type === 'Student Pro' || isAdmin) {
       loadChatPresets();
     }
   }, [subscription, isAdmin]);
@@ -68,16 +68,14 @@ export const Chat = ({
       return true;
     }
 
-    const lifetimeRemaining = FREE_TIER_LIMIT - messageCount;
-    const dailyRemaining = DAILY_FREE_MESSAGES - dailyMessageCount;
+    const lifetimeRemaining = FREE_TIER_LIMIT - (messageCount || 0);
+    const dailyRemaining = DAILY_FREE_MESSAGES - (dailyMessageCount || 0);
 
-    // If both limits are reached
     if (lifetimeRemaining <= 0 && dailyRemaining <= 0) {
       navigate('/subscription');
       return false;
     }
 
-    // Display remaining messages
     if (lifetimeRemaining > 0) {
       console.log(`${lifetimeRemaining} lifetime messages remaining`);
     }
@@ -127,7 +125,11 @@ export const Chat = ({
 
     } catch (error) {
       console.error('Error sending message:', error);
-      onSendMessage('Sorry, I encountered an error while processing your request.', 'ai');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+      });
     } finally {
       setIsLoading(false);
       setSelectedPreset('');
@@ -149,10 +151,10 @@ export const Chat = ({
       
       {!isAdmin && messageCount < FREE_TIER_LIMIT && !subscription && (
         <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
-          <span className="font-medium">{FREE_TIER_LIMIT - messageCount}</span> lifetime messages remaining
+          <span className="font-medium">{Math.max(0, FREE_TIER_LIMIT - messageCount)}</span> lifetime messages remaining
           {dailyMessageCount < DAILY_FREE_MESSAGES && (
             <span className="ml-2">
-              (<span className="font-medium">{DAILY_FREE_MESSAGES - dailyMessageCount}</span> daily messages remaining)
+              (<span className="font-medium">{Math.max(0, DAILY_FREE_MESSAGES - dailyMessageCount)}</span> daily messages remaining)
             </span>
           )}
         </div>
@@ -171,3 +173,4 @@ export const Chat = ({
     </div>
   );
 };
+
