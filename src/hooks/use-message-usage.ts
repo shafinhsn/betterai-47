@@ -26,38 +26,35 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
       const user = await getCurrentUser();
       if (!user) return;
 
-      const usage = await getMessageUsage(user.id);
+      const sub = await getSubscription(user.id);
+      setSubscription(sub);
 
-      if (shouldResetDailyCount(usage?.last_daily_reset)) {
-        await updateDailyMessageCount(user.id, 0, new Date().toISOString());
+      const usage = await getMessageUsage(user.id);
+      
+      if (!usage) {
+        await createMessageUsage(user.id);
+        setMessageCount(0);
+        setDailyMessageCount(0);
+        return;
+      }
+
+      if (shouldResetDailyCount(usage.last_daily_reset)) {
+        await updateDailyMessageCount(user.id, 0);
+        const counts = calculateMessageCounts({ ...usage, daily_message_count: 0 }, sub);
+        setMessageCount(counts.messageCount);
         setDailyMessageCount(0);
       } else {
-        const counts = calculateMessageCounts(usage, subscription);
+        const counts = calculateMessageCounts(usage, sub);
         setMessageCount(counts.messageCount);
         setDailyMessageCount(counts.dailyMessageCount);
       }
     } catch (error) {
       console.error('Error checking message usage:', error);
-    }
-  };
-
-  const checkSubscription = async () => {
-    if (isAdmin) {
-      setSubscription({
-        plan_type: 'Business Pro',
-        status: 'active'
-      } as Tables<'subscriptions'>);
-      return;
-    }
-
-    try {
-      const user = await getCurrentUser();
-      if (!user) return;
-
-      const sub = await getSubscription(user.id);
-      setSubscription(sub);
-    } catch (error) {
-      console.error('Error checking subscription:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to check message usage. Please try again.",
+      });
     }
   };
 
@@ -68,22 +65,26 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
       const user = await getCurrentUser();
       if (!user) throw new Error('No user found');
 
-      // Ensure profile exists
-      const usage = await getMessageUsage(user.id);
+      let usage = await getMessageUsage(user.id);
+      
       if (!usage) {
         await createProfile(user.id);
+        await createMessageUsage(user.id);
+        usage = await getMessageUsage(user.id);
+        if (!usage) throw new Error('Failed to create message usage');
       }
 
-      if (!usage) {
-        await createMessageUsage(user.id);
-        setMessageCount(1);
-        setDailyMessageCount(1);
-      } else {
-        const newCounts = calculateNewMessageCounts(usage, subscription);
-        await updateMessageUsage(user.id, newCounts.messageCount, newCounts.dailyMessageCount);
-        setMessageCount(newCounts.messageCount);
-        setDailyMessageCount(newCounts.dailyMessageCount);
+      if (shouldResetDailyCount(usage.last_daily_reset)) {
+        await updateDailyMessageCount(user.id, 0);
+        usage.daily_message_count = 0;
       }
+
+      const newCounts = calculateNewMessageCounts(usage, subscription);
+      await updateMessageUsage(user.id, newCounts.messageCount, newCounts.dailyMessageCount);
+      
+      setMessageCount(newCounts.messageCount);
+      setDailyMessageCount(newCounts.dailyMessageCount);
+      
     } catch (error) {
       console.error('Error updating message count:', error);
       toast({
@@ -91,12 +92,12 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         title: "Error",
         description: "Failed to update message count. Please try again.",
       });
+      throw error;
     }
   };
 
   useEffect(() => {
     checkMessageUsage();
-    checkSubscription();
   }, [isAdmin]);
 
   return {

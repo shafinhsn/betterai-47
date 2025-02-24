@@ -30,12 +30,12 @@ export const getSubscription = async (userId: string) => {
   return sub;
 };
 
-export const updateDailyMessageCount = async (userId: string, count: number, resetDate: string) => {
+export const updateDailyMessageCount = async (userId: string, count: number) => {
   const { error } = await supabase
     .from('message_usage')
     .update({ 
       daily_message_count: count,
-      last_daily_reset: resetDate
+      last_daily_reset: new Date().toISOString()
     })
     .eq('user_id', userId);
 
@@ -70,8 +70,8 @@ export const createMessageUsage = async (userId: string) => {
   const { error } = await supabase
     .from('message_usage')
     .insert([{ 
-      message_count: 1,
-      daily_message_count: 1,
+      message_count: 0,
+      daily_message_count: 0,
       user_id: userId,
       last_message_at: new Date().toISOString(),
       last_daily_reset: new Date().toISOString()
