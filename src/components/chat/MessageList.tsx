@@ -22,7 +22,7 @@ export const MessageList = ({ messages }: MessageListProps) => {
 
   return (
     <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-      <div className="space-y-4">
+      <div className="space-y-4 min-h-[200px]">
         {messages.map((message: Message) => (
           <div
             key={message.id}
@@ -40,4 +40,3 @@ export const MessageList = ({ messages }: MessageListProps) => {
     </ScrollArea>
   );
 };
-

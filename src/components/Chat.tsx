@@ -149,12 +149,12 @@ export const Chat = ({
       {subscription && !isAdmin && <TrialBanner subscription={subscription} />}
       <MessageList messages={messages} />
       
-      {!isAdmin && messageCount < FREE_TIER_LIMIT && !subscription && (
+      {!isAdmin && messageCount !== undefined && messageCount < FREE_TIER_LIMIT && !subscription && (
         <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
-          <span className="font-medium">{Math.max(0, FREE_TIER_LIMIT - messageCount)}</span> lifetime messages remaining
-          {dailyMessageCount < DAILY_FREE_MESSAGES && (
+          <span className="font-medium">{Math.max(0, FREE_TIER_LIMIT - (messageCount || 0))}</span> lifetime messages remaining
+          {dailyMessageCount !== undefined && dailyMessageCount < DAILY_FREE_MESSAGES && (
             <span className="ml-2">
-              (<span className="font-medium">{Math.max(0, DAILY_FREE_MESSAGES - dailyMessageCount)}</span> daily messages remaining)
+              (<span className="font-medium">{Math.max(0, DAILY_FREE_MESSAGES - (dailyMessageCount || 0))}</span> daily messages remaining)
             </span>
           )}
         </div>
@@ -173,4 +173,3 @@ export const Chat = ({
     </div>
   );
 };
-
