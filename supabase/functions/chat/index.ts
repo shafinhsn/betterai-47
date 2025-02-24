@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -27,7 +28,11 @@ serve(async (req) => {
     const isTransformRequest = message.toLowerCase().includes('write') || 
                              message.toLowerCase().includes('rewrite') || 
                              message.toLowerCase().includes('transform') ||
-                             message.toLowerCase().includes('change');
+                             message.toLowerCase().includes('change') ||
+                             message.toLowerCase().includes('update') ||
+                             message.toLowerCase().includes('modify') ||
+                             message.toLowerCase().includes('edit') ||
+                             message.toLowerCase().includes('delete');
 
     let systemPrompt = `You are a helpful AI document assistant. `;
     
@@ -37,7 +42,8 @@ serve(async (req) => {
       2. Output ONLY the modified text without any additional comments or explanations
       3. Never include phrases like "Here's the text written..." or "I've modified the text..."
       4. Return the transformed text exactly as requested, maintaining the original structure
-      5. Preserve any existing spacing and formatting patterns`;
+      5. Preserve any existing spacing and formatting patterns
+      6. Do not add any explanatory text or comments about the changes`;
     } else {
       systemPrompt += `Provide helpful responses about the document and explain your changes clearly.`;
     }
@@ -55,7 +61,7 @@ serve(async (req) => {
           { role: 'user', content: `Original text: "${context}"` },
           { role: 'user', content: message }
         ],
-        temperature: 0.3 // Lower temperature for more consistent outputs
+        temperature: 0.3
       }),
     });
 
@@ -67,7 +73,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           updatedDocument: aiResponse,
-          reply: "I've transformed the document as requested. You can see the changes in the preview."
+          reply: null // Don't send a chat reply for document transformations
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

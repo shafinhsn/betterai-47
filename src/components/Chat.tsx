@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -91,11 +92,13 @@ export const Chat = ({
       // If we received updated document content, update the preview first
       if (data?.updatedDocument) {
         onDocumentUpdate(data.updatedDocument);
-      }
-
-      // Then show any reply message in the chat
-      if (data?.reply) {
-        onSendMessage(data.reply, 'ai', previousState);
+        // Only send a chat message if there's a specific reply
+        if (data.reply) {
+          onSendMessage(data.reply, 'ai', previousState);
+        }
+      } else if (data?.reply) {
+        // If there's no document update but there is a reply, send it as a chat message
+        onSendMessage(data.reply, 'ai');
       }
 
       await updateMessageCount();
