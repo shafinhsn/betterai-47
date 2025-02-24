@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { useMessageUsage } from '@/hooks/use-message-usage';
-import { FREE_TIER_LIMIT, DAILY_FREE_MESSAGES } from '@/constants/subscription';
+import { FREE_TIER_LIMIT, DAILY_MESSAGE_LIMIT } from '@/constants/subscription';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
 import { TrialBanner } from './chat/TrialBanner';
@@ -22,7 +22,7 @@ export const Chat = ({
   const [chatPresets, setChatPresets] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [session, setSession] = useState<boolean>(false);
-  const { messageCount = 0, dailyMessageCount = 0, subscription, updateMessageCount } = useMessageUsage(isAdmin);
+  const { messageCount, dailyMessageCount, subscription, updateMessageCount } = useMessageUsage(isAdmin);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -58,31 +58,40 @@ export const Chat = ({
       }
     };
 
-    if (subscription?.plan_type === 'Student Pro' || isAdmin) {
+    if (subscription?.plan_type === 'Business Pro' || isAdmin) {
       loadChatPresets();
     }
   }, [subscription, isAdmin]);
 
   const checkUsageLimit = async () => {
     if (subscription || isAdmin) {
+      // For student subscription, only apply the 150 messages per day limit
+      if (subscription?.plan_type === 'Student Plan' && dailyMessageCount >= DAILY_MESSAGE_LIMIT.creator) {
+        toast({
+          variant: "destructive",
+          title: "Daily limit reached",
+          description: "You've reached your daily message limit of 150 messages. Try again tomorrow.",
+        });
+        return false;
+      }
       return true;
     }
-
-    const lifetimeRemaining = FREE_TIER_LIMIT - (messageCount || 0);
-    const dailyRemaining = DAILY_FREE_MESSAGES - (dailyMessageCount || 0);
-
-    if (lifetimeRemaining <= 0 && dailyRemaining <= 0) {
+    
+    if (messageCount >= FREE_TIER_LIMIT) {
       navigate('/subscription');
       return false;
     }
 
-    if (lifetimeRemaining > 0) {
-      console.log(`${lifetimeRemaining} lifetime messages remaining`);
+    // Only apply daily limit after free tier is used up
+    if (messageCount >= FREE_TIER_LIMIT && dailyMessageCount >= DAILY_MESSAGE_LIMIT.free) {
+      toast({
+        variant: "destructive",
+        title: "Daily limit reached",
+        description: "You've reached your daily message limit. Try again tomorrow or upgrade to continue.",
+      });
+      return false;
     }
-    if (dailyRemaining > 0) {
-      console.log(`${dailyRemaining} daily messages remaining`);
-    }
-
+    
     return true;
   };
 
@@ -125,11 +134,7 @@ export const Chat = ({
 
     } catch (error) {
       console.error('Error sending message:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-      });
+      onSendMessage('Sorry, I encountered an error while processing your request.', 'ai');
     } finally {
       setIsLoading(false);
       setSelectedPreset('');
@@ -149,14 +154,15 @@ export const Chat = ({
       {subscription && !isAdmin && <TrialBanner subscription={subscription} />}
       <MessageList messages={messages} />
       
-      {!isAdmin && messageCount !== undefined && messageCount < FREE_TIER_LIMIT && !subscription && (
+      {!isAdmin && messageCount < FREE_TIER_LIMIT && !subscription && (
         <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
-          <span className="font-medium">{Math.max(0, FREE_TIER_LIMIT - (messageCount || 0))}</span> lifetime messages remaining
-          {dailyMessageCount !== undefined && dailyMessageCount < DAILY_FREE_MESSAGES && (
-            <span className="ml-2">
-              (<span className="font-medium">{Math.max(0, DAILY_FREE_MESSAGES - (dailyMessageCount || 0))}</span> daily messages remaining)
-            </span>
-          )}
+          <span className="font-medium">{FREE_TIER_LIMIT - messageCount}</span> messages remaining in free tier
+        </div>
+      )}
+      
+      {!isAdmin && messageCount >= FREE_TIER_LIMIT && !subscription && (
+        <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
+          <span className="font-medium">{DAILY_MESSAGE_LIMIT.free - dailyMessageCount}</span> free messages remaining today
         </div>
       )}
       
@@ -173,3 +179,4 @@ export const Chat = ({
     </div>
   );
 };
+
