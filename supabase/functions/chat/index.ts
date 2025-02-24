@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,6 +16,7 @@ serve(async (req) => {
   try {
     const { message, context, preset } = await req.json();
     console.log('Received request:', { message, preset });
+    console.log('Current document context:', context);
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
@@ -29,15 +31,17 @@ serve(async (req) => {
 
     let systemPrompt = isStyleChange
       ? `You are an AI document assistant that modifies text to match specific styles or tones. When modifying documents:
-         1. First output the COMPLETE modified text with the requested style changes
+         1. First output the COMPLETE modified text with the requested style changes, using the most recent document state as the starting point
          2. Follow with "---EXPLANATION---"
          3. After the explanation marker, briefly describe how the text was modified
-         4. Preserve all important information while changing only the tone/style`
+         4. Always build upon the previous changes - do not revert to the original document
+         5. Preserve all formatting and important information while changing only the tone/style`
       : `You are a helpful AI document assistant. When modifying documents:
-         1. First output the COMPLETE modified document text with requested changes
+         1. First output the COMPLETE modified document text with requested changes, using the most recent document state as the starting point
          2. Follow that with "---EXPLANATION---"
          3. After the explanation marker, describe what changes were made
-         4. Preserve all formatting and spacing in the modified document`;
+         4. Always build upon the previous changes - do not revert to the original document
+         5. Preserve all formatting and spacing in the modified document`;
 
     console.log('Using system prompt:', systemPrompt);
 
@@ -51,7 +55,7 @@ serve(async (req) => {
         model: "gpt-4o-mini",
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Original document content:\n${context}` },
+          { role: 'user', content: `Current document state:\n${context}` },
           { role: 'user', content: message }
         ],
         temperature: 0.7
@@ -73,7 +77,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           updatedDocument,
-          reply: explanation || "I've updated the document's style as requested."
+          reply: explanation || "I've updated the document based on your request."
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -90,7 +94,7 @@ serve(async (req) => {
     console.error('Error in chat function:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'An error occurred while processing your request. Please try again.',
+        error: 'An error occurred while processing your request.',
         details: error.message 
       }),
       { 
