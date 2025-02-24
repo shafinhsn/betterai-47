@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/database.types';
 import type { MessageUsage } from '@/types/chat';
-import { DAILY_MESSAGE_LIMIT, FREE_TIER_LIMIT } from '@/constants/subscription';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentUser, getMessageUsage, getSubscription, updateDailyMessageCount, 
+         createProfile, updateMessageUsage, createMessageUsage } from '@/utils/message-usage-db';
+import { shouldResetDailyCount, calculateMessageCounts, calculateNewMessageCounts } from '@/utils/message-usage-utils';
 
 export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   updateMessageCount: () => Promise<void>;
@@ -22,48 +23,18 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) return;
 
-      const { data: usage, error } = await supabase
-        .from('message_usage')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const usage = await getMessageUsage(user.id);
 
-      if (error) throw error;
-
-      // Check if we need to reset daily count
-      const lastReset = usage?.last_daily_reset ? new Date(usage.last_daily_reset) : null;
-      const now = new Date();
-      const needsReset = lastReset && 
-        (lastReset.getDate() !== now.getDate() || 
-         lastReset.getMonth() !== now.getMonth() || 
-         lastReset.getFullYear() !== now.getFullYear());
-
-      if (needsReset) {
-        const { error: resetError } = await supabase
-          .from('message_usage')
-          .update({ 
-            daily_message_count: 0,
-            last_daily_reset: now.toISOString()
-          })
-          .eq('user_id', user.id);
-
-        if (resetError) throw resetError;
-        
+      if (shouldResetDailyCount(usage?.last_daily_reset)) {
+        await updateDailyMessageCount(user.id, 0, new Date().toISOString());
         setDailyMessageCount(0);
       } else {
-        // Ensure daily count doesn't exceed the limit based on subscription status
-        const dailyLimit = subscription ? DAILY_MESSAGE_LIMIT.creator : DAILY_MESSAGE_LIMIT.free;
-        setDailyMessageCount(Math.min(usage?.daily_message_count || 0, dailyLimit));
-      }
-
-      // Total message count is capped at free tier limit for non-subscribers
-      if (!subscription) {
-        setMessageCount(Math.min(usage?.message_count || 0, FREE_TIER_LIMIT));
-      } else {
-        setMessageCount(usage?.message_count || 0);
+        const counts = calculateMessageCounts(usage, subscription);
+        setMessageCount(counts.messageCount);
+        setDailyMessageCount(counts.dailyMessageCount);
       }
     } catch (error) {
       console.error('Error checking message usage:', error);
@@ -80,53 +51,13 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) return;
 
-      const { data: sub, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (error) throw error;
+      const sub = await getSubscription(user.id);
       setSubscription(sub);
     } catch (error) {
       console.error('Error checking subscription:', error);
-    }
-  };
-
-  const ensureProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-
-      // Check if profile exists
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-
-      // If profile doesn't exist, create it
-      if (!profile) {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([{ 
-            id: user.id,
-            created_at: new Date().toISOString()
-          }]);
-
-        if (insertError) throw insertError;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error ensuring profile exists:', error);
-      return false;
     }
   };
 
@@ -134,66 +65,24 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     if (isAdmin) return;
     
     try {
-      // Ensure profile exists before updating message count
-      const profileExists = await ensureProfile();
-      if (!profileExists) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Unable to update message count. Please try again.",
-        });
-        return;
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) throw new Error('No user found');
 
-      const { data: usage, error: selectError } = await supabase
-        .from('message_usage')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (selectError) throw selectError;
-
-      const dailyLimit = subscription ? DAILY_MESSAGE_LIMIT.creator : DAILY_MESSAGE_LIMIT.free;
+      // Ensure profile exists
+      const usage = await getMessageUsage(user.id);
+      if (!usage) {
+        await createProfile(user.id);
+      }
 
       if (!usage) {
-        const { error: insertError } = await supabase
-          .from('message_usage')
-          .insert([{ 
-            message_count: 1,
-            daily_message_count: 1,
-            user_id: user.id,
-            last_message_at: new Date().toISOString(),
-            last_daily_reset: new Date().toISOString()
-          }]);
-
-        if (insertError) throw insertError;
-        
+        await createMessageUsage(user.id);
         setMessageCount(1);
         setDailyMessageCount(1);
       } else {
-        // Ensure we don't exceed limits
-        const newMessageCount = subscription ? 
-          usage.message_count + 1 : 
-          Math.min(usage.message_count + 1, FREE_TIER_LIMIT);
-        
-        const newDailyMessageCount = Math.min(usage.daily_message_count + 1, dailyLimit);
-
-        const { error: updateError } = await supabase
-          .from('message_usage')
-          .update({ 
-            message_count: newMessageCount,
-            daily_message_count: newDailyMessageCount,
-            last_message_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id);
-
-        if (updateError) throw updateError;
-
-        setMessageCount(newMessageCount);
-        setDailyMessageCount(newDailyMessageCount);
+        const newCounts = calculateNewMessageCounts(usage, subscription);
+        await updateMessageUsage(user.id, newCounts.messageCount, newCounts.dailyMessageCount);
+        setMessageCount(newCounts.messageCount);
+        setDailyMessageCount(newCounts.dailyMessageCount);
       }
     } catch (error) {
       console.error('Error updating message count:', error);
