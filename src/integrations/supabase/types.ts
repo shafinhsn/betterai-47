@@ -84,6 +84,33 @@ export type Database = {
         }
         Relationships: []
       }
+      message_usage: {
+        Row: {
+          created_at: string | null
+          daily_message_count: number | null
+          id: string
+          initial_messages_used: number | null
+          last_daily_reset: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          daily_message_count?: number | null
+          id?: string
+          initial_messages_used?: number | null
+          last_daily_reset?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          daily_message_count?: number | null
+          id?: string
+          initial_messages_used?: number | null
+          last_daily_reset?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_products: {
         Row: {
           active: boolean | null
