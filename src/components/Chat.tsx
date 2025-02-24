@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { useMessageUsage } from '@/hooks/use-message-usage';
-import { FREE_TIER_LIMIT, DAILY_MESSAGE_LIMIT } from '@/constants/subscription';
+import { FREE_TIER_LIMIT, DAILY_MESSAGE_LIMIT, DAILY_FREE_MESSAGES } from '@/constants/subscription';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
 import { TrialBanner } from './chat/TrialBanner';
@@ -83,7 +83,7 @@ export const Chat = ({
     }
 
     // Only apply daily limit after free tier is used up
-    if (messageCount >= FREE_TIER_LIMIT && dailyMessageCount >= DAILY_MESSAGE_LIMIT.free) {
+    if (messageCount >= FREE_TIER_LIMIT && dailyMessageCount >= DAILY_FREE_MESSAGES) {
       toast({
         variant: "destructive",
         title: "Daily limit reached",
@@ -162,7 +162,7 @@ export const Chat = ({
       
       {!isAdmin && messageCount >= FREE_TIER_LIMIT && !subscription && (
         <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
-          <span className="font-medium">{DAILY_MESSAGE_LIMIT.free - dailyMessageCount}</span> free messages remaining today
+          <span className="font-medium">{DAILY_FREE_MESSAGES - dailyMessageCount}</span> free messages remaining today
         </div>
       )}
       
@@ -179,4 +179,3 @@ export const Chat = ({
     </div>
   );
 };
-

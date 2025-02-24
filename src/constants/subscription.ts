@@ -26,9 +26,11 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 // Free tier limits
 export const FREE_TIER_LIMIT = 100;
 
+// Daily message limits for free users
+export const DAILY_FREE_MESSAGES = 5;
+
 // API usage limits (messages per day) to prevent abuse
 export const DAILY_MESSAGE_LIMIT = {
   creator: 150,
-  free: 5
+  free: DAILY_FREE_MESSAGES
 };
-
