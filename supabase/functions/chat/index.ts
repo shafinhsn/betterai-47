@@ -17,30 +17,28 @@ serve(async (req) => {
   try {
     const { message, context, preset } = await req.json();
     
-    console.log('Received request:', { message, preset });
-    console.log('Document context:', context.substring(0, 100) + '...');
+    console.log('Processing request:', { message, preset });
+    console.log('Current document context:', context.substring(0, 100) + '...');
 
-    // Construct a system prompt that emphasizes exact modifications
-    let systemPrompt = 'You are a document editing assistant. You must follow these rules strictly:\n';
-    systemPrompt += '1. Only return the exact content that should remain in the document\n';
-    systemPrompt += '2. Do not include any explanatory text or messages\n';
-    systemPrompt += '3. Do not preserve any content that should be removed\n';
-    systemPrompt += '4. Make sure your response contains ONLY the final document content\n';
-    
+    // Construct system prompt that demands exact document modifications
+    let systemPrompt = `You are a document editing assistant. Follow these instructions precisely:
+
+1. If the user requests ANY modifications to the document:
+   - Return ONLY the complete modified document content
+   - Do not include ANY explanatory text or messages
+   - Make EXACTLY the changes requested, nothing more or less
+   - Ensure the entire document content is returned, not just the modified section
+
+2. If the user asks a question or requests information WITHOUT asking for document changes:
+   - Provide a clear, informative response
+   - Do not modify or return the document content
+
+3. NEVER mix document modifications with explanatory text
+   - Either return the modified document OR a response, never both
+   - If returning modified content, it must be the complete document with changes`;
+
     if (preset) {
-      switch (preset) {
-        case 'summarize':
-          systemPrompt += '5. Focus on creating concise summaries while maintaining key points\n';
-          break;
-        case 'formal':
-          systemPrompt += '5. Ensure the language is professional and formal\n';
-          break;
-        case 'casual':
-          systemPrompt += '5. Make the tone more conversational and approachable\n';
-          break;
-        default:
-          systemPrompt += `5. Apply the specific style requested: ${preset}\n`;
-      }
+      systemPrompt += `\n\n4. Apply the following style preset: ${preset}`;
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -50,7 +48,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           { 
             role: 'system', 
@@ -58,10 +56,10 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Current document content:\n${context}\n\nUser request: ${message}\n\nProvide ONLY the content that should remain in the document, exactly as it should appear. Do not include any explanations or additional text.`
+            content: `Current document content:\n\n${context}\n\nUser request: ${message}`
           }
         ],
-        temperature: 0.1, // Using a lower temperature for more precise output
+        temperature: 0.1, // Using low temperature for more precise output
       }),
     });
 
@@ -73,23 +71,23 @@ serve(async (req) => {
 
     const aiResponse = data.choices[0].message.content.trim();
     
-    // If the response looks like an explanation rather than content, handle it differently
-    if (aiResponse.toLowerCase().includes('no changes needed') || 
-        aiResponse.toLowerCase().includes('original document') ||
-        aiResponse.toLowerCase().includes('here is') ||
-        aiResponse.toLowerCase().includes('i have') ||
+    // If the response looks like an explanation rather than document content
+    if (aiResponse.toLowerCase().includes('i ') || 
+        aiResponse.toLowerCase().includes('the ') ||
+        aiResponse.toLowerCase().includes('here') ||
+        aiResponse.toLowerCase().includes('will') ||
         aiResponse.includes('```')) {
+      // This is a response message, not document content
       return new Response(JSON.stringify({ 
-        reply: "I'll keep the document as is. No changes were necessary."
+        reply: aiResponse 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Return the modified content and a chat message
+    // If we get here, assume the response is modified document content
     return new Response(JSON.stringify({
-      updatedDocument: aiResponse,
-      reply: "I've updated the document based on your request. You can see the changes in the preview panel."
+      updatedDocument: aiResponse
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
