@@ -23,6 +23,12 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
     }
   }, [messages]);
 
+  const handleRestore = (documentState: string | undefined) => {
+    if (documentState && onRestoreDocument) {
+      onRestoreDocument(documentState);
+    }
+  };
+
   return (
     <div className="flex-1 min-h-0 relative overflow-hidden">
       <ScrollArea className="h-[calc(100vh-180px)]">
@@ -45,7 +51,7 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 rounded-full hover:bg-emerald-800/50"
-                    onClick={() => onRestoreDocument(message.documentState!)}
+                    onClick={() => handleRestore(message.documentState)}
                     title="Restore document to previous state"
                   >
                     <RotateCcw className="h-4 w-4" />

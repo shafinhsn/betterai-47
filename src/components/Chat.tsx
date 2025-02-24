@@ -73,6 +73,7 @@ export const Chat = ({
       setIsLoading(true);
       
       // Store the current document state before making any changes
+      const previousState = documentContent;
       onSendMessage(content, 'user');
       
       const { data, error } = await supabase.functions.invoke('chat', {
@@ -103,7 +104,7 @@ export const Chat = ({
 
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
-        const previousState = documentContent || '';
+        // Pass the previous state when sending the AI's response message
         onDocumentUpdate(data.updatedDocument);
         onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', previousState);
       } else if (data?.reply) {
@@ -111,7 +112,7 @@ export const Chat = ({
         if (documentContent) {
           onDocumentUpdate(documentContent);
         }
-        onSendMessage(data.reply, 'ai', documentContent);
+        onSendMessage(data.reply, 'ai', previousState);
       }
 
       await updateMessageCount();
