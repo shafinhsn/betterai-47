@@ -89,30 +89,18 @@ export const Chat = ({
         return;
       }
 
-      // Check if the response contains an error message
-      if (data?.reply && (
-        data.reply.toLowerCase().includes("i'm sorry") ||
-        data.reply.toLowerCase().includes("i can't assist") ||
-        data.reply.toLowerCase().includes("cannot assist") ||
-        data.reply.toLowerCase().includes("unable to") ||
-        data.reply.toLowerCase().includes("apologize")
-      )) {
-        // Send error message only to chat, don't update document
+      // If we received a reply message, show it in the chat
+      if (data?.reply) {
         onSendMessage(data.reply, 'ai');
-        return;
       }
 
+      // If we received updated document content, update the preview
       if (data?.updatedDocument) {
-        console.log('Updating document with new content');
-        // Pass the previous state when sending the AI's response message
         onDocumentUpdate(data.updatedDocument);
-        onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', previousState);
-      } else if (data?.reply) {
-        // Only update document if it's not an error message
-        if (documentContent) {
-          onDocumentUpdate(documentContent);
+        // Only send a success message to chat if no other message was sent
+        if (!data?.reply) {
+          onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', previousState);
         }
-        onSendMessage(data.reply, 'ai', previousState);
       }
 
       await updateMessageCount();
