@@ -7,27 +7,34 @@ export const downloadOriginalDocument = async (currentDocument: ProcessedDocumen
   if (!currentDocument) {
     throw new Error('No document selected for download');
   }
-
+  
   try {
-    // Create a new blob from the file path (which is now a local object URL)
-    const response = await fetch(currentDocument.filePath);
+    // Check if the filePath is a valid URL
+    let url: string;
+    try {
+      url = currentDocument.filePath;
+      new URL(url); // This will throw if the URL is invalid
+    } catch {
+      throw new Error('Invalid file path');
+    }
+
+    // Create new fetch request with proper error handling
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to download document: HTTP error ${response.status}`);
     }
 
     const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
+    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = downloadUrl;
     a.download = currentDocument.filename;
     document.body.appendChild(a);
     a.click();
     
     // Cleanup
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }, 100);
+    URL.revokeObjectURL(downloadUrl);
+    document.body.removeChild(a);
   } catch (error) {
     console.error('Error in downloadOriginalDocument:', error);
     throw error;
@@ -49,19 +56,16 @@ export const downloadUpdatedDocument = async (content: string, filename: string,
       blob = await createDocxFromText(content);
     }
 
-    // Create and trigger download
-    const url = URL.createObjectURL(blob);
+    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = downloadUrl;
     a.download = `${filename.replace(/\.[^/.]+$/, '')}_updated.${fileType === 'application/pdf' ? 'pdf' : 'docx'}`;
     document.body.appendChild(a);
     a.click();
     
     // Cleanup
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    }, 100);
+    URL.revokeObjectURL(downloadUrl);
+    document.body.removeChild(a);
   } catch (error) {
     console.error('Error generating document:', error);
     throw error;
