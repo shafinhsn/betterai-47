@@ -21,7 +21,7 @@ export const getAdminSubscription = (): Tables<'subscriptions'> => {
     user_id: 'admin',
     plan_type: 'Business Pro',
     status: 'active',
-    current_period_end: new Date().toISOString(),
+    stripe_current_period_end: new Date().toISOString(),
     payment_processor: 'paypal',
     payment_subscription_id: 'admin',
     payment_price_id: 'admin',
