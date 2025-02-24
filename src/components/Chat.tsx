@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,6 +72,7 @@ export const Chat = ({
     try {
       setIsLoading(true);
       
+      // Store the current document state before making any changes
       onSendMessage(content, 'user');
       
       const { data, error } = await supabase.functions.invoke('chat', {
@@ -85,13 +87,14 @@ export const Chat = ({
 
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
+        const previousState = documentContent || '';
         onDocumentUpdate(data.updatedDocument);
-        onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', data.updatedDocument);
+        onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', previousState);
       } else if (data?.reply) {
         if (documentContent) {
           onDocumentUpdate(documentContent);
         }
-        onSendMessage(data.reply, 'ai');
+        onSendMessage(data.reply, 'ai', documentContent);
       }
 
       await updateMessageCount();
