@@ -84,44 +84,6 @@ export type Database = {
         }
         Relationships: []
       }
-      message_usage: {
-        Row: {
-          created_at: string | null
-          daily_message_count: number | null
-          id: string
-          last_daily_reset: string | null
-          last_message_at: string | null
-          message_count: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          daily_message_count?: number | null
-          id?: string
-          last_daily_reset?: string | null
-          last_message_at?: string | null
-          message_count?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          daily_message_count?: number | null
-          id?: string
-          last_daily_reset?: string | null
-          last_message_at?: string | null
-          message_count?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_usage_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       payment_products: {
         Row: {
           active: boolean | null
