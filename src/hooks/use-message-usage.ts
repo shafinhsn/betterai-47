@@ -54,10 +54,17 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         
         setDailyMessageCount(0);
       } else {
-        setDailyMessageCount(usage?.daily_message_count || 0);
+        // Ensure daily count doesn't exceed the limit based on subscription status
+        const dailyLimit = subscription ? DAILY_MESSAGE_LIMIT.creator : DAILY_MESSAGE_LIMIT.free;
+        setDailyMessageCount(Math.min(usage?.daily_message_count || 0, dailyLimit));
       }
 
-      setMessageCount(Math.min(usage?.message_count || 0, FREE_TIER_LIMIT));
+      // Total message count is capped at free tier limit for non-subscribers
+      if (!subscription) {
+        setMessageCount(Math.min(usage?.message_count || 0, FREE_TIER_LIMIT));
+      } else {
+        setMessageCount(usage?.message_count || 0);
+      }
     } catch (error) {
       console.error('Error checking message usage:', error);
     }
@@ -149,6 +156,8 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
 
       if (selectError) throw selectError;
 
+      const dailyLimit = subscription ? DAILY_MESSAGE_LIMIT.creator : DAILY_MESSAGE_LIMIT.free;
+
       if (!usage) {
         const { error: insertError } = await supabase
           .from('message_usage')
@@ -165,9 +174,12 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         setMessageCount(1);
         setDailyMessageCount(1);
       } else {
-        // Ensure we don't exceed the free tier limit
-        const newMessageCount = Math.min(usage.message_count + 1, FREE_TIER_LIMIT);
-        const newDailyMessageCount = usage.daily_message_count + 1;
+        // Ensure we don't exceed limits
+        const newMessageCount = subscription ? 
+          usage.message_count + 1 : 
+          Math.min(usage.message_count + 1, FREE_TIER_LIMIT);
+        
+        const newDailyMessageCount = Math.min(usage.daily_message_count + 1, dailyLimit);
 
         const { error: updateError } = await supabase
           .from('message_usage')
