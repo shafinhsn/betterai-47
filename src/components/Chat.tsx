@@ -83,7 +83,23 @@ export const Chat = ({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        onSendMessage("I'm sorry, but I encountered an error while processing your request.", 'ai');
+        return;
+      }
+
+      // Check if the response contains an error message
+      if (data?.reply && (
+        data.reply.toLowerCase().includes("i'm sorry") ||
+        data.reply.toLowerCase().includes("i can't assist") ||
+        data.reply.toLowerCase().includes("cannot assist") ||
+        data.reply.toLowerCase().includes("unable to") ||
+        data.reply.toLowerCase().includes("apologize")
+      )) {
+        // Send error message only to chat, don't update document
+        onSendMessage(data.reply, 'ai');
+        return;
+      }
 
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
@@ -91,6 +107,7 @@ export const Chat = ({
         onDocumentUpdate(data.updatedDocument);
         onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', previousState);
       } else if (data?.reply) {
+        // Only update document if it's not an error message
         if (documentContent) {
           onDocumentUpdate(documentContent);
         }
