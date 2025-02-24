@@ -74,12 +74,14 @@ export const MainLayout = ({
             <ResizablePanelGroup direction="horizontal">
               <ResizablePanel defaultSize={40}>
                 <div className="h-full flex flex-col">
-                  <Chat
-                    messages={messages}
-                    onSendMessage={onSendMessage}
-                    documentContent={content}
-                    onDocumentUpdate={onDocumentUpdate}
-                  />
+                  <div className="flex-1">
+                    <Chat
+                      messages={messages}
+                      onSendMessage={onSendMessage}
+                      documentContent={content}
+                      onDocumentUpdate={onDocumentUpdate}
+                    />
+                  </div>
                 </div>
               </ResizablePanel>
 
