@@ -20,24 +20,28 @@ serve(async (req) => {
     console.log('Received request:', { message, preset });
     console.log('Document context:', context.substring(0, 100) + '...');
 
-    // Construct a more specific system prompt based on the preset
-    let systemPrompt = 'You are a document editing assistant. Only output the exact modified content without any explanatory text or messages. ';
+    // Construct a system prompt that emphasizes exact modifications
+    let systemPrompt = 'You are a document editing assistant. You must follow these rules strictly:\n';
+    systemPrompt += '1. Only return the exact content that should remain in the document\n';
+    systemPrompt += '2. Do not include any explanatory text or messages\n';
+    systemPrompt += '3. Do not preserve any content that should be removed\n';
+    systemPrompt += '4. Make sure your response contains ONLY the final document content\n';
+    
     if (preset) {
       switch (preset) {
         case 'summarize':
-          systemPrompt += 'Focus on creating concise summaries while maintaining key points.';
+          systemPrompt += '5. Focus on creating concise summaries while maintaining key points\n';
           break;
         case 'formal':
-          systemPrompt += 'Ensure the language is professional and formal.';
+          systemPrompt += '5. Ensure the language is professional and formal\n';
           break;
         case 'casual':
-          systemPrompt += 'Make the tone more conversational and approachable.';
+          systemPrompt += '5. Make the tone more conversational and approachable\n';
           break;
         default:
-          systemPrompt += 'Apply the specific style requested: ' + preset;
+          systemPrompt += `5. Apply the specific style requested: ${preset}\n`;
       }
     }
-    systemPrompt += ' Return ONLY the modified content exactly as it should appear, with no additional text or explanations.';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -54,10 +58,10 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Document content:\n${context}\n\nUser request: ${message}\n\nProvide ONLY the modified content with no explanatory text.`
+            content: `Current document content:\n${context}\n\nUser request: ${message}\n\nProvide ONLY the content that should remain in the document, exactly as it should appear. Do not include any explanations or additional text.`
           }
         ],
-        temperature: 0.3,
+        temperature: 0.1, // Using a lower temperature for more precise output
       }),
     });
 
@@ -69,26 +73,26 @@ serve(async (req) => {
 
     const aiResponse = data.choices[0].message.content.trim();
     
-    // Check if the response is an explanation rather than content
+    // If the response looks like an explanation rather than content, handle it differently
     if (aiResponse.toLowerCase().includes('no changes needed') || 
         aiResponse.toLowerCase().includes('original document') ||
         aiResponse.toLowerCase().includes('here is') ||
-        aiResponse.toLowerCase().includes('the rest of')) {
-      // If it's an explanation, return it as a reply only
+        aiResponse.toLowerCase().includes('i have') ||
+        aiResponse.includes('```')) {
       return new Response(JSON.stringify({ 
         reply: "I'll keep the document as is. No changes were necessary."
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    } else {
-      // If it's actual content changes, return them
-      return new Response(JSON.stringify({
-        updatedDocument: aiResponse,
-        reply: "I've updated the document based on your request. You can see the changes in the preview panel."
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
+
+    // Return the modified content and a chat message
+    return new Response(JSON.stringify({
+      updatedDocument: aiResponse,
+      reply: "I've updated the document based on your request. You can see the changes in the preview panel."
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in chat function:', error);
