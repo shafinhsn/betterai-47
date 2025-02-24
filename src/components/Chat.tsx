@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,18 +88,14 @@ export const Chat = ({
         return;
       }
 
-      // If we received a reply message, show it in the chat
-      if (data?.reply) {
-        onSendMessage(data.reply, 'ai');
-      }
-
-      // If we received updated document content, update the preview
+      // If we received updated document content, update the preview first
       if (data?.updatedDocument) {
         onDocumentUpdate(data.updatedDocument);
-        // Only send a success message to chat if no other message was sent
-        if (!data?.reply) {
-          onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', previousState);
-        }
+      }
+
+      // Then show any reply message in the chat
+      if (data?.reply) {
+        onSendMessage(data.reply, 'ai', previousState);
       }
 
       await updateMessageCount();

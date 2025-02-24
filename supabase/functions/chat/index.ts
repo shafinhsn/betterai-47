@@ -1,8 +1,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,29 +15,27 @@ serve(async (req) => {
 
   try {
     const { message, context, preset } = await req.json();
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
+    console.log('Processing chat request with message:', message);
+    console.log('Current document context:', context);
+
+    // If the message indicates a document transformation
+    const isTransformRequest = message.toLowerCase().includes('write') || 
+                             message.toLowerCase().includes('rewrite') || 
+                             message.toLowerCase().includes('transform') ||
+                             message.toLowerCase().includes('change');
+
+    let systemPrompt = `You are a helpful AI document assistant. `;
     
-    console.log('Processing request:', { message, preset });
-    console.log('Current document context:', context.substring(0, 100) + '...');
-
-    // Construct system prompt that demands exact document modifications
-    let systemPrompt = `You are a document editing assistant. Follow these instructions precisely:
-
-1. If the user requests ANY modifications to the document:
-   - Return ONLY the complete modified document content
-   - Do not include ANY explanatory text or messages
-   - Make EXACTLY the changes requested, nothing more or less
-   - Ensure the entire document content is returned, not just the modified section
-
-2. If the user asks a question or requests information WITHOUT asking for document changes:
-   - Provide a clear, informative response
-   - Do not modify or return the document content
-
-3. NEVER mix document modifications with explanatory text
-   - Either return the modified document OR a response, never both
-   - If returning modified content, it must be the complete document with changes`;
-
-    if (preset) {
-      systemPrompt += `\n\n4. Apply the following style preset: ${preset}`;
+    if (isTransformRequest) {
+      systemPrompt += `When asked to modify text, you should output ONLY the modified text without any additional comments or explanations. Do not include phrases like "Here's the text written..." or "I've modified the text...". Simply return the transformed text exactly as requested.`;
+    } else {
+      systemPrompt += `Provide helpful responses about the document and explain your changes clearly.`;
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -50,55 +47,43 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o',
         messages: [
-          { 
-            role: 'system', 
-            content: systemPrompt
-          },
-          { 
-            role: 'user', 
-            content: `Current document content:\n\n${context}\n\nUser request: ${message}`
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Original text: "${context}"` },
+          { role: 'user', content: message }
         ],
-        temperature: 0.1, // Using low temperature for more precise output
       }),
     });
 
     const data = await response.json();
-    
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response from OpenAI');
-    }
+    const aiResponse = data.choices[0].message.content;
+    console.log('AI Response:', aiResponse);
 
-    const aiResponse = data.choices[0].message.content.trim();
-    
-    // If the response looks like an explanation rather than document content
-    if (aiResponse.toLowerCase().includes('i ') || 
-        aiResponse.toLowerCase().includes('the ') ||
-        aiResponse.toLowerCase().includes('here') ||
-        aiResponse.toLowerCase().includes('will') ||
-        aiResponse.includes('```')) {
-      // This is a response message, not document content
-      return new Response(JSON.stringify({ 
-        reply: aiResponse 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (isTransformRequest) {
+      return new Response(
+        JSON.stringify({ 
+          updatedDocument: aiResponse,
+          reply: "I've transformed the document as requested. You can see the changes in the preview."
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ reply: aiResponse }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    // If we get here, assume the response is modified document content
-    return new Response(JSON.stringify({
-      updatedDocument: aiResponse
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
   } catch (error) {
     console.error('Error in chat function:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Failed to process your request. Please try again.' 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: 'An error occurred while processing your request.',
+        details: error.message 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 });
