@@ -92,13 +92,11 @@ export const Chat = ({
       // If we received updated document content, update the preview first
       if (data?.updatedDocument) {
         onDocumentUpdate(data.updatedDocument);
-        // Only send a chat message if there's a specific reply
-        if (data.reply) {
-          onSendMessage(data.reply, 'ai', previousState);
-        }
-      } else if (data?.reply) {
-        // If there's no document update but there is a reply, send it as a chat message
-        onSendMessage(data.reply, 'ai');
+      }
+
+      // Always send a chat message if there's a reply
+      if (data?.reply) {
+        onSendMessage(data.reply, 'ai', data.updatedDocument ? previousState : undefined);
       }
 
       await updateMessageCount();
