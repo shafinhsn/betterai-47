@@ -35,16 +35,6 @@
     @apply border-border;
   }
 
-  /* Hide scrollbar for all elements except document-preview */
-  * {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  *::-webkit-scrollbar {
-    display: none;
-  }
-
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
@@ -58,13 +48,11 @@
 
 .document-preview {
   @apply bg-[#1a1a1a] p-6 rounded-lg;
-  scrollbar-width: thin !important;
-  scrollbar-color: rgb(22 163 74) transparent !important;
-  -ms-overflow-style: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(22 163 74) transparent;
 }
 
 .document-preview::-webkit-scrollbar {
-  display: block !important;
   width: 8px;
   height: 8px;
 }
@@ -129,3 +117,4 @@
     opacity: 1;
   }
 }
+
