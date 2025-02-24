@@ -15,6 +15,7 @@ serve(async (req) => {
 
   try {
     const { message, context, preset } = await req.json();
+    console.log('Received request:', { message, preset });
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
@@ -24,21 +25,25 @@ serve(async (req) => {
     const configuration = new Configuration({ apiKey: openAIApiKey });
     const openai = new OpenAIApi(configuration);
 
-    const isDocumentModification = message.toLowerCase().includes('add') ||
-                                 message.toLowerCase().includes('remove') ||
-                                 message.toLowerCase().includes('change') ||
-                                 message.toLowerCase().includes('format') ||
-                                 message.toLowerCase().includes('update') ||
-                                 message.toLowerCase().includes('modify') ||
-                                 message.toLowerCase().includes('rewrite');
+    // Check if this is a style/tone change request
+    const isStyleChange = preset === 'casual' || 
+                         message.toLowerCase().includes('write this as') ||
+                         message.toLowerCase().includes('change the tone') ||
+                         message.toLowerCase().includes('make it sound');
 
-    const systemPrompt = isDocumentModification 
-      ? `You are an AI document assistant. When modifying documents:
+    let systemPrompt = isStyleChange
+      ? `You are an AI document assistant that modifies text to match specific styles or tones. When modifying documents:
+         1. First output the COMPLETE modified text with the requested style changes
+         2. Follow with "---EXPLANATION---"
+         3. After the explanation marker, briefly describe how the text was modified
+         4. Preserve all important information while changing only the tone/style`
+      : `You are a helpful AI document assistant. When modifying documents:
          1. First output the COMPLETE modified document text with requested changes
          2. Follow that with "---EXPLANATION---"
          3. After the explanation marker, describe what changes were made
-         4. Preserve all formatting and spacing in the modified document`
-      : `You are a helpful AI document assistant. Provide clear explanations about the document without modifying it.`;
+         4. Preserve all formatting and spacing in the modified document`;
+
+    console.log('Using system prompt:', systemPrompt);
 
     const completion = await openai.createChatCompletion({
       model: "gpt-4o-mini",
@@ -47,32 +52,42 @@ serve(async (req) => {
         { role: 'user', content: `Original document content:\n${context}` },
         { role: 'user', content: message }
       ],
-      temperature: 0.3
+      temperature: 0.7 // Slightly higher temperature for style changes to allow more creative responses
     });
 
     const aiResponse = completion.data.choices[0].message.content;
+    console.log('Got AI response:', aiResponse);
 
-    if (isDocumentModification) {
+    if (aiResponse.includes('---EXPLANATION---')) {
       const [updatedDocument, explanation] = aiResponse.split('---EXPLANATION---').map(text => text.trim());
+      console.log('Sending response with document update');
       return new Response(
         JSON.stringify({ 
           updatedDocument,
-          reply: explanation || "I've updated the document as requested."
+          reply: explanation || "I've updated the document's style as requested."
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // If no document update was made, just return the reply
+    console.log('Sending response without document update');
     return new Response(
       JSON.stringify({ reply: aiResponse }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in chat function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: 'An error occurred while processing your request. Please try again.',
+        details: error.message 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
