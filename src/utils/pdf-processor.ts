@@ -1,6 +1,5 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
-import { useToast } from "@/hooks/use-toast";
 
 // Initialize PDF.js worker
 if (typeof window !== 'undefined') {
@@ -26,8 +25,12 @@ export const processPdf = async (file: File): Promise<string> => {
       const content = await page.getTextContent();
       const pageText = content.items
         .map((item: any) => item.str)
-        .join(' ');
-      textContent.push(pageText);
+        .filter(str => str.trim().length > 0) // Filter out empty strings
+        .join(' ')
+        .replace(/\s+/g, ' '); // Normalize whitespace
+      if (pageText.trim().length > 0) {
+        textContent.push(pageText);
+      }
     }
     
     return textContent.join('\n\n');

@@ -4,19 +4,20 @@ import { PDFDocument, StandardFonts } from 'pdf-lib';
 export const createPDFFromText = async (text: string) => {
   const pdfDoc = await PDFDocument.create();
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const page = pdfDoc.addPage();
-  const { width, height } = page.getSize();
+  
+  // Split text into paragraphs
+  const paragraphs = text.split('\n\n').filter(p => p.trim().length > 0);
+  let currentPage = pdfDoc.addPage();
+  const { width, height } = currentPage.getSize();
   
   const fontSize = 12;
   const lineHeight = fontSize * 1.2;
   const margin = 50;
   const maxWidth = width - (margin * 2);
-  
-  const paragraphs = text.split('\n');
   let yPosition = height - margin;
   
   for (const paragraph of paragraphs) {
-    const words = paragraph.split(' ');
+    const words = paragraph.trim().split(' ');
     let currentLine = '';
     
     for (const word of words) {
@@ -26,34 +27,39 @@ export const createPDFFromText = async (text: string) => {
       if (lineWidth <= maxWidth) {
         currentLine = testLine;
       } else {
-        if (yPosition > margin) {
-          page.drawText(currentLine, {
-            x: margin,
-            y: yPosition,
-            size: fontSize,
-            font: helveticaFont,
-          });
-          yPosition -= lineHeight;
+        // Check if we need a new page
+        if (yPosition - lineHeight < margin) {
+          currentPage = pdfDoc.addPage();
+          yPosition = height - margin;
         }
+        
+        // Draw the current line
+        currentPage.drawText(currentLine, {
+          x: margin,
+          y: yPosition,
+          size: fontSize,
+          font: helveticaFont,
+        });
+        yPosition -= lineHeight;
         currentLine = word;
       }
     }
     
-    if (currentLine && yPosition > margin) {
-      page.drawText(currentLine, {
+    // Draw the last line of the paragraph
+    if (currentLine) {
+      // Check if we need a new page
+      if (yPosition - lineHeight < margin) {
+        currentPage = pdfDoc.addPage();
+        yPosition = height - margin;
+      }
+      
+      currentPage.drawText(currentLine, {
         x: margin,
         y: yPosition,
         size: fontSize,
         font: helveticaFont,
       });
-      yPosition -= lineHeight;
-    }
-    
-    yPosition -= lineHeight/2;
-    
-    if (yPosition <= margin) {
-      const newPage = pdfDoc.addPage();
-      yPosition = newPage.getSize().height - margin;
+      yPosition -= lineHeight * 1.5; // Add extra space after paragraphs
     }
   }
   

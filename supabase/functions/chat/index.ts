@@ -1,7 +1,6 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,7 +32,12 @@ serve(async (req) => {
     let systemPrompt = `You are a helpful AI document assistant. `;
     
     if (isTransformRequest) {
-      systemPrompt += `When asked to modify text, you should output ONLY the modified text without any additional comments or explanations. Do not include phrases like "Here's the text written..." or "I've modified the text...". Simply return the transformed text exactly as requested.`;
+      systemPrompt += `When asked to modify text, you should:
+      1. Preserve all paragraph breaks using \n\n between paragraphs
+      2. Output ONLY the modified text without any additional comments or explanations
+      3. Never include phrases like "Here's the text written..." or "I've modified the text..."
+      4. Return the transformed text exactly as requested, maintaining the original structure
+      5. Preserve any existing spacing and formatting patterns`;
     } else {
       systemPrompt += `Provide helpful responses about the document and explain your changes clearly.`;
     }
@@ -51,6 +55,7 @@ serve(async (req) => {
           { role: 'user', content: `Original text: "${context}"` },
           { role: 'user', content: message }
         ],
+        temperature: 0.3 // Lower temperature for more consistent outputs
       }),
     });
 
