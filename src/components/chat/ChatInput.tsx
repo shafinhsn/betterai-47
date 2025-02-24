@@ -27,11 +27,11 @@ export const ChatInput = ({
   onSubmit
 }: ChatInputProps) => {
   return (
-    <form onSubmit={onSubmit} className="p-4 border-t border-emerald-900/20 bg-[#1a1a1a]">
-      <div className="flex flex-col gap-2">
+    <form onSubmit={onSubmit} className="sticky bottom-0 p-4 bg-gradient-to-t from-[#1a1a1a] to-transparent backdrop-blur-sm border-t border-emerald-900/20">
+      <div className="flex flex-col gap-2 max-w-4xl mx-auto">
         {subscription?.plan_type === 'Student Pro' && (
           <Select value={selectedPreset} onValueChange={onPresetChange}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full transition-all duration-200 hover:border-emerald-500">
               <SelectValue placeholder="Select chat preset (optional)" />
             </SelectTrigger>
             <SelectContent>
@@ -48,10 +48,15 @@ export const ChatInput = ({
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             placeholder="Ask anything about your document..."
-            className="flex-1 bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50 focus:ring-1 focus:ring-emerald-500"
+            className="flex-1 bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50 focus:ring-1 focus:ring-emerald-500 transition-all duration-200"
             disabled={isLoading}
           />
-          <Button type="submit" size="icon" disabled={isLoading} className="bg-emerald-700 hover:bg-emerald-600">
+          <Button 
+            type="submit" 
+            size="icon" 
+            disabled={isLoading}
+            className="bg-emerald-700 hover:bg-emerald-600 transition-colors duration-200 hover:scale-105 active:scale-95"
+          >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

@@ -21,17 +21,18 @@ export const MessageList = ({ messages }: MessageListProps) => {
   }, [messages]);
 
   return (
-    <div className="flex-1 min-h-0"> {/* Add min-h-0 to enable proper flex behavior */}
-      <ScrollArea className="h-[calc(100vh-180px)] px-4">
-        <div className="space-y-4 py-4">
+    <div className="flex-1 min-h-0 relative overflow-hidden">
+      <ScrollArea className="h-[calc(100vh-180px)]">
+        <div className="space-y-4 p-4">
           {messages.map((message: Message) => (
             <div
               key={message.id}
               className={cn(
-                'p-4 rounded-lg max-w-[80%] font-sans animate-fade-in',
+                'p-4 rounded-lg max-w-[80%] font-sans transform transition-all duration-200 ease-out',
                 message.sender === 'user'
-                  ? 'ml-auto bg-emerald-600 text-white'
-                  : 'mr-auto bg-emerald-900/30 text-emerald-50'
+                  ? 'ml-auto bg-emerald-600 text-white hover:bg-emerald-500'
+                  : 'mr-auto bg-emerald-900/30 text-emerald-50 hover:bg-emerald-900/40',
+                'animate-[slide-up_0.3s_ease-out,fade-in_0.2s_ease-out]'
               )}
             >
               {message.content}

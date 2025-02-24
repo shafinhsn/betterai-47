@@ -10,14 +10,6 @@ import {
 } from '@/constants/subscription';
 import { useToast } from '@/hooks/use-toast';
 
-const STORAGE_KEY = 'message_usage';
-
-interface StoredMessageUsage {
-  initialMessagesUsed: number;
-  dailyMessageCount: number;
-  lastDailyReset: string;
-}
-
 export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   updateMessageCount: () => Promise<void>;
 } => {
@@ -26,31 +18,61 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   const [subscription, setSubscription] = useState<Tables<'subscriptions'> | null>(null);
   const { toast } = useToast();
 
-  const loadStoredUsage = () => {
+  const loadMessageUsage = async () => {
     try {
-      const storedData = localStorage.getItem(STORAGE_KEY);
-      if (storedData) {
-        const usage: StoredMessageUsage = JSON.parse(storedData);
-        const lastReset = new Date(usage.lastDailyReset);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: usage, error } = await supabase
+        .from('message_usage')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw error;
+      }
+
+      if (usage) {
+        // Check if we need to reset daily count
+        const lastReset = new Date(usage.last_daily_reset);
         const now = new Date();
         
-        // Check if we need to reset daily count
         if (lastReset.getDate() !== now.getDate() || 
             lastReset.getMonth() !== now.getMonth() || 
             lastReset.getFullYear() !== now.getFullYear()) {
           // Reset daily count
-          usage.dailyMessageCount = 0;
-          usage.lastDailyReset = now.toISOString();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
+          const { error: updateError } = await supabase
+            .from('message_usage')
+            .update({
+              daily_message_count: 0,
+              last_daily_reset: now.toISOString()
+            })
+            .eq('user_id', user.id);
+
+          if (updateError) throw updateError;
+          
+          setDailyMessageCount(0);
+        } else {
+          setDailyMessageCount(usage.daily_message_count);
         }
         
-        setMessageCount(usage.initialMessagesUsed);
-        setDailyMessageCount(usage.dailyMessageCount);
+        setMessageCount(usage.initial_messages_used);
+      } else {
+        // Create new usage record
+        const { error: insertError } = await supabase
+          .from('message_usage')
+          .insert([{
+            user_id: user.id,
+            initial_messages_used: 0,
+            daily_message_count: 0,
+            last_daily_reset: new Date().toISOString()
+          }]);
+
+        if (insertError) throw insertError;
       }
     } catch (error) {
-      console.error('Error loading stored usage:', error);
-      // Reset storage if corrupted
-      localStorage.removeItem(STORAGE_KEY);
+      console.error('Error loading message usage:', error);
     }
   };
 
@@ -95,28 +117,27 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         return;
       }
 
-      let storedData = localStorage.getItem(STORAGE_KEY);
-      let usage: StoredMessageUsage;
+      const { data: usage, error: usageError } = await supabase
+        .from('message_usage')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-      if (!storedData) {
-        usage = {
-          initialMessagesUsed: 0,
-          dailyMessageCount: 0,
-          lastDailyReset: new Date().toISOString()
-        };
-      } else {
-        usage = JSON.parse(storedData);
-      }
+      if (usageError) throw usageError;
 
-      // Check if initial free messages are still available
-      if (usage.initialMessagesUsed < INITIAL_FREE_MESSAGES) {
-        usage.initialMessagesUsed++;
-        setMessageCount(usage.initialMessagesUsed);
+      if (usage.initial_messages_used < INITIAL_FREE_MESSAGES) {
+        const { error: updateError } = await supabase
+          .from('message_usage')
+          .update({ initial_messages_used: usage.initial_messages_used + 1 })
+          .eq('user_id', user.id);
+
+        if (updateError) throw updateError;
+        setMessageCount(usage.initial_messages_used + 1);
       } else {
         // Check subscription and daily limits
         const dailyLimit = subscription ? DAILY_SUBSCRIPTION_LIMIT : DAILY_FREE_MESSAGES;
         
-        if (usage.dailyMessageCount >= dailyLimit) {
+        if (usage.daily_message_count >= dailyLimit) {
           toast({
             variant: "destructive",
             title: "Daily limit reached",
@@ -127,11 +148,14 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
           return;
         }
 
-        usage.dailyMessageCount++;
-        setDailyMessageCount(usage.dailyMessageCount);
-      }
+        const { error: updateError } = await supabase
+          .from('message_usage')
+          .update({ daily_message_count: usage.daily_message_count + 1 })
+          .eq('user_id', user.id);
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
+        if (updateError) throw updateError;
+        setDailyMessageCount(usage.daily_message_count + 1);
+      }
     } catch (error) {
       console.error('Error updating message count:', error);
       toast({
@@ -143,7 +167,7 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   };
 
   useEffect(() => {
-    loadStoredUsage();
+    loadMessageUsage();
     checkSubscription();
   }, [isAdmin]);
 
