@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
@@ -106,7 +105,7 @@ const Index = () => {
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const handleSendMessage = (message: string, sender: 'user' | 'ai') => {
+  const handleSendMessage = (message: string, sender: 'user' | 'ai', documentState?: string) => {
     if (!isAuthenticated) {
       navigate('/auth');
       return;
@@ -115,7 +114,8 @@ const Index = () => {
     const newMessage: Message = {
       id: Date.now().toString(),
       content: message,
-      sender: sender
+      sender: sender,
+      documentState: documentState
     };
     setMessages(prev => [...prev, newMessage]);
   };

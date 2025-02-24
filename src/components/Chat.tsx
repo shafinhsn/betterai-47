@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -87,7 +86,7 @@ export const Chat = ({
       if (data?.updatedDocument) {
         console.log('Updating document with new content');
         onDocumentUpdate(data.updatedDocument);
-        onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai');
+        onSendMessage("I've updated the document based on your request. You can see the changes in the preview panel.", 'ai', data.updatedDocument);
       } else if (data?.reply) {
         if (documentContent) {
           onDocumentUpdate(documentContent);
@@ -117,7 +116,10 @@ export const Chat = ({
   return (
     <div className="flex flex-col h-full">
       {subscription && !isAdmin && <TrialBanner subscription={subscription} />}
-      <MessageList messages={messages} />
+      <MessageList 
+        messages={messages} 
+        onRestoreDocument={onDocumentUpdate}
+      />
       
       {!isAdmin && messageCount < INITIAL_FREE_MESSAGES && !subscription && (
         <div className="px-4 py-2 bg-emerald-900/20 text-emerald-50 text-sm border-t border-emerald-800/30">
@@ -150,4 +152,3 @@ export const Chat = ({
     </div>
   );
 };
-

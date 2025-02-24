@@ -1,14 +1,17 @@
 
 import { useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/types/chat';
 
 interface MessageListProps {
   messages: Message[];
+  onRestoreDocument?: (content: string) => void;
 }
 
-export const MessageList = ({ messages }: MessageListProps) => {
+export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +38,20 @@ export const MessageList = ({ messages }: MessageListProps) => {
                 'animate-[slide-up_0.3s_ease-out,fade-in_0.2s_ease-out]'
               )}
             >
-              {message.content}
+              <div className="flex items-start gap-2">
+                <div className="flex-1">{message.content}</div>
+                {message.sender === 'ai' && message.documentState && onRestoreDocument && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full hover:bg-emerald-800/50"
+                    onClick={() => onRestoreDocument(message.documentState!)}
+                    title="Restore document to this state"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </div>

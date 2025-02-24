@@ -5,6 +5,7 @@ export interface Message {
   id: string;
   content: string;
   sender: 'user' | 'ai';
+  documentState?: string;
 }
 
 export interface ChatProps {
