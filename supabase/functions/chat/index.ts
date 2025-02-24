@@ -1,7 +1,6 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.2.1'
-import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,9 +20,6 @@ serve(async (req) => {
     if (!openAIApiKey) {
       throw new Error('Missing OpenAI API key');
     }
-
-    const configuration = new Configuration({ apiKey: openAIApiKey });
-    const openai = new OpenAIApi(configuration);
 
     // Check if this is a style/tone change request
     const isStyleChange = preset === 'casual' || 
@@ -45,17 +41,30 @@ serve(async (req) => {
 
     console.log('Using system prompt:', systemPrompt);
 
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Original document content:\n${context}` },
-        { role: 'user', content: message }
-      ],
-      temperature: 0.7 // Slightly higher temperature for style changes to allow more creative responses
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Original document content:\n${context}` },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.7
+      }),
     });
 
-    const aiResponse = completion.data.choices[0].message.content;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`OpenAI API error: ${JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content;
     console.log('Got AI response:', aiResponse);
 
     if (aiResponse.includes('---EXPLANATION---')) {
