@@ -73,7 +73,7 @@ export const MainLayout = ({
           <ResizablePanel defaultSize={75}>
             <ResizablePanelGroup direction="horizontal">
               <ResizablePanel defaultSize={40}>
-                <div className="h-full flex flex-col">
+                <div className="h-full flex flex-col bg-[#1a1a1a]">
                   <div className="flex-1">
                     <Chat
                       messages={messages}
@@ -87,8 +87,8 @@ export const MainLayout = ({
 
               <ResizableHandle withHandle className="bg-[#2a2a2a]" />
 
-              <ResizablePanel defaultSize={60}>
-                <div className="h-full p-4">
+              <ResizablePanel defaultSize={60} className="bg-[#1a1a1a]">
+                <div className="h-full">
                   <PreviewPanel
                     content={content}
                     updatedContent={updatedContent}
@@ -105,3 +105,4 @@ export const MainLayout = ({
     </div>
   );
 };
+
