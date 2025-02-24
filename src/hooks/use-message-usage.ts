@@ -1,11 +1,10 @@
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/database.types';
 import type { MessageUsage } from '@/types/chat';
+import { DAILY_MESSAGE_LIMIT, FREE_TIER_LIMIT } from '@/constants/subscription';
 import { useToast } from '@/hooks/use-toast';
-import { getCurrentUser, getMessageUsage, getSubscription, updateDailyMessageCount, 
-         createProfile, updateMessageUsage, createMessageUsage } from '@/utils/message-usage-db';
-import { shouldResetDailyCount, calculateMessageCounts, calculateNewMessageCounts } from '@/utils/message-usage-utils';
 
 export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
   updateMessageCount: () => Promise<void>;
@@ -17,44 +16,97 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
 
   const checkMessageUsage = async () => {
     try {
-      if (isAdmin) {
-        setMessageCount(0);
-        setDailyMessageCount(0);
-        return;
-      }
+      const { data: usage, error } = await supabase
+        .from('message_usage')
+        .select('*')
+        .maybeSingle();
 
-      const user = await getCurrentUser();
-      if (!user) return;
+      if (error) throw error;
 
-      const sub = await getSubscription(user.id);
-      setSubscription(sub);
+      // Check if we need to reset daily count
+      const lastReset = usage?.last_daily_reset ? new Date(usage.last_daily_reset) : null;
+      const now = new Date();
+      const needsReset = lastReset && 
+        (lastReset.getDate() !== now.getDate() || 
+         lastReset.getMonth() !== now.getMonth() || 
+         lastReset.getFullYear() !== now.getFullYear());
 
-      const usage = await getMessageUsage(user.id);
-      
-      if (!usage) {
-        await createMessageUsage(user.id);
-        setMessageCount(0);
-        setDailyMessageCount(0);
-        return;
-      }
+      if (needsReset) {
+        const { error: resetError } = await supabase
+          .from('message_usage')
+          .update({ 
+            daily_message_count: 0,
+            last_daily_reset: now.toISOString()
+          })
+          .eq('id', usage.id);
 
-      if (shouldResetDailyCount(usage.last_daily_reset)) {
-        await updateDailyMessageCount(user.id, 0);
-        const counts = calculateMessageCounts({ ...usage, daily_message_count: 0 }, sub);
-        setMessageCount(counts.messageCount);
+        if (resetError) throw resetError;
+        
         setDailyMessageCount(0);
       } else {
-        const counts = calculateMessageCounts(usage, sub);
-        setMessageCount(counts.messageCount);
-        setDailyMessageCount(counts.dailyMessageCount);
+        setDailyMessageCount(usage?.daily_message_count || 0);
       }
+
+      setMessageCount(usage?.message_count || 0);
     } catch (error) {
       console.error('Error checking message usage:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to check message usage. Please try again.",
-      });
+    }
+  };
+
+  const checkSubscription = async () => {
+    if (isAdmin) {
+      setSubscription({
+        plan_type: 'Business Pro',
+        status: 'active'
+      } as Tables<'subscriptions'>);
+      return;
+    }
+
+    try {
+      const { data: sub, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (error) throw error;
+      setSubscription(sub);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
+
+  const ensureProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      // Check if profile exists
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+
+      // If profile doesn't exist, create it
+      if (!profile) {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: user.id,
+            email: user.email,
+            created_at: new Date().toISOString()
+          }]);
+
+        if (insertError) throw insertError;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error ensuring profile exists:', error);
+      return false;
     }
   };
 
@@ -62,29 +114,54 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     if (isAdmin) return;
     
     try {
-      const user = await getCurrentUser();
+      // Ensure profile exists before updating message count
+      const profileExists = await ensureProfile();
+      if (!profileExists) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Unable to update message count. Please try again.",
+        });
+        return;
+      }
+
+      const { data: usage, error: selectError } = await supabase
+        .from('message_usage')
+        .select('*')
+        .maybeSingle();
+
+      if (selectError) throw selectError;
+
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      let usage = await getMessageUsage(user.id);
-      
       if (!usage) {
-        await createProfile(user.id);
-        await createMessageUsage(user.id);
-        usage = await getMessageUsage(user.id);
-        if (!usage) throw new Error('Failed to create message usage');
-      }
+        const { error: insertError } = await supabase
+          .from('message_usage')
+          .insert([{ 
+            message_count: 1,
+            daily_message_count: 1,
+            user_id: user.id,
+            last_message_at: new Date().toISOString()
+          }]);
+        if (insertError) throw insertError;
+        
+        setMessageCount(1);
+        setDailyMessageCount(1);
+      } else {
+        const { error: updateError } = await supabase
+          .from('message_usage')
+          .update({ 
+            message_count: usage.message_count + 1,
+            daily_message_count: usage.daily_message_count + 1,
+            last_message_at: new Date().toISOString()
+          })
+          .eq('id', usage.id);
+        if (updateError) throw updateError;
 
-      if (shouldResetDailyCount(usage.last_daily_reset)) {
-        await updateDailyMessageCount(user.id, 0);
-        usage.daily_message_count = 0;
+        setMessageCount(prev => prev + 1);
+        setDailyMessageCount(prev => prev + 1);
       }
-
-      const newCounts = calculateNewMessageCounts(usage, subscription);
-      await updateMessageUsage(user.id, newCounts.messageCount, newCounts.dailyMessageCount);
-      
-      setMessageCount(newCounts.messageCount);
-      setDailyMessageCount(newCounts.dailyMessageCount);
-      
     } catch (error) {
       console.error('Error updating message count:', error);
       toast({
@@ -92,12 +169,12 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         title: "Error",
         description: "Failed to update message count. Please try again.",
       });
-      throw error;
     }
   };
 
   useEffect(() => {
     checkMessageUsage();
+    checkSubscription();
   }, [isAdmin]);
 
   return {
