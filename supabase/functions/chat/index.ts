@@ -21,7 +21,7 @@ serve(async (req) => {
     console.log('Document context:', context.substring(0, 100) + '...');
 
     // Construct a more specific system prompt based on the preset
-    let systemPrompt = 'You are a document editing assistant. ';
+    let systemPrompt = 'You are a document editing assistant. Only output the exact modified content without any explanatory text or messages. ';
     if (preset) {
       switch (preset) {
         case 'summarize':
@@ -37,7 +37,7 @@ serve(async (req) => {
           systemPrompt += 'Apply the specific style requested: ' + preset;
       }
     }
-    systemPrompt += ' Analyze the request carefully and make precise edits to the document.';
+    systemPrompt += ' Return ONLY the modified content exactly as it should appear, with no additional text or explanations.';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -54,10 +54,10 @@ serve(async (req) => {
           },
           { 
             role: 'user', 
-            content: `Original document content:\n${context}\n\nUser request: ${message}\n\nProvide the updated document content if changes are needed, or explain why no changes are necessary.`
+            content: `Document content:\n${context}\n\nUser request: ${message}\n\nProvide ONLY the modified content with no explanatory text.`
           }
         ],
-        temperature: 0.3, // Lower temperature for more consistent editing
+        temperature: 0.3,
       }),
     });
 
@@ -67,18 +67,21 @@ serve(async (req) => {
       throw new Error('Invalid response from OpenAI');
     }
 
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = data.choices[0].message.content.trim();
     
-    // Check if the response contains actual document changes
-    if (aiResponse.includes('Original document content') || aiResponse.toLowerCase().includes('no changes')) {
-      // If no changes were made, just return the explanation
+    // Check if the response is an explanation rather than content
+    if (aiResponse.toLowerCase().includes('no changes needed') || 
+        aiResponse.toLowerCase().includes('original document') ||
+        aiResponse.toLowerCase().includes('here is') ||
+        aiResponse.toLowerCase().includes('the rest of')) {
+      // If it's an explanation, return it as a reply only
       return new Response(JSON.stringify({ 
-        reply: aiResponse
+        reply: "I'll keep the document as is. No changes were necessary."
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      // If changes were made, return both the updated document and a confirmation message
+      // If it's actual content changes, return them
       return new Response(JSON.stringify({
         updatedDocument: aiResponse,
         reply: "I've updated the document based on your request. You can see the changes in the preview panel."
