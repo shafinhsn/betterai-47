@@ -18,12 +18,23 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     if (isAdmin) return;
 
     try {
+      // Get user ID first to ensure we're authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+
       const { data: usage, error } = await supabase
         .from('message_usage')
         .select('*')
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching message usage:', error);
+        return;
+      }
 
       // Check if we need to reset daily count
       const lastReset = usage?.last_daily_reset ? new Date(usage.last_daily_reset) : null;
@@ -33,16 +44,21 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
          lastReset.getMonth() !== now.getMonth() || 
          lastReset.getFullYear() !== now.getFullYear());
 
-      if (needsReset) {
+      if (needsReset && usage) {
         const { error: resetError } = await supabase
           .from('message_usage')
           .update({ 
             daily_message_count: 0,
             last_daily_reset: now.toISOString()
           })
-          .eq('id', usage?.id || '');
+          .eq('id', usage.id)
+          .select()
+          .single();
 
-        if (resetError) throw resetError;
+        if (resetError) {
+          console.error('Error resetting daily count:', resetError);
+          return;
+        }
         setDailyMessageCount(0);
       } else {
         setDailyMessageCount(usage?.daily_message_count || 0);
@@ -70,7 +86,10 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         .eq('status', 'active')
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error checking subscription:', error);
+        return;
+      }
       setSubscription(sub);
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -82,7 +101,6 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
-      // Check if profile exists
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -91,25 +109,26 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
 
       if (profileError) throw profileError;
 
-      // If profile doesn't exist, create it and initialize message usage
       if (!profile) {
         const { error: insertError } = await supabase
           .from('profiles')
           .insert([{ 
             id: user.id,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }]);
 
         if (insertError) throw insertError;
 
-        // Initialize message usage for new user
         const { error: usageError } = await supabase
           .from('message_usage')
           .insert([{
             user_id: user.id,
             message_count: 0,
             daily_message_count: 0,
-            last_daily_reset: new Date().toISOString()
+            last_daily_reset: new Date().toISOString(),
+            last_message_at: new Date().toISOString(),
+            created_at: new Date().toISOString()
           }]);
 
         if (usageError) throw usageError;
@@ -126,6 +145,17 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     if (isAdmin) return;
     
     try {
+      // Get user ID first to ensure we're authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "You must be logged in to send messages.",
+        });
+        return;
+      }
+
       // Ensure profile exists before updating message count
       const profileExists = await ensureProfile();
       if (!profileExists) {
@@ -140,40 +170,52 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
       const { data: usage, error: selectError } = await supabase
         .from('message_usage')
         .select('*')
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (selectError) throw selectError;
 
-      // Check both lifetime and daily limits
+      // Check both lifetime and daily limits for free tier
       if (!subscription) {
-        if (usage && usage.message_count >= FREE_TIER_LIMIT && usage.daily_message_count >= DAILY_FREE_MESSAGES) {
+        if (usage && usage.message_count >= FREE_TIER_LIMIT) {
           toast({
             variant: "destructive",
             title: "Message limit reached",
-            description: "You've reached both your lifetime and daily message limits. Consider upgrading to continue.",
+            description: "You've reached your lifetime message limit. Please upgrade to continue.",
+          });
+          return;
+        }
+        if (usage && usage.daily_message_count >= DAILY_FREE_MESSAGES) {
+          toast({
+            variant: "destructive",
+            title: "Daily limit reached",
+            description: "You've reached your daily message limit. Please try again tomorrow or upgrade to continue.",
           });
           return;
         }
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
       if (!usage) {
+        // Create new usage record
         const { error: insertError } = await supabase
           .from('message_usage')
           .insert([{ 
+            user_id: user.id,
             message_count: 1,
             daily_message_count: 1,
-            user_id: user.id,
             last_message_at: new Date().toISOString(),
-            last_daily_reset: new Date().toISOString()
-          }]);
+            last_daily_reset: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
         if (insertError) throw insertError;
         
         setMessageCount(1);
         setDailyMessageCount(1);
       } else {
+        // Update existing usage record
         const { error: updateError } = await supabase
           .from('message_usage')
           .update({ 
@@ -181,7 +223,10 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
             daily_message_count: usage.daily_message_count + 1,
             last_message_at: new Date().toISOString()
           })
-          .eq('id', usage.id);
+          .eq('id', usage.id)
+          .select()
+          .single();
+
         if (updateError) throw updateError;
 
         setMessageCount(prev => prev + 1);
