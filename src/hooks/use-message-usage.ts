@@ -16,9 +16,13 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
 
   const checkMessageUsage = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: usage, error } = await supabase
         .from('message_usage')
         .select('*')
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -38,7 +42,7 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
             daily_message_count: 0,
             last_daily_reset: now.toISOString()
           })
-          .eq('id', usage.id);
+          .eq('user_id', user.id);
 
         if (resetError) throw resetError;
         
@@ -63,9 +67,13 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: sub, error } = await supabase
         .from('subscriptions')
         .select('*')
+        .eq('user_id', user.id)
         .eq('status', 'active')
         .maybeSingle();
 
@@ -125,15 +133,16 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         return;
       }
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
       const { data: usage, error: selectError } = await supabase
         .from('message_usage')
         .select('*')
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (selectError) throw selectError;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
 
       if (!usage) {
         const { error: insertError } = await supabase
@@ -142,7 +151,8 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
             message_count: 1,
             daily_message_count: 1,
             user_id: user.id,
-            last_message_at: new Date().toISOString()
+            last_message_at: new Date().toISOString(),
+            last_daily_reset: new Date().toISOString()
           }]);
         if (insertError) throw insertError;
         
@@ -156,7 +166,7 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
             daily_message_count: usage.daily_message_count + 1,
             last_message_at: new Date().toISOString()
           })
-          .eq('id', usage.id);
+          .eq('user_id', user.id);
         if (updateError) throw updateError;
 
         setMessageCount(prev => prev + 1);
@@ -184,3 +194,4 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     updateMessageCount
   };
 };
+
