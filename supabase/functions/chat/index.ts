@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.2.1'
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,32 +24,27 @@ serve(async (req) => {
     const configuration = new Configuration({ apiKey: openAIApiKey });
     const openai = new OpenAIApi(configuration);
 
-    const isTransformRequest = message.toLowerCase().includes('write') || 
-                             message.toLowerCase().includes('rewrite') || 
-                             message.toLowerCase().includes('transform') ||
-                             message.toLowerCase().includes('change') ||
-                             message.toLowerCase().includes('update') ||
-                             message.toLowerCase().includes('modify') ||
-                             message.toLowerCase().includes('edit') ||
-                             message.toLowerCase().includes('delete');
+    const isDocumentModification = message.toLowerCase().includes('add') ||
+                                 message.toLowerCase().includes('remove') ||
+                                 message.toLowerCase().includes('change') ||
+                                 message.toLowerCase().includes('format') ||
+                                 message.toLowerCase().includes('update') ||
+                                 message.toLowerCase().includes('modify') ||
+                                 message.toLowerCase().includes('rewrite');
 
-    let systemPrompt = `You are a helpful AI document assistant. `;
-    
-    if (isTransformRequest) {
-      systemPrompt += `When modifying documents, follow these rules:
-      1. Only transform the text as requested
-      2. Output the modified text
-      3. After the modified text, add "---EXPLANATION---" followed by a brief explanation of what was changed
-      4. Preserve any existing spacing and formatting patterns`;
-    } else {
-      systemPrompt += `Provide helpful responses about the document and explain your changes clearly.`;
-    }
+    const systemPrompt = isDocumentModification 
+      ? `You are an AI document assistant. When modifying documents:
+         1. First output the COMPLETE modified document text with requested changes
+         2. Follow that with "---EXPLANATION---"
+         3. After the explanation marker, describe what changes were made
+         4. Preserve all formatting and spacing in the modified document`
+      : `You are a helpful AI document assistant. Provide clear explanations about the document without modifying it.`;
 
     const completion = await openai.createChatCompletion({
       model: "gpt-4o-mini",
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Original text: "${context}"` },
+        { role: 'user', content: `Original document content:\n${context}` },
         { role: 'user', content: message }
       ],
       temperature: 0.3
@@ -57,33 +52,27 @@ serve(async (req) => {
 
     const aiResponse = completion.data.choices[0].message.content;
 
-    if (isTransformRequest) {
-      // Split the response into document update and explanation
-      const [updatedDocument, explanation] = aiResponse.split('---EXPLANATION---');
-      
+    if (isDocumentModification) {
+      const [updatedDocument, explanation] = aiResponse.split('---EXPLANATION---').map(text => text.trim());
       return new Response(
         JSON.stringify({ 
-          updatedDocument: updatedDocument.trim(),
-          reply: explanation ? explanation.trim() : "I've updated the document based on your request."
+          updatedDocument,
+          reply: explanation || "I've updated the document as requested."
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    } else {
-      return new Response(
-        JSON.stringify({ reply: aiResponse }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
+
+    return new Response(
+      JSON.stringify({ reply: aiResponse }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
-

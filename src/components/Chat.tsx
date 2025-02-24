@@ -72,8 +72,10 @@ export const Chat = ({
     try {
       setIsLoading(true);
       
-      // Store the current document state before making any changes
+      // Store the current document state before processing
       const previousState = documentContent;
+      
+      // Add user message to chat
       onSendMessage(content, 'user');
       
       const { data, error } = await supabase.functions.invoke('chat', {
@@ -85,18 +87,30 @@ export const Chat = ({
       });
 
       if (error) {
+        console.error('Chat function error:', error);
         onSendMessage("I'm sorry, but I encountered an error while processing your request.", 'ai');
         return;
       }
 
-      // If we received updated document content, update the preview first
+      // First update the document if changes were made
       if (data?.updatedDocument) {
+        console.log('Updating document with new content');
         onDocumentUpdate(data.updatedDocument);
+        toast({
+          title: "Document Updated",
+          description: "The document has been modified based on your request.",
+        });
       }
 
-      // Always send a chat message if there's a reply
+      // Then show the explanation in chat
       if (data?.reply) {
-        onSendMessage(data.reply, 'ai', data.updatedDocument ? previousState : undefined);
+        console.log('Adding AI reply to chat');
+        onSendMessage(
+          data.reply, 
+          'ai',
+          // Only include previous state if document was updated
+          data.updatedDocument ? previousState : undefined
+        );
       }
 
       await updateMessageCount();
