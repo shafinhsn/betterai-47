@@ -16,6 +16,12 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
 
   const checkMessageUsage = async () => {
     try {
+      if (isAdmin) {
+        setMessageCount(0);
+        setDailyMessageCount(0);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -51,7 +57,7 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
         setDailyMessageCount(usage?.daily_message_count || 0);
       }
 
-      setMessageCount(usage?.message_count || 0);
+      setMessageCount(Math.min(usage?.message_count || 0, FREE_TIER_LIMIT));
     } catch (error) {
       console.error('Error checking message usage:', error);
     }
@@ -104,7 +110,6 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
           .from('profiles')
           .insert([{ 
             id: user.id,
-            email: user.email,
             created_at: new Date().toISOString()
           }]);
 
@@ -154,23 +159,29 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
             last_message_at: new Date().toISOString(),
             last_daily_reset: new Date().toISOString()
           }]);
+
         if (insertError) throw insertError;
         
         setMessageCount(1);
         setDailyMessageCount(1);
       } else {
+        // Ensure we don't exceed the free tier limit
+        const newMessageCount = Math.min(usage.message_count + 1, FREE_TIER_LIMIT);
+        const newDailyMessageCount = usage.daily_message_count + 1;
+
         const { error: updateError } = await supabase
           .from('message_usage')
           .update({ 
-            message_count: usage.message_count + 1,
-            daily_message_count: usage.daily_message_count + 1,
+            message_count: newMessageCount,
+            daily_message_count: newDailyMessageCount,
             last_message_at: new Date().toISOString()
           })
           .eq('user_id', user.id);
+
         if (updateError) throw updateError;
 
-        setMessageCount(prev => prev + 1);
-        setDailyMessageCount(prev => prev + 1);
+        setMessageCount(newMessageCount);
+        setDailyMessageCount(newDailyMessageCount);
       }
     } catch (error) {
       console.error('Error updating message count:', error);
@@ -194,4 +205,3 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     updateMessageCount
   };
 };
-
