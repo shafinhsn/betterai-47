@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/database.types';
 import type { MessageUsage } from '@/types/chat';
-import { DAILY_MESSAGE_LIMIT, FREE_TIER_LIMIT } from '@/constants/subscription';
+import { DAILY_MESSAGE_LIMIT, FREE_TIER_LIMIT, DAILY_FREE_MESSAGES } from '@/constants/subscription';
 import { useToast } from '@/hooks/use-toast';
 
 export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
@@ -209,3 +209,4 @@ export const useMessageUsage = (isAdmin: boolean = false): MessageUsage & {
     updateMessageCount
   };
 };
+
