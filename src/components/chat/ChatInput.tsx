@@ -27,7 +27,7 @@ export const ChatInput = ({
   onSubmit
 }: ChatInputProps) => {
   return (
-    <form onSubmit={onSubmit} className="p-4 border-t border-emerald-900/20">
+    <form onSubmit={onSubmit} className="p-4 border-t border-emerald-900/20 bg-[#1a1a1a]">
       <div className="flex flex-col gap-2">
         {subscription?.plan_type === 'Student Pro' && (
           <Select value={selectedPreset} onValueChange={onPresetChange}>
@@ -48,7 +48,7 @@ export const ChatInput = ({
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             placeholder="Ask anything about your document..."
-            className="flex-1 bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50"
+            className="flex-1 bg-emerald-900/20 border-emerald-800/30 text-emerald-50 placeholder:text-emerald-500/50 focus:ring-1 focus:ring-emerald-500"
             disabled={isLoading}
           />
           <Button type="submit" size="icon" disabled={isLoading} className="bg-emerald-700 hover:bg-emerald-600">
