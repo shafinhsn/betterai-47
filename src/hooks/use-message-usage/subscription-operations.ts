@@ -22,12 +22,15 @@ export const getAdminSubscription = (): Tables<'subscriptions'> => {
     plan_type: 'Business Pro',
     status: 'active',
     current_period_end: new Date().toISOString(),
-    cancel_at_period_end: false,
+    payment_processor: 'paypal',
+    payment_subscription_id: 'admin',
+    payment_price_id: 'admin',
+    trial_end_at: null,
+    started_at: new Date().toISOString(),
+    expires_at: null,
     created_at: new Date().toISOString(),
-    stripe_customer_id: 'admin',
-    stripe_subscription_id: 'admin',
-    trial_end: null,
-    paypal_subscription_id: null,
-    payment_type: 'stripe'
+    updated_at: new Date().toISOString(),
+    is_student: false
   };
 };
+
