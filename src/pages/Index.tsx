@@ -134,15 +134,17 @@ const Index = () => {
     });
   };
 
-  const handleManualUpdate = () => {
+  const handleManualUpdate = (newContent: string) => {
     if (!isAuthenticated) {
       navigate('/auth');
       return;
     }
+    setUpdatedContent(newContent);
     setPreviewKey(prev => prev + 1);
+    
     toast({
-      title: "Document updated",
-      description: "The document has been manually updated.",
+      title: "Changes saved",
+      description: "Your manual edits have been saved successfully.",
     });
   };
 

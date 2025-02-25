@@ -7,14 +7,15 @@ interface PreviewPanelProps {
   updatedContent: string;
   isProcessing: boolean;
   previewKey: number;
-  onManualUpdate: () => void;
+  onManualUpdate: (content: string) => void;
 }
 
 export const PreviewPanel = ({ 
   content, 
   updatedContent, 
   isProcessing, 
-  previewKey
+  previewKey,
+  onManualUpdate
 }: PreviewPanelProps) => {
   const contentToShow = updatedContent || content;
 
@@ -27,6 +28,7 @@ export const PreviewPanel = ({
             <DocumentPreview 
               key={`preview-${previewKey}`} 
               content={contentToShow}
+              onContentUpdate={onManualUpdate}
             />
           </div>
         ) : (
@@ -38,4 +40,3 @@ export const PreviewPanel = ({
     </div>
   );
 };
-
