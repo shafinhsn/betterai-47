@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
@@ -135,6 +136,7 @@ const Index = () => {
     });
   };
 
+  // Fix: Make sure handleManualUpdate accepts a string parameter
   const handleManualUpdate = (newContent: string) => {
     if (!isAuthenticated) {
       navigate('/auth');
@@ -170,3 +172,4 @@ const Index = () => {
 };
 
 export default Index;
+

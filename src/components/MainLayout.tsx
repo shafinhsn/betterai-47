@@ -20,7 +20,7 @@ interface MainLayoutProps {
   onDocumentRemoved: () => void;
   onSendMessage: (message: string, sender: 'user' | 'ai') => void;
   onDocumentUpdate: (content: string) => void;
-  onManualUpdate: () => void;
+  onManualUpdate: (content: string) => void;  // Fixed: Update type to accept string parameter
   onNavigate: () => void;
 }
 
