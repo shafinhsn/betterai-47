@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Save, SpellCheck, TextQuote } from 'lucide-react';
 import { forwardRef, memo, CSSProperties, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from '@supabase/supabase-js';
 
 interface DocumentPreviewProps {
   content: string;
@@ -11,10 +12,16 @@ interface DocumentPreviewProps {
   onContentUpdate?: (newContent: string) => void;
 }
 
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL ?? '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
+);
+
 const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps>(
   ({ content, style, onContentUpdate }, ref) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(content);
+    const [isProcessing, setIsProcessing] = useState(false);
     const { toast } = useToast();
 
     const handleSave = () => {
@@ -28,36 +35,108 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
       }
     };
 
-    const handleFormatMLA = () => {
-      // Basic MLA formatting example
-      const mlaFormatted = `Your Name\nProfessor Name\nCourse Name\n${new Date().toLocaleDateString()}\n\n${content}`;
-      if (onContentUpdate) {
-        onContentUpdate(mlaFormatted);
-        toast({
-          title: "MLA Format Applied",
-          description: "Document has been formatted using MLA style.",
+    const handleFormatMLA = async () => {
+      setIsProcessing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('document-format', {
+          body: {
+            content: editedContent || content,
+            action: 'mla',
+            metadata: {
+              authorName: 'Your Name', // You could make these configurable
+              professorName: 'Professor Name',
+              courseName: 'Course Name',
+              title: 'Document Title'
+            }
+          }
         });
+
+        if (error) throw error;
+        
+        if (onContentUpdate && data.content) {
+          onContentUpdate(data.content);
+          toast({
+            title: "MLA Format Applied",
+            description: "Document has been formatted using MLA style.",
+          });
+        }
+      } catch (error) {
+        console.error('Error formatting MLA:', error);
+        toast({
+          title: "Error",
+          description: "Failed to apply MLA formatting. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsProcessing(false);
       }
     };
 
-    const handleFormatAPA = () => {
-      // Basic APA formatting example
-      const apaFormatted = `Running head: TITLE\n\nTitle\n\nAuthor Name\nInstitution\n\n${content}`;
-      if (onContentUpdate) {
-        onContentUpdate(apaFormatted);
-        toast({
-          title: "APA Format Applied",
-          description: "Document has been formatted using APA style.",
+    const handleFormatAPA = async () => {
+      setIsProcessing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('document-format', {
+          body: {
+            content: editedContent || content,
+            action: 'apa',
+            metadata: {
+              authorName: 'Your Name', // You could make these configurable
+              institution: 'Institution Name',
+              title: 'Document Title'
+            }
+          }
         });
+
+        if (error) throw error;
+        
+        if (onContentUpdate && data.content) {
+          onContentUpdate(data.content);
+          toast({
+            title: "APA Format Applied",
+            description: "Document has been formatted using APA style.",
+          });
+        }
+      } catch (error) {
+        console.error('Error formatting APA:', error);
+        toast({
+          title: "Error",
+          description: "Failed to apply APA formatting. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsProcessing(false);
       }
     };
 
-    const handleGrammarCheck = () => {
-      // For now, just show a toast - this would be connected to a grammar checking service
-      toast({
-        title: "Grammar Check",
-        description: "Grammar checking feature will be implemented soon.",
-      });
+    const handleGrammarCheck = async () => {
+      setIsProcessing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('document-format', {
+          body: {
+            content: editedContent || content,
+            action: 'grammar'
+          }
+        });
+
+        if (error) throw error;
+        
+        if (onContentUpdate && data.content) {
+          onContentUpdate(data.content);
+          toast({
+            title: "Grammar Check Complete",
+            description: "Your document has been checked and corrected.",
+          });
+        }
+      } catch (error) {
+        console.error('Error checking grammar:', error);
+        toast({
+          title: "Error",
+          description: "Failed to check grammar. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsProcessing(false);
+      }
     };
 
     if (!content) {
@@ -75,6 +154,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
             variant="outline"
             size="sm"
             onClick={handleGrammarCheck}
+            disabled={isProcessing}
             className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
           >
             <SpellCheck className="w-4 h-4 mr-2" />
@@ -84,6 +164,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
             variant="outline"
             size="sm"
             onClick={handleFormatMLA}
+            disabled={isProcessing}
             className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
           >
             <TextQuote className="w-4 h-4 mr-2" />
@@ -93,6 +174,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
             variant="outline"
             size="sm"
             onClick={handleFormatAPA}
+            disabled={isProcessing}
             className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
           >
             <TextQuote className="w-4 h-4 mr-2" />
@@ -103,6 +185,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
               variant="outline"
               size="sm"
               onClick={() => setIsEditing(true)}
+              disabled={isProcessing}
               className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
             >
               <Pencil className="w-4 h-4 mr-2" />
@@ -113,6 +196,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
               variant="outline"
               size="sm"
               onClick={handleSave}
+              disabled={isProcessing}
               className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
             >
               <Save className="w-4 h-4 mr-2" />
@@ -154,4 +238,3 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
 DocumentPreviewComponent.displayName = 'DocumentPreview';
 
 export const DocumentPreview = memo(DocumentPreviewComponent);
-
