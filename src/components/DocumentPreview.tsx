@@ -4,18 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Save, SpellCheck, TextQuote } from 'lucide-react';
 import { forwardRef, memo, CSSProperties, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DocumentPreviewProps {
   content: string;
   style?: CSSProperties;
   onContentUpdate?: (newContent: string) => void;
 }
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL ?? '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''
-);
 
 const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps>(
   ({ content, style, onContentUpdate }, ref) => {
