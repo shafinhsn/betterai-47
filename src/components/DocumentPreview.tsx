@@ -1,7 +1,7 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Pencil, Save } from 'lucide-react';
+import { Pencil, Save, SpellCheck, TextQuote } from 'lucide-react';
 import { forwardRef, memo, CSSProperties, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +28,38 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
       }
     };
 
+    const handleFormatMLA = () => {
+      // Basic MLA formatting example
+      const mlaFormatted = `Your Name\nProfessor Name\nCourse Name\n${new Date().toLocaleDateString()}\n\n${content}`;
+      if (onContentUpdate) {
+        onContentUpdate(mlaFormatted);
+        toast({
+          title: "MLA Format Applied",
+          description: "Document has been formatted using MLA style.",
+        });
+      }
+    };
+
+    const handleFormatAPA = () => {
+      // Basic APA formatting example
+      const apaFormatted = `Running head: TITLE\n\nTitle\n\nAuthor Name\nInstitution\n\n${content}`;
+      if (onContentUpdate) {
+        onContentUpdate(apaFormatted);
+        toast({
+          title: "APA Format Applied",
+          description: "Document has been formatted using APA style.",
+        });
+      }
+    };
+
+    const handleGrammarCheck = () => {
+      // For now, just show a toast - this would be connected to a grammar checking service
+      toast({
+        title: "Grammar Check",
+        description: "Grammar checking feature will be implemented soon.",
+      });
+    };
+
     if (!content) {
       return (
         <div className="flex items-center justify-center h-full text-gray-400">
@@ -39,6 +71,33 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
     return (
       <div className="document-preview h-full" ref={ref}>
         <div className="sticky top-0 z-10 flex justify-end gap-2 p-2 bg-[#1a1a1a] border-b border-emerald-900/20">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGrammarCheck}
+            className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
+          >
+            <SpellCheck className="w-4 h-4 mr-2" />
+            Check Grammar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFormatMLA}
+            className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
+          >
+            <TextQuote className="w-4 h-4 mr-2" />
+            MLA
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFormatAPA}
+            className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
+          >
+            <TextQuote className="w-4 h-4 mr-2" />
+            APA
+          </Button>
           {!isEditing ? (
             <Button
               variant="outline"
@@ -95,3 +154,4 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
 DocumentPreviewComponent.displayName = 'DocumentPreview';
 
 export const DocumentPreview = memo(DocumentPreviewComponent);
+
