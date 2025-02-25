@@ -54,6 +54,9 @@ export const DocumentContent = ({
     });
   };
 
+  // Always use the most recent content as the base for comparisons
+  const baseContent = editedContent || content;
+
   return (
     <ScrollArea className="h-[calc(100vh-6rem)]">
       {isEditing ? (
@@ -67,14 +70,14 @@ export const DocumentContent = ({
         </div>
       ) : (
         <div className="prose max-w-none p-4">
-          {content.split('\n').map((paragraph, index) => (
+          {baseContent.split('\n').map((paragraph, index) => (
             paragraph ? (
               <p 
                 key={`${index}-${paragraph.substring(0, 10)}`} 
                 className="mb-4 text-emerald-50 whitespace-pre-wrap"
                 style={commonStyles}
               >
-                {editedContent !== content ? highlightChanges(paragraph, editedContent.split('\n')[index] || '') : paragraph}
+                {editedContent !== content ? highlightChanges(content.split('\n')[index] || '', paragraph) : paragraph}
               </p>
             ) : <br key={index} />
           ))}
@@ -83,3 +86,4 @@ export const DocumentContent = ({
     </ScrollArea>
   );
 };
+

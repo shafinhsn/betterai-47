@@ -126,7 +126,10 @@ const Index = () => {
       navigate('/auth');
       return;
     }
-    console.log('Updating document with new content:', newContent);
+    console.log('Previous document state:', updatedContent || content);
+    console.log('Applying new changes to:', newContent);
+    
+    // Always use the most recent version of the document
     setUpdatedContent(newContent);
     setPreviewKey(prev => prev + 1);
     
@@ -136,7 +139,6 @@ const Index = () => {
     });
   };
 
-  // Fix: Make sure handleManualUpdate accepts a string parameter
   const handleManualUpdate = (newContent: string) => {
     if (!isAuthenticated) {
       navigate('/auth');
