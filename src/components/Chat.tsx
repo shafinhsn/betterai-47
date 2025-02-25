@@ -74,6 +74,7 @@ export const Chat = ({
       
       // Store the current document state before processing
       const previousState = documentContent;
+      console.log('Current document state before AI processing:', previousState);
       
       // Add user message to chat
       onSendMessage(content, 'user');
@@ -94,17 +95,19 @@ export const Chat = ({
 
       // First update the document if changes were made
       if (data?.updatedDocument) {
-        console.log('Updating document with new content');
+        console.log('Received updated document from AI:', data.updatedDocument);
         onDocumentUpdate(data.updatedDocument);
         toast({
           title: "Document Updated",
           description: "The document has been modified based on your request.",
         });
+      } else {
+        console.log('No document updates received from AI');
       }
 
       // Then show the explanation in chat
       if (data?.reply) {
-        console.log('Adding AI reply to chat');
+        console.log('Adding AI reply to chat:', data.reply);
         onSendMessage(
           data.reply, 
           'ai',

@@ -17,7 +17,11 @@ export const PreviewPanel = ({
   previewKey,
   onManualUpdate
 }: PreviewPanelProps) => {
+  console.log('PreviewPanel received content:', content);
+  console.log('PreviewPanel received updatedContent:', updatedContent);
+  
   const contentToShow = updatedContent || content;
+  console.log('PreviewPanel will display:', contentToShow);
 
   return (
     <div className="flex flex-col h-full bg-[#1a1a1a]">

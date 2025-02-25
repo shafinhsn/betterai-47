@@ -125,6 +125,7 @@ const Index = () => {
       navigate('/auth');
       return;
     }
+    console.log('Updating document with new content:', newContent);
     setUpdatedContent(newContent);
     setPreviewKey(prev => prev + 1);
     
@@ -139,6 +140,7 @@ const Index = () => {
       navigate('/auth');
       return;
     }
+    console.log('Manual update with content:', newContent);
     setUpdatedContent(newContent);
     setPreviewKey(prev => prev + 1);
     
