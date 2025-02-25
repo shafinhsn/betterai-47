@@ -23,7 +23,7 @@ export const FontControls = ({
   setFontFamily,
 }: FontControlsProps) => {
   return (
-    <>
+    <div className="flex flex-wrap gap-2">
       <Select
         value={fontFamily}
         onValueChange={setFontFamily}
@@ -36,6 +36,7 @@ export const FontControls = ({
           <SelectItem value="Arial">Arial</SelectItem>
           <SelectItem value="Times New Roman">Times New Roman</SelectItem>
           <SelectItem value="Playfair Display">Playfair Display</SelectItem>
+          <SelectItem value="Sans Serif">Sans Serif</SelectItem>
         </SelectContent>
       </Select>
 
@@ -52,7 +53,7 @@ export const FontControls = ({
           ))}
         </SelectContent>
       </Select>
-    </>
+    </div>
   );
 };
 

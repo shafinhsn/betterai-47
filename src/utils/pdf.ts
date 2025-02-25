@@ -5,8 +5,10 @@ export const createPDFFromText = async (text: string) => {
   const pdfDoc = await PDFDocument.create();
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   
-  // Split text into paragraphs
-  const paragraphs = text.split('\n\n').filter(p => p.trim().length > 0);
+  // Fix line breaks and encode special characters
+  const sanitizedText = text.replace(/\n/g, '\r\n');
+  const paragraphs = sanitizedText.split('\r\n\r\n').filter(p => p.trim().length > 0);
+  
   let currentPage = pdfDoc.addPage();
   const { width, height } = currentPage.getSize();
   
@@ -21,19 +23,19 @@ export const createPDFFromText = async (text: string) => {
     let currentLine = '';
     
     for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      // Sanitize text to prevent encoding issues
+      const sanitizedWord = word.replace(/[\u0000-\u001F]/g, ' ');
+      const testLine = currentLine ? `${currentLine} ${sanitizedWord}` : sanitizedWord;
       const lineWidth = helveticaFont.widthOfTextAtSize(testLine, fontSize);
       
       if (lineWidth <= maxWidth) {
         currentLine = testLine;
       } else {
-        // Check if we need a new page
         if (yPosition - lineHeight < margin) {
           currentPage = pdfDoc.addPage();
           yPosition = height - margin;
         }
         
-        // Draw the current line
         currentPage.drawText(currentLine, {
           x: margin,
           y: yPosition,
@@ -41,13 +43,11 @@ export const createPDFFromText = async (text: string) => {
           font: helveticaFont,
         });
         yPosition -= lineHeight;
-        currentLine = word;
+        currentLine = sanitizedWord;
       }
     }
     
-    // Draw the last line of the paragraph
     if (currentLine) {
-      // Check if we need a new page
       if (yPosition - lineHeight < margin) {
         currentPage = pdfDoc.addPage();
         yPosition = height - margin;
@@ -59,9 +59,10 @@ export const createPDFFromText = async (text: string) => {
         size: fontSize,
         font: helveticaFont,
       });
-      yPosition -= lineHeight * 1.5; // Add extra space after paragraphs
+      yPosition -= lineHeight * 1.5;
     }
   }
   
   return await pdfDoc.save();
 };
+

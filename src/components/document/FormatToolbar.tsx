@@ -38,36 +38,38 @@ export const FormatToolbar = ({
 }: FormatToolbarProps) => {
   return (
     <div className="sticky top-0 z-10 flex flex-col gap-2 p-2 bg-[#1a1a1a] border-b border-emerald-900/20">
-      <div className="flex items-center gap-2">
-        <FontControls
-          fontSize={fontSize}
-          fontFamily={fontFamily}
-          setFontSize={setFontSize}
-          setFontFamily={setFontFamily}
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <FontControls
+            fontSize={fontSize}
+            fontFamily={fontFamily}
+            setFontSize={setFontSize}
+            setFontFamily={setFontFamily}
+          />
 
-        <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-6" />
 
-        <AlignmentControls
-          alignment={alignment}
-          setAlignment={setAlignment}
-        />
+          <AlignmentControls
+            alignment={alignment}
+            setAlignment={setAlignment}
+          />
 
-        <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-6" />
 
-        <FormattingControls
-          isProcessing={isProcessing}
-          onGrammarCheck={onGrammarCheck}
-          onFormatMLA={onFormatMLA}
-          onFormatAPA={onFormatAPA}
-        />
+          <FormattingControls
+            isProcessing={isProcessing}
+            onGrammarCheck={onGrammarCheck}
+            onFormatMLA={onFormatMLA}
+            onFormatAPA={onFormatAPA}
+          />
 
-        <EditControls
-          isEditing={isEditing}
-          isProcessing={isProcessing}
-          onEditToggle={onEditToggle}
-          onSave={onSave}
-        />
+          <EditControls
+            isEditing={isEditing}
+            isProcessing={isProcessing}
+            onEditToggle={onEditToggle}
+            onSave={onSave}
+          />
+        </div>
       </div>
     </div>
   );

@@ -27,10 +27,23 @@ export const DocumentContent = ({
 }: DocumentContentProps) => {
   const commonStyles = {
     ...style,
-    fontFamily,
-    fontSize: `${fontSize}px`,
+    fontFamily: format === 'mla' || format === 'apa' ? 'Times New Roman' : fontFamily,
+    fontSize: format === 'mla' || format === 'apa' ? '12px' : `${fontSize}px`,
     lineHeight: format === 'mla' || format === 'apa' ? '2' : '1.5',
     textAlign: alignment,
+  };
+
+  // Function to highlight grammar changes
+  const highlightChanges = (original: string, updated: string) => {
+    const words = updated.split(/\s+/);
+    const originalWords = original.split(/\s+/);
+    
+    return words.map((word, index) => {
+      if (word !== originalWords[index]) {
+        return <span key={index} className="bg-yellow-300/20 text-yellow-200">{word} </span>;
+      }
+      return <span key={index}>{word} </span>;
+    });
   };
 
   return (
@@ -53,7 +66,7 @@ export const DocumentContent = ({
                 className="mb-4 text-emerald-50 whitespace-pre-wrap"
                 style={commonStyles}
               >
-                {paragraph}
+                {editedContent !== content ? highlightChanges(paragraph, editedContent.split('\n')[index] || '') : paragraph}
               </p>
             ) : <br key={index} />
           ))}
@@ -62,3 +75,4 @@ export const DocumentContent = ({
     </ScrollArea>
   );
 };
+
