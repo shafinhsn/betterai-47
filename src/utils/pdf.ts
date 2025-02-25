@@ -3,10 +3,27 @@ import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 export const createPDFFromText = async (text: string) => {
   const pdfDoc = await PDFDocument.create();
-  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+  const symbolFont = await pdfDoc.embedFont(StandardFonts.Symbol);
   
   // Fix line breaks and encode special characters
-  const sanitizedText = text.replace(/\n/g, '\r\n');
+  const sanitizedText = text
+    .replace(/\n/g, '\r\n')
+    // Properly encode mathematical operators
+    .replace(/−/g, '-')
+    .replace(/×/g, 'x')
+    .replace(/÷/g, '/')
+    .replace(/±/g, '+/-')
+    // Handle superscripts and subscripts
+    .replace(/(\d+)\^(\d+)/g, '$1^$2')
+    .replace(/(\d+)_(\d+)/g, '$1_$2')
+    // Handle common mathematical symbols
+    .replace(/π/g, 'pi')
+    .replace(/∞/g, 'inf')
+    .replace(/√/g, 'sqrt')
+    // Handle fraction-like structures
+    .replace(/(\d+)\/(\d+)/g, '$1/$2');
+
   const paragraphs = sanitizedText.split('\r\n\r\n').filter(p => p.trim().length > 0);
   
   let currentPage = pdfDoc.addPage();
@@ -23,10 +40,21 @@ export const createPDFFromText = async (text: string) => {
     let currentLine = '';
     
     for (const word of words) {
-      // Sanitize text to prevent encoding issues
-      const sanitizedWord = word.replace(/[\u0000-\u001F]/g, ' ');
-      const testLine = currentLine ? `${currentLine} ${sanitizedWord}` : sanitizedWord;
-      const lineWidth = helveticaFont.widthOfTextAtSize(testLine, fontSize);
+      // Handle special mathematical expressions
+      const processedWord = word
+        .replace(/[^\x00-\x7F]/g, char => {
+          // Replace Unicode mathematical symbols with their ASCII equivalents
+          if (char === '²') return '^2';
+          if (char === '³') return '^3';
+          if (char === '±') return '+/-';
+          if (char === '∞') return 'inf';
+          if (char === 'π') return 'pi';
+          return char;
+        })
+        .trim();
+
+      const testLine = currentLine ? `${currentLine} ${processedWord}` : processedWord;
+      const lineWidth = timesRomanFont.widthOfTextAtSize(testLine, fontSize);
       
       if (lineWidth <= maxWidth) {
         currentLine = testLine;
@@ -40,10 +68,10 @@ export const createPDFFromText = async (text: string) => {
           x: margin,
           y: yPosition,
           size: fontSize,
-          font: helveticaFont,
+          font: timesRomanFont,
         });
         yPosition -= lineHeight;
-        currentLine = sanitizedWord;
+        currentLine = processedWord;
       }
     }
     
@@ -57,7 +85,7 @@ export const createPDFFromText = async (text: string) => {
         x: margin,
         y: yPosition,
         size: fontSize,
-        font: helveticaFont,
+        font: timesRomanFont,
       });
       yPosition -= lineHeight * 1.5;
     }
