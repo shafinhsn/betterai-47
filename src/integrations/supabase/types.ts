@@ -27,6 +27,92 @@ export type Database = {
         }
         Relationships: []
       }
+      citation_contributors: {
+        Row: {
+          citation_id: string | null
+          created_at: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          middle_name: string | null
+          role: string
+          suffix: string | null
+        }
+        Insert: {
+          citation_id?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          middle_name?: string | null
+          role: string
+          suffix?: string | null
+        }
+        Update: {
+          citation_id?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          middle_name?: string | null
+          role?: string
+          suffix?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "citation_contributors_citation_id_fkey"
+            columns: ["citation_id"]
+            isOneToOne: false
+            referencedRelation: "citations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      citations: {
+        Row: {
+          accessed_date: string | null
+          created_at: string | null
+          doi: string | null
+          id: string
+          isbn: string | null
+          publication_date: string | null
+          publisher: string | null
+          title: string
+          type: Database["public"]["Enums"]["citation_type"]
+          updated_at: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_date?: string | null
+          created_at?: string | null
+          doi?: string | null
+          id?: string
+          isbn?: string | null
+          publication_date?: string | null
+          publisher?: string | null
+          title: string
+          type: Database["public"]["Enums"]["citation_type"]
+          updated_at?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_date?: string | null
+          created_at?: string | null
+          doi?: string | null
+          id?: string
+          isbn?: string | null
+          publication_date?: string | null
+          publisher?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["citation_type"]
+          updated_at?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string
@@ -269,6 +355,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      citation_type: "website" | "book" | "journal"
     }
     CompositeTypes: {
       [_ in never]: never
