@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import { Message, ProcessedDocument } from '@/types/document';
 import { supabase } from '@/integrations/supabase/client';
 import { MainLayout } from '@/components/MainLayout';
+import { CitationManager } from '@/components/citation/CitationManager';
 
 const STORAGE_KEY = 'document_data';
 
@@ -17,6 +17,7 @@ const Index = () => {
   const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [showCitations, setShowCitations] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -154,6 +155,20 @@ const Index = () => {
     });
   };
 
+  if (showCitations) {
+    return (
+      <div className="h-screen bg-[#121212] text-white overflow-hidden">
+        <CitationManager />
+        <button 
+          onClick={() => setShowCitations(false)}
+          className="fixed bottom-4 right-4 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded"
+        >
+          Back to Editor
+        </button>
+      </div>
+    );
+  }
+
   return (
     <MainLayout
       isAuthenticated={isAuthenticated}
@@ -169,9 +184,9 @@ const Index = () => {
       onDocumentUpdate={handleDocumentUpdate}
       onManualUpdate={handleManualUpdate}
       onNavigate={() => navigate('/auth')}
+      onCitationsOpen={() => setShowCitations(true)}
     />
   );
 };
 
 export default Index;
-

@@ -1,4 +1,3 @@
-
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { DocumentSidebar } from '@/components/DocumentSidebar';
 import { Chat } from '@/components/Chat';
@@ -20,8 +19,9 @@ interface MainLayoutProps {
   onDocumentRemoved: () => void;
   onSendMessage: (message: string, sender: 'user' | 'ai') => void;
   onDocumentUpdate: (content: string) => void;
-  onManualUpdate: (content: string) => void;  // Fixed: Update type to accept string parameter
+  onManualUpdate: (content: string) => void;
   onNavigate: () => void;
+  onCitationsOpen: () => void;
 }
 
 export const MainLayout = ({
@@ -38,10 +38,19 @@ export const MainLayout = ({
   onDocumentUpdate,
   onManualUpdate,
   onNavigate,
+  onCitationsOpen,
 }: MainLayoutProps) => {
   return (
     <div className="h-screen bg-[#121212] text-white overflow-hidden flex flex-col">
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-50 flex gap-4">
+        {isAuthenticated && (
+          <Button
+            onClick={onCitationsOpen}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            Citations
+          </Button>
+        )}
         {isAuthenticated ? (
           <ProfileMenu />
         ) : (
@@ -105,4 +114,3 @@ export const MainLayout = ({
     </div>
   );
 };
-
