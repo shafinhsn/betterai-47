@@ -16,6 +16,9 @@ export const CitationManager = () => {
   const { data: citations, isLoading } = useQuery({
     queryKey: ['citations'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('citations')
         .select(`
@@ -31,6 +34,12 @@ export const CitationManager = () => {
 
   const createCitation = useMutation({
     mutationFn: async (citation: Citation) => {
+      // First get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      console.log('Creating citation with user_id:', user.id);
+
       // First create the citation
       const { data: citationData, error: citationError } = await supabase
         .from('citations')
@@ -43,11 +52,15 @@ export const CitationManager = () => {
           publisher: citation.publisher,
           publication_date: citation.publication_date,
           accessed_date: citation.accessed_date,
+          user_id: user.id // Important: Set the user_id!
         }])
         .select()
         .single();
 
-      if (citationError) throw citationError;
+      if (citationError) {
+        console.error('Citation creation error:', citationError);
+        throw citationError;
+      }
 
       // Then add contributors if any
       if (citation.contributors?.length) {
@@ -60,7 +73,10 @@ export const CitationManager = () => {
             }))
           );
 
-        if (contributorsError) throw contributorsError;
+        if (contributorsError) {
+          console.error('Contributors creation error:', contributorsError);
+          throw contributorsError;
+        }
       }
 
       return citationData;
