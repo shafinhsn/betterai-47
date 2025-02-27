@@ -1,105 +1,139 @@
 
 import { Citation } from '@/types/citation';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Trash2, Plus } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreVertical, Copy, Trash } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CitationListProps {
   citations: Citation[];
   onDelete: (id: string) => void;
+  onAddToDocument?: (citation: string) => void;
 }
 
-export const CitationList = ({ citations, onDelete }: CitationListProps) => {
+export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationListProps) => {
+  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
+  const [formatDialogOpen, setFormatDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const generateCitation = useMutation({
-    mutationFn: async (citation: Citation) => {
+  const handleAddCitation = async (citation: Citation, format: 'mla' | 'apa') => {
+    setIsLoading(true);
+    try {
       const { data, error } = await supabase.functions.invoke('generate-citation', {
-        body: { citation }
+        body: { citation, format }
       });
 
       if (error) throw error;
-      return data.citation;
-    },
-    onSuccess: (formattedCitation) => {
-      navigator.clipboard.writeText(formattedCitation);
-      toast({
-        title: "Citation copied",
-        description: "The formatted citation has been copied to your clipboard.",
-      });
-    },
-    onError: (error) => {
+
+      if (data.citation && onAddToDocument) {
+        onAddToDocument(data.citation);
+        toast({
+          title: "Citation added",
+          description: "The citation has been added to your document.",
+        });
+      }
+    } catch (error) {
       console.error('Error generating citation:', error);
       toast({
+        variant: "destructive",
         title: "Error",
         description: "Failed to generate citation. Please try again.",
-        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+      setFormatDialogOpen(false);
+      setSelectedCitation(null);
     }
-  });
-
-  if (!citations.length) {
-    return (
-      <div className="text-center p-8 text-emerald-50">
-        No citations yet. Click "Add Citation" to create one.
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {citations.map((citation) => (
-        <Card key={citation.id} className="p-4 bg-secondary/50">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h3 className="font-semibold text-emerald-50">{citation.title}</h3>
-              <p className="text-sm text-emerald-300 mt-1">
-                {citation.type.charAt(0).toUpperCase() + citation.type.slice(1)}
-              </p>
-              {citation.contributors && citation.contributors.length > 0 && (
-                <p className="text-sm text-emerald-400 mt-2">
-                  {citation.contributors
-                    .filter(c => c.role === 'author')
-                    .map(c => `${c.first_name} ${c.last_name}`)
-                    .join(', ')}
-                </p>
-              )}
-            </div>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Type</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead>Publisher</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {citations.map((citation) => (
+            <TableRow key={citation.id}>
+              <TableCell>{citation.type}</TableCell>
+              <TableCell>{citation.title}</TableCell>
+              <TableCell>{citation.publisher}</TableCell>
+              <TableCell className="space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedCitation(citation);
+                    setFormatDialogOpen(true);
+                  }}
+                  disabled={isLoading}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Citation
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => generateCitation.mutate(citation)}
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy Citation
-                </DropdownMenuItem>
-                <DropdownMenuItem
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() => citation.id && onDelete(citation.id)}
-                  className="text-red-500"
                 >
-                  <Trash className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </Card>
-      ))}
-    </div>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <AlertDialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Choose Citation Format</AlertDialogTitle>
+            <AlertDialogDescription>
+              Select the format for your citation
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedCitation && handleAddCitation(selectedCitation, 'mla')}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              MLA
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => selectedCitation && handleAddCitation(selectedCitation, 'apa')}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              APA
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

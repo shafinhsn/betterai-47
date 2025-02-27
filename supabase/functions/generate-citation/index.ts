@@ -1,64 +1,74 @@
 
-import { serve } from 'https://deno.fresh.dev/server'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { Citation } from '../_shared/types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { citation } = await req.json()
-    
-    // Generate citation based on type and data
-    let formattedCitation = ''
-    
-    if (citation.type === 'website') {
-      const authors = citation.contributors
-        ?.filter(c => c.role === 'author')
-        .map(a => `${a.last_name}, ${a.first_name?.[0] || ''}.`)
-        .join(', ') || 'n.a.'
+    const { citation, format } = await req.json();
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-      formattedCitation = `${authors} (${new Date(citation.publication_date).getFullYear() || 'n.d.'}). ${citation.title}. Retrieved from ${citation.url}`
-    } 
-    else if (citation.type === 'book') {
-      const authors = citation.contributors
-        ?.filter(c => c.role === 'author')
-        .map(a => `${a.last_name}, ${a.first_name?.[0] || ''}.`)
-        .join(' & ') || 'n.a.'
-
-      formattedCitation = `${authors} (${new Date(citation.publication_date).getFullYear() || 'n.d.'}). ${citation.title}. ${citation.publisher}.`
-    }
-    else if (citation.type === 'journal') {
-      const authors = citation.contributors
-        ?.filter(c => c.role === 'author')
-        .map(a => `${a.last_name}, ${a.first_name?.[0] || ''}.`)
-        .join(', ') || 'n.a.'
-
-      formattedCitation = `${authors} (${new Date(citation.publication_date).getFullYear() || 'n.d.'}). ${citation.title}. ${citation.publisher}. https://doi.org/${citation.doi}`
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not found');
     }
 
-    return new Response(
-      JSON.stringify({ citation: formattedCitation }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+    const formatPrompt = format === 'mla' 
+      ? 'Format this citation in MLA style.'
+      : 'Format this citation in APA style.';
+
+    const citationPrompt = `
+      Here's the citation information:
+      Type: ${citation.type}
+      Title: ${citation.title}
+      ${citation.url ? `URL: ${citation.url}` : ''}
+      ${citation.doi ? `DOI: ${citation.doi}` : ''}
+      ${citation.isbn ? `ISBN: ${citation.isbn}` : ''}
+      ${citation.publisher ? `Publisher: ${citation.publisher}` : ''}
+      ${citation.publication_date ? `Publication Date: ${citation.publication_date}` : ''}
+      ${citation.accessed_date ? `Access Date: ${citation.accessed_date}` : ''}
+      Contributors: ${citation.contributors?.map(c => 
+        `${c.first_name || ''} ${c.middle_name || ''} ${c.last_name || ''} (${c.role})`
+      ).join(', ') || 'None'}
+
+      ${formatPrompt}
+      Return only the formatted citation, nothing else.
+    `;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
       },
-    )
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a citation formatting assistant. Format citations accurately in the requested style.' },
+          { role: 'user', content: citationPrompt }
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    const formattedCitation = data.choices[0].message.content.trim();
+
+    return new Response(JSON.stringify({ citation: formattedCitation }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    console.error('Error:', error.message)
-    return new Response(
-      JSON.stringify({ error: 'Internal Server Error' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      },
-    )
+    console.error('Error generating citation:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-})
+});

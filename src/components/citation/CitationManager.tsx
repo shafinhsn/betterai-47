@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { NewCitationDialog } from './NewCitationDialog';
@@ -34,13 +33,11 @@ export const CitationManager = () => {
 
   const createCitation = useMutation({
     mutationFn: async (citation: Citation) => {
-      // First get the current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       console.log('Creating citation with user_id:', user.id);
 
-      // First create the citation
       const { data: citationData, error: citationError } = await supabase
         .from('citations')
         .insert([{
@@ -52,7 +49,7 @@ export const CitationManager = () => {
           publisher: citation.publisher,
           publication_date: citation.publication_date,
           accessed_date: citation.accessed_date,
-          user_id: user.id // Important: Set the user_id!
+          user_id: user.id
         }])
         .select()
         .single();
@@ -62,7 +59,6 @@ export const CitationManager = () => {
         throw citationError;
       }
 
-      // Then add contributors if any
       if (citation.contributors?.length) {
         const { error: contributorsError } = await supabase
           .from('citation_contributors')
@@ -125,6 +121,16 @@ export const CitationManager = () => {
     }
   });
 
+  const handleAddToDocument = (citation: string) => {
+    const textElement = document.querySelector('.prose') as HTMLElement;
+    if (textElement) {
+      const newContent = textElement.innerText + '\n\n' + citation;
+      if (window.parent) {
+        window.parent.postMessage({ type: 'UPDATE_DOCUMENT', content: newContent }, '*');
+      }
+    }
+  };
+
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-6">
@@ -143,6 +149,7 @@ export const CitationManager = () => {
         <CitationList 
           citations={citations || []} 
           onDelete={(id) => deleteCitation.mutate(id)}
+          onAddToDocument={handleAddToDocument}
         />
       )}
 
