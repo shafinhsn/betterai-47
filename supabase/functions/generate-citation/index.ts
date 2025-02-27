@@ -2,31 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-type CitationType = 'website' | 'book' | 'journal';
-
-interface Contributor {
-  id?: string;
-  citation_id?: string;
-  role: string;
-  first_name?: string;
-  middle_name?: string;
-  last_name?: string;
-  suffix?: string;
-}
-
-interface Citation {
-  id?: string;
-  user_id?: string;
-  type: CitationType;
-  title: string;
-  url?: string;
-  doi?: string;
-  isbn?: string;
-  publisher?: string;
-  publication_date?: string;
-  accessed_date?: string;
-  contributors?: Contributor[];
-}
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,35 +17,7 @@ serve(async (req) => {
 
   try {
     const { citation, format } = await req.json();
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not found');
-    }
-
-    const formatPrompt = format === 'mla' 
-      ? 'Format this citation in MLA 9th edition style.'
-      : 'Format this citation in APA 7th edition style.';
-
-    const citationPrompt = `
-      Here's the citation information:
-      Type: ${citation.type}
-      Title: ${citation.title}
-      ${citation.url ? `URL: ${citation.url}` : ''}
-      ${citation.doi ? `DOI: ${citation.doi}` : ''}
-      ${citation.isbn ? `ISBN: ${citation.isbn}` : ''}
-      ${citation.publisher ? `Publisher: ${citation.publisher}` : ''}
-      ${citation.publication_date ? `Publication Date: ${citation.publication_date}` : ''}
-      ${citation.accessed_date ? `Access Date: ${citation.accessed_date}` : ''}
-      Contributors: ${citation.contributors?.map(c => 
-        `${c.first_name || ''} ${c.middle_name || ''} ${c.last_name || ''} (${c.role})`
-      ).join(', ') || 'None'}
-
-      ${formatPrompt}
-      Return only the formatted citation, nothing else.
-    `;
-
-    console.log('Sending request to OpenAI with prompt:', citationPrompt);
+    const formatText = format === 'mla' ? ' in MLA format' : ' in APA format';
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -80,22 +28,26 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a citation formatting assistant. Format citations accurately in the requested style.' },
-          { role: 'user', content: citationPrompt }
+          { 
+            role: 'system', 
+            content: 'You are a citation expert that creates properly formatted citations.' 
+          },
+          { 
+            role: 'user', 
+            content: `Please use this information to create a citation page and add it to the end of my text${formatText}:\n\n${JSON.stringify(citation)}` 
+          }
         ],
       }),
     });
 
     const data = await response.json();
-    const formattedCitation = data.choices[0].message.content.trim();
+    const generatedCitation = data.choices[0].message.content;
 
-    console.log('Generated citation:', formattedCitation);
-
-    return new Response(JSON.stringify({ citation: formattedCitation }), {
+    return new Response(JSON.stringify({ citation: generatedCitation }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error generating citation:', error);
+    console.error('Error in generate-citation function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
