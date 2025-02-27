@@ -13,6 +13,7 @@ interface FormatToolbarProps {
   fontFamily: string;
   alignment: 'left' | 'center' | 'right';
   content?: string;
+  isAIModified?: boolean;
   setFontSize: (size: number) => void;
   setFontFamily: (font: string) => void;
   setAlignment: (align: 'left' | 'center' | 'right') => void;
@@ -30,6 +31,7 @@ export const FormatToolbar = ({
   fontFamily,
   alignment,
   content,
+  isAIModified,
   setFontSize,
   setFontFamily,
   setAlignment,
@@ -39,9 +41,6 @@ export const FormatToolbar = ({
   onEditToggle,
   onSave,
 }: FormatToolbarProps) => {
-  // Get the actual content currently displayed in the document
-  const documentContent = content || '';
-  
   return (
     <div className="sticky top-0 z-10 flex flex-col gap-2 p-2 bg-[#1a1a1a] border-b border-emerald-900/20">
       <div className="flex flex-wrap items-center gap-2">
@@ -69,7 +68,10 @@ export const FormatToolbar = ({
             onFormatAPA={onFormatAPA}
           />
 
-          <AIDetectionButton content={documentContent} />
+          <AIDetectionButton 
+            content={content} 
+            isAIModified={isAIModified}
+          />
 
           <EditControls
             isEditing={isEditing}

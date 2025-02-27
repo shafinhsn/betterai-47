@@ -7,18 +7,28 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AIDetectionButtonProps {
   content?: string;
+  isAIModified?: boolean;
 }
 
-export const AIDetectionButton = ({ content }: AIDetectionButtonProps) => {
+export const AIDetectionButton = ({ content, isAIModified }: AIDetectionButtonProps) => {
   const [isChecking, setIsChecking] = useState(false);
   const { toast } = useToast();
 
   const handleAICheck = async () => {
+    if (!isAIModified) {
+      toast({
+        title: "No AI changes",
+        description: "This button is only active after requesting document changes through the chat",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const trimmedContent = content?.trim();
     if (!trimmedContent) {
       toast({
         title: "No content",
-        description: "Please add some content to check for AI generation",
+        description: "There is no content to check for AI generation",
         variant: "destructive"
       });
       return;
@@ -49,16 +59,13 @@ export const AIDetectionButton = ({ content }: AIDetectionButtonProps) => {
     }
   };
 
-  // The button should be disabled when there's no content or when checking is in progress
-  const hasContent = Boolean(content?.trim());
-
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={handleAICheck}
-      disabled={isChecking || !hasContent}
-      className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
+      disabled={isChecking || !isAIModified}
+      className={`bg-emerald-900/20 border-emerald-800/30 text-emerald-50 ${isAIModified ? 'hover:bg-emerald-800/30' : 'opacity-50 cursor-not-allowed'}`}
     >
       <Bot className="w-4 h-4 mr-2" />
       {isChecking ? 'Checking...' : 'Check for AI'}

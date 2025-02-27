@@ -1,5 +1,4 @@
-
-import { forwardRef, memo, CSSProperties, useState } from 'react';
+import { forwardRef, memo, CSSProperties, useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { FormatToolbar } from './document/FormatToolbar';
@@ -20,7 +19,15 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
     const [fontFamily, setFontFamily] = useState('Inter');
     const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('left');
     const [format, setFormat] = useState<'none' | 'mla' | 'apa'>('none');
+    const [isAIModified, setIsAIModified] = useState(false);
     const { toast } = useToast();
+
+    useEffect(() => {
+      setEditedContent(content);
+      if (content !== editedContent) {
+        setIsAIModified(true);
+      }
+    }, [content]);
 
     const handleSave = () => {
       if (onContentUpdate) {
@@ -30,6 +37,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
           title: "Changes saved",
           description: "Your edits have been saved successfully.",
         });
+        setIsAIModified(false);
       }
     };
 
@@ -163,6 +171,8 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
           fontSize={fontSize}
           fontFamily={fontFamily}
           alignment={alignment}
+          content={editedContent || content}
+          isAIModified={isAIModified}
           setFontSize={setFontSize}
           setFontFamily={setFontFamily}
           setAlignment={setAlignment}
