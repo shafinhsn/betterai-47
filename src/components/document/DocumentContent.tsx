@@ -1,3 +1,4 @@
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CSSProperties } from 'react';
 
@@ -32,31 +33,10 @@ export const DocumentContent = ({
     textAlign: alignment,
   };
 
-  // Function to highlight grammar changes
-  const highlightChanges = (original: string, updated: string) => {
-    if (!original || !updated) return updated;
-    
-    const words = updated.split(/\s+/);
-    const originalWords = original.split(/\s+/);
-    
-    return words.map((word, index) => {
-      if (word !== originalWords[index]) {
-        return (
-          <span key={index} className="relative group">
-            <span className="bg-red-500/20 text-red-200 line-through">{originalWords[index]} </span>
-            <span className="bg-green-500/20 text-green-200">{word} </span>
-            <div className="absolute hidden group-hover:block bottom-full left-0 bg-gray-900 text-xs text-white p-2 rounded shadow-lg mb-1 whitespace-nowrap">
-              Changed from "{originalWords[index]}" to "{word}"
-            </div>
-          </span>
-        );
-      }
-      return <span key={index}>{word} </span>;
-    });
-  };
-
   // Display content with proper paragraph handling
   const displayContent = (baseContent: string) => {
+    if (!baseContent) return null;
+    
     const paragraphs = baseContent.split('\n');
     
     return paragraphs.map((paragraph, index) => (

@@ -61,7 +61,15 @@ const Index = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'UPDATE_DOCUMENT') {
-        const newContent = (updatedContent || content) + event.data.content;
+        console.log('Received UPDATE_DOCUMENT message:', event.data);
+        console.log('Current content:', content);
+        console.log('Current updatedContent:', updatedContent);
+        
+        // Use the most recent content as the base
+        const baseContent = updatedContent || content;
+        const newContent = baseContent + event.data.content;
+        
+        console.log('New content will be:', newContent);
         setUpdatedContent(newContent);
         setPreviewKey(prev => prev + 1);
       }
@@ -168,37 +176,37 @@ const Index = () => {
     });
   };
 
-  if (showCitations) {
-    return (
-      <div className="h-screen bg-[#121212] text-white overflow-hidden">
-        <CitationManager />
-        <button 
-          onClick={() => setShowCitations(false)}
-          className="fixed bottom-4 right-4 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded"
-        >
-          Back to Editor
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <MainLayout
-      isAuthenticated={isAuthenticated}
-      isProcessing={isProcessing}
-      currentDocument={currentDocument}
-      content={content}
-      updatedContent={updatedContent}
-      messages={messages}
-      previewKey={previewKey}
-      onFileSelect={handleFileSelect}
-      onDocumentRemoved={handleDocumentRemoved}
-      onSendMessage={handleSendMessage}
-      onDocumentUpdate={handleDocumentUpdate}
-      onManualUpdate={handleManualUpdate}
-      onNavigate={() => navigate('/auth')}
-      onCitationsOpen={() => setShowCitations(true)}
-    />
+    <div className="h-screen bg-[#121212] text-white overflow-hidden">
+      {showCitations ? (
+        <>
+          <CitationManager />
+          <button 
+            onClick={() => setShowCitations(false)}
+            className="fixed bottom-4 right-4 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded"
+          >
+            Back to Editor
+          </button>
+        </>
+      ) : (
+        <MainLayout
+          isAuthenticated={isAuthenticated}
+          isProcessing={isProcessing}
+          currentDocument={currentDocument}
+          content={content}
+          updatedContent={updatedContent}
+          messages={messages}
+          previewKey={previewKey}
+          onFileSelect={handleFileSelect}
+          onDocumentRemoved={handleDocumentRemoved}
+          onSendMessage={handleSendMessage}
+          onDocumentUpdate={handleDocumentUpdate}
+          onManualUpdate={handleManualUpdate}
+          onNavigate={() => navigate('/auth')}
+          onCitationsOpen={() => setShowCitations(true)}
+        />
+      )}
+    </div>
   );
 };
 

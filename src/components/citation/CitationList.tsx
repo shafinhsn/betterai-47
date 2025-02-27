@@ -39,15 +39,18 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
   const handleAddCitation = async (citation: Citation, format: 'mla' | 'apa') => {
     setIsLoading(true);
     try {
+      console.log('Generating citation with format:', format);
       const { data, error } = await supabase.functions.invoke('generate-citation', {
         body: { citation, format }
       });
 
       if (error) throw error;
 
+      console.log('Generated citation:', data.citation);
       if (data.citation && onAddToDocument) {
         // Add two newlines before the citation to ensure it appears on a new line
         const formattedCitation = `\n\n${data.citation}`;
+        console.log('Adding citation to document:', formattedCitation);
         onAddToDocument(formattedCitation);
         toast({
           title: "Citation added",
