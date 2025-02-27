@@ -17,8 +17,32 @@ serve(async (req) => {
 
   try {
     const { citation, format } = await req.json();
-    const formatText = format === 'mla' ? ' in MLA format' : ' in APA format';
 
+    const formatInstructions = format === 'mla' 
+      ? 'Create an MLA 9th edition citation. Include hanging indentation if there are multiple lines.'
+      : 'Create an APA 7th edition citation. Include hanging indentation if there are multiple lines.';
+
+    const citationPrompt = `
+      Format the following citation information ${format === 'mla' ? 'in MLA style' : 'in APA style'}:
+      
+      Type: ${citation.type}
+      Title: ${citation.title}
+      ${citation.url ? `URL: ${citation.url}` : ''}
+      ${citation.doi ? `DOI: ${citation.doi}` : ''}
+      ${citation.isbn ? `ISBN: ${citation.isbn}` : ''}
+      ${citation.publisher ? `Publisher: ${citation.publisher}` : ''}
+      ${citation.publication_date ? `Publication Date: ${citation.publication_date}` : ''}
+      ${citation.accessed_date ? `Access Date: ${citation.accessed_date}` : ''}
+      Contributors: ${citation.contributors?.map(c => 
+        `${c.first_name || ''} ${c.middle_name || ''} ${c.last_name || ''} (${c.role})`
+      ).join(', ') || 'None'}
+
+      ${formatInstructions}
+      Return only the formatted citation, nothing else.
+    `;
+
+    console.log('Generating citation with format:', format);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -30,18 +54,20 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a citation expert that creates properly formatted citations.' 
+            content: 'You are a citation expert that generates precise citations following academic style guides.' 
           },
           { 
             role: 'user', 
-            content: `Please use this information to create a citation page and add it to the end of my text${formatText}:\n\n${JSON.stringify(citation)}` 
+            content: citationPrompt 
           }
         ],
       }),
     });
 
     const data = await response.json();
-    const generatedCitation = data.choices[0].message.content;
+    const generatedCitation = data.choices[0].message.content.trim();
+    
+    console.log('Generated citation:', generatedCitation);
 
     return new Response(JSON.stringify({ citation: generatedCitation }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
