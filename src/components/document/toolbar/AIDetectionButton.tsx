@@ -14,7 +14,8 @@ export const AIDetectionButton = ({ content }: AIDetectionButtonProps) => {
   const { toast } = useToast();
 
   const handleAICheck = async () => {
-    if (!content?.trim()) {
+    const trimmedContent = content?.trim();
+    if (!trimmedContent) {
       toast({
         title: "No content",
         description: "Please add some content to check for AI generation",
@@ -26,7 +27,7 @@ export const AIDetectionButton = ({ content }: AIDetectionButtonProps) => {
     setIsChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('detect-ai', {
-        body: { text: content }
+        body: { text: trimmedContent }
       });
 
       if (error) throw error;
@@ -48,12 +49,15 @@ export const AIDetectionButton = ({ content }: AIDetectionButtonProps) => {
     }
   };
 
+  // The button should be disabled when there's no content or when checking is in progress
+  const hasContent = Boolean(content?.trim());
+
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={handleAICheck}
-      disabled={isChecking} // Remove the content check from disabled state
+      disabled={isChecking || !hasContent}
       className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
     >
       <Bot className="w-4 h-4 mr-2" />

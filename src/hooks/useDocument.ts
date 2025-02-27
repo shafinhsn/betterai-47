@@ -23,19 +23,24 @@ export const useDocument = () => {
     setCurrentDocument(null);
     
     try {
-      setContent(fileContent);
-      const newDocument: ProcessedDocument = {
-        content: fileContent,
-        filePath: URL.createObjectURL(selectedFile),
-        filename: selectedFile.name,
-        fileType: selectedFile.type
-      };
-      setCurrentDocument(newDocument);
-      
-      toast({
-        title: "Document uploaded",
-        description: `Successfully processed ${selectedFile.name}`,
-      });
+      // Ensure we have content before setting the state
+      if (fileContent?.trim()) {
+        setContent(fileContent);
+        const newDocument: ProcessedDocument = {
+          content: fileContent,
+          filePath: URL.createObjectURL(selectedFile),
+          filename: selectedFile.name,
+          fileType: selectedFile.type
+        };
+        setCurrentDocument(newDocument);
+        
+        toast({
+          title: "Document uploaded",
+          description: `Successfully processed ${selectedFile.name}`,
+        });
+      } else {
+        throw new Error('No content found in the document');
+      }
     } catch (error) {
       console.error('Error processing document:', error);
       setContent('');

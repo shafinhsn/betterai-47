@@ -39,8 +39,8 @@ export const FormatToolbar = ({
   onEditToggle,
   onSave,
 }: FormatToolbarProps) => {
-  // Use the updatedContent or fall back to content
-  const currentContent = content || '';
+  // Get the actual content currently displayed in the document
+  const documentContent = content || '';
   
   return (
     <div className="sticky top-0 z-10 flex flex-col gap-2 p-2 bg-[#1a1a1a] border-b border-emerald-900/20">
@@ -69,7 +69,7 @@ export const FormatToolbar = ({
             onFormatAPA={onFormatAPA}
           />
 
-          <AIDetectionButton content={currentContent} />
+          <AIDetectionButton content={documentContent} />
 
           <EditControls
             isEditing={isEditing}
