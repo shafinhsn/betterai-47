@@ -1,193 +1,83 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/hooks/use-toast";
-import { Message, ProcessedDocument } from '@/types/document';
-import { supabase } from '@/integrations/supabase/client';
 import { MainLayout } from '@/components/MainLayout';
-import { CitationManager } from '@/components/citation/CitationManager';
+import { CitationsView } from '@/components/document/CitationsView';
+import { useDocument } from '@/hooks/useDocument';
+import { useAuthState } from '@/hooks/useAuthState';
+import { useMessageHandler } from '@/hooks/useMessageHandler';
 
 const STORAGE_KEY = 'document_data';
 
 const Index = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [content, setContent] = useState('');
-  const [updatedContent, setUpdatedContent] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | null>(null);
-  const [previewKey, setPreviewKey] = useState(0);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [showCitations, setShowCitations] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthState();
+  const [showCitations, setShowCitations] = useState(false);
+  
+  const {
+    content,
+    updatedContent,
+    messages,
+    isProcessing,
+    currentDocument,
+    previewKey,
+    handleFileSelect,
+    handleDocumentRemoved,
+    handleSendMessage,
+    handleDocumentUpdate,
+    handleManualUpdate,
+  } = useDocument();
+
+  useMessageHandler({
+    content,
+    updatedContent,
+    onUpdate: handleDocumentUpdate,
+    onPreviewUpdate: () => {},
+  });
 
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
     if (savedData) {
       const parsedData = JSON.parse(savedData);
-      setContent(parsedData.content || '');
-      setUpdatedContent(parsedData.updatedContent || '');
-      setCurrentDocument(parsedData.currentDocument || null);
-      setMessages(parsedData.messages || []);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentDocument) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        content,
-        updatedContent,
-        currentDocument,
-        messages
-      }));
+      if (currentDocument) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          content,
+          updatedContent,
+          currentDocument,
+          messages
+        }));
+      }
     }
   }, [content, updatedContent, currentDocument, messages]);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    };
-    
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'UPDATE_DOCUMENT') {
-        console.log('Received UPDATE_DOCUMENT message:', event.data);
-        console.log('Current content:', content);
-        console.log('Current updatedContent:', updatedContent);
-        
-        // Use the most recent content as the base
-        const baseContent = updatedContent || content;
-        const newContent = baseContent + event.data.content;
-        
-        console.log('New content will be:', newContent);
-        setUpdatedContent(newContent);
-        setPreviewKey(prev => prev + 1);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [content, updatedContent]);
-
-  const handleFileSelect = async (selectedFile: File, fileContent: string) => {
+  const handleAuthCheck = (callback: () => void) => {
     if (!isAuthenticated) {
       navigate('/auth');
       return;
     }
-
-    setIsProcessing(true);
-    setFile(selectedFile);
-    setContent('');
-    setUpdatedContent('');
-    setCurrentDocument(null);
-    
-    try {
-      setContent(fileContent);
-      const newDocument: ProcessedDocument = {
-        content: fileContent,
-        filePath: URL.createObjectURL(selectedFile),
-        filename: selectedFile.name,
-        fileType: selectedFile.type
-      };
-      setCurrentDocument(newDocument);
-      
-      toast({
-        title: "Document uploaded",
-        description: `Successfully processed ${selectedFile.name}`,
-      });
-    } catch (error) {
-      console.error('Error processing document:', error);
-      setContent('');
-      setCurrentDocument(null);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to process document. Please try again.",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    callback();
   };
 
-  const handleDocumentRemoved = () => {
-    setFile(null);
-    setContent('');
-    setUpdatedContent('');
-    setCurrentDocument(null);
-    setMessages([]);
-    localStorage.removeItem(STORAGE_KEY);
+  const handleFileSelectWithAuth = (file: File, content: string) => {
+    handleAuthCheck(() => handleFileSelect(file, content));
   };
 
-  const handleSendMessage = (message: string, sender: 'user' | 'ai', documentState?: string) => {
-    if (!isAuthenticated) {
-      navigate('/auth');
-      return;
-    }
-    
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content: message,
-      sender: sender,
-      documentState: documentState
-    };
-    setMessages(prev => [...prev, newMessage]);
+  const handleSendMessageWithAuth = (message: string, sender: 'user' | 'ai', documentState?: string) => {
+    handleAuthCheck(() => handleSendMessage(message, sender, documentState));
   };
 
-  const handleDocumentUpdate = (newContent: string) => {
-    if (!isAuthenticated) {
-      navigate('/auth');
-      return;
-    }
-    console.log('Previous document state:', updatedContent || content);
-    console.log('Applying new changes to:', newContent);
-    
-    // Always use the most recent version of the document
-    setUpdatedContent(newContent);
-    setPreviewKey(prev => prev + 1);
-    
-    toast({
-      title: "Document updated",
-      description: "The document has been modified based on your request.",
-    });
+  const handleDocumentUpdateWithAuth = (content: string) => {
+    handleAuthCheck(() => handleDocumentUpdate(content));
   };
 
-  const handleManualUpdate = (newContent: string) => {
-    if (!isAuthenticated) {
-      navigate('/auth');
-      return;
-    }
-    console.log('Manual update with content:', newContent);
-    setUpdatedContent(newContent);
-    setPreviewKey(prev => prev + 1);
-    
-    toast({
-      title: "Changes saved",
-      description: "Your manual edits have been saved successfully.",
-    });
+  const handleManualUpdateWithAuth = (content: string) => {
+    handleAuthCheck(() => handleManualUpdate(content));
   };
 
   return (
     <div className="h-screen bg-[#121212] text-white overflow-hidden">
       {showCitations ? (
-        <>
-          <CitationManager />
-          <button 
-            onClick={() => setShowCitations(false)}
-            className="fixed bottom-4 right-4 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded"
-          >
-            Back to Editor
-          </button>
-        </>
+        <CitationsView onBack={() => setShowCitations(false)} />
       ) : (
         <MainLayout
           isAuthenticated={isAuthenticated}
@@ -197,11 +87,11 @@ const Index = () => {
           updatedContent={updatedContent}
           messages={messages}
           previewKey={previewKey}
-          onFileSelect={handleFileSelect}
+          onFileSelect={handleFileSelectWithAuth}
           onDocumentRemoved={handleDocumentRemoved}
-          onSendMessage={handleSendMessage}
-          onDocumentUpdate={handleDocumentUpdate}
-          onManualUpdate={handleManualUpdate}
+          onSendMessage={handleSendMessageWithAuth}
+          onDocumentUpdate={handleDocumentUpdateWithAuth}
+          onManualUpdate={handleManualUpdateWithAuth}
           onNavigate={() => navigate('/auth')}
           onCitationsOpen={() => setShowCitations(true)}
         />
