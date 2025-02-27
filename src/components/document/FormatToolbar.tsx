@@ -39,6 +39,9 @@ export const FormatToolbar = ({
   onEditToggle,
   onSave,
 }: FormatToolbarProps) => {
+  // Use the updatedContent or fall back to content
+  const currentContent = content || '';
+  
   return (
     <div className="sticky top-0 z-10 flex flex-col gap-2 p-2 bg-[#1a1a1a] border-b border-emerald-900/20">
       <div className="flex flex-wrap items-center gap-2">
@@ -66,7 +69,7 @@ export const FormatToolbar = ({
             onFormatAPA={onFormatAPA}
           />
 
-          <AIDetectionButton content={content} />
+          <AIDetectionButton content={currentContent} />
 
           <EditControls
             isEditing={isEditing}

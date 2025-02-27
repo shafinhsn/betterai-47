@@ -14,7 +14,7 @@ export const AIDetectionButton = ({ content }: AIDetectionButtonProps) => {
   const { toast } = useToast();
 
   const handleAICheck = async () => {
-    if (!content) {
+    if (!content?.trim()) {
       toast({
         title: "No content",
         description: "Please add some content to check for AI generation",
@@ -53,7 +53,7 @@ export const AIDetectionButton = ({ content }: AIDetectionButtonProps) => {
       variant="outline"
       size="sm"
       onClick={handleAICheck}
-      disabled={isChecking || !content}
+      disabled={isChecking} // Remove the content check from disabled state
       className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
     >
       <Bot className="w-4 h-4 mr-2" />
