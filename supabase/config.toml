@@ -35,8 +35,11 @@ verify_jwt = true
 [functions.process-document]
 verify_jwt = true
 
-[functions.create-paypal-checkout]
+[functions.generate-citation]
 verify_jwt = true
+
+[functions.create-paypal-checkout]
+verify_jwt = false
 
 [functions.paypal-webhook]
 verify_jwt = false
