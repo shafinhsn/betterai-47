@@ -19,18 +19,20 @@ export const useMessageHandler = ({
       if (event.data.type === 'UPDATE_DOCUMENT') {
         console.log('Received UPDATE_DOCUMENT message:', event.data);
         
-        // Get the current content, preferring updatedContent if it exists
-        const currentContent = updatedContent || content;
-        console.log('Current content before update:', currentContent);
+        // Get the current document content
+        const currentContent = updatedContent || content || '';
+        console.log('Current document content:', currentContent);
         
-        // Ensure we have content to append to
-        const baseContent = currentContent || '';
+        // Format the new citation with proper spacing
+        const formattedCitation = event.data.content.trim();
+        console.log('Citation to be added:', formattedCitation);
         
-        // Append the new citation with proper spacing
-        const newContent = baseContent + event.data.content;
-        console.log('New content after update:', newContent);
+        // Combine the current content with the new citation
+        // Make sure there's a line break before and after the citation
+        const newContent = currentContent.trim() + '\n\n' + formattedCitation + '\n';
+        console.log('Updated document content:', newContent);
         
-        // Update the document with the combined content
+        // Update the document
         onUpdate(newContent);
         onPreviewUpdate();
       }

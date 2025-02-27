@@ -27,7 +27,6 @@ import { supabase } from '@/integrations/supabase/client';
 interface CitationListProps {
   citations: Citation[];
   onDelete: (id: string) => void;
-  onAddToDocument?: (citation: string) => void;
 }
 
 export const CitationList = ({ citations, onDelete }: CitationListProps) => {
@@ -47,18 +46,17 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
       if (error) throw error;
 
       console.log('Generated citation response:', data);
+      
       if (data.citation) {
-        // Format the citation text with proper spacing
-        const formattedCitation = `\n\n${data.citation.trim()}\n\n`;
-        console.log('Formatted citation to be added:', formattedCitation);
+        const formattedCitation = data.citation.trim();
+        console.log('Sending citation to document:', formattedCitation);
         
-        // Post the message to the parent window with the formatted citation
-        window.parent.postMessage({ 
-          type: 'UPDATE_DOCUMENT', 
-          content: formattedCitation 
+        // Send the citation to the parent window
+        window.parent.postMessage({
+          type: 'UPDATE_DOCUMENT',
+          content: formattedCitation
         }, '*');
         
-        // Show success toast
         toast({
           title: "Citation added",
           description: "The citation has been added to your document.",
@@ -95,7 +93,7 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
             <TableCell>{citation.title}</TableCell>
             <TableCell>{citation.publisher}</TableCell>
             <TableCell className="space-x-2">
-              <Button
+              <Button 
                 variant="outline"
                 size="sm"
                 onClick={() => {
