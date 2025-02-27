@@ -30,7 +30,7 @@ interface CitationListProps {
   onAddToDocument?: (citation: string) => void;
 }
 
-export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationListProps) => {
+export const CitationList = ({ citations, onDelete }: CitationListProps) => {
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,17 +48,17 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
 
       console.log('Generated citation response:', data);
       if (data.citation) {
-        // Format the citation with proper spacing and newlines
+        // Format the citation text with proper spacing
         const formattedCitation = `\n\n${data.citation.trim()}\n\n`;
         console.log('Formatted citation to be added:', formattedCitation);
         
-        // Send message to parent window with the properly formatted citation
+        // Post the message to the parent window with the formatted citation
         window.parent.postMessage({ 
           type: 'UPDATE_DOCUMENT', 
-          content: formattedCitation,
-          timestamp: Date.now()
+          content: formattedCitation 
         }, '*');
         
+        // Show success toast
         toast({
           title: "Citation added",
           description: "The citation has been added to your document.",

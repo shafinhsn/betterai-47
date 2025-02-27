@@ -25,15 +25,6 @@ export const AIDetectionButton = ({ content, isAIModified }: AIDetectionButtonPr
       return;
     }
 
-    if (!isAIModified) {
-      toast({
-        title: "No AI changes",
-        description: "This button is only active after requesting document changes through the chat",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsChecking(true);
     try {
       console.log('Checking content for AI:', trimmedContent);
@@ -66,8 +57,8 @@ export const AIDetectionButton = ({ content, isAIModified }: AIDetectionButtonPr
       variant="outline"
       size="sm"
       onClick={handleAICheck}
-      disabled={isChecking || !isAIModified || !content}
-      className={`bg-emerald-900/20 border-emerald-800/30 text-emerald-50 ${isAIModified ? 'hover:bg-emerald-800/30' : 'opacity-50 cursor-not-allowed'}`}
+      disabled={isChecking || !content}
+      className={`bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30`}
     >
       <Bot className="w-4 h-4 mr-2" />
       {isChecking ? 'Checking...' : 'Check for AI'}
