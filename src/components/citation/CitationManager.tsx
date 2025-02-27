@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { NewCitationDialog } from './NewCitationDialog';
@@ -122,12 +123,12 @@ export const CitationManager = () => {
   });
 
   const handleAddToDocument = (citation: string) => {
-    const textElement = document.querySelector('.prose') as HTMLElement;
-    if (textElement) {
-      const newContent = textElement.innerText + '\n\n' + citation;
-      if (window.parent) {
-        window.parent.postMessage({ type: 'UPDATE_DOCUMENT', content: newContent }, '*');
-      }
+    // Use window.parent.postMessage to communicate with the parent window
+    if (window.parent) {
+      window.parent.postMessage({ 
+        type: 'UPDATE_DOCUMENT', 
+        content: citation 
+      }, '*');
     }
   };
 

@@ -58,6 +58,19 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'UPDATE_DOCUMENT') {
+        const newContent = (updatedContent || content) + event.data.content;
+        setUpdatedContent(newContent);
+        setPreviewKey(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [content, updatedContent]);
+
   const handleFileSelect = async (selectedFile: File, fileContent: string) => {
     if (!isAuthenticated) {
       navigate('/auth');

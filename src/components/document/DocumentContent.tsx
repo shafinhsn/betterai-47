@@ -1,4 +1,3 @@
-
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CSSProperties } from 'react';
 
@@ -35,6 +34,8 @@ export const DocumentContent = ({
 
   // Function to highlight grammar changes
   const highlightChanges = (original: string, updated: string) => {
+    if (!original || !updated) return updated;
+    
     const words = updated.split(/\s+/);
     const originalWords = original.split(/\s+/);
     
@@ -54,22 +55,18 @@ export const DocumentContent = ({
     });
   };
 
-  // Handle citation additions by appending them to a new line at the end
+  // Display content with proper paragraph handling
   const displayContent = (baseContent: string) => {
     const paragraphs = baseContent.split('\n');
     
     return paragraphs.map((paragraph, index) => (
-      paragraph ? (
-        <p 
-          key={`${index}-${paragraph.substring(0, 10)}`} 
-          className="mb-4 text-emerald-50 whitespace-pre-wrap"
-          style={commonStyles}
-        >
-          {editedContent !== content && content.split('\n')[index] 
-            ? highlightChanges(content.split('\n')[index], paragraph) 
-            : paragraph}
-        </p>
-      ) : <br key={index} />
+      <p 
+        key={`${index}-${paragraph.substring(0, 10)}`} 
+        className="mb-4 text-emerald-50 whitespace-pre-wrap"
+        style={commonStyles}
+      >
+        {paragraph}
+      </p>
     ));
   };
 
