@@ -39,20 +39,20 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
   const handleAddCitation = async (citation: Citation, format: 'mla' | 'apa') => {
     setIsLoading(true);
     try {
-      console.log('Generating citation with format:', format);
+      console.log('Generating citation with format:', format, 'Citation data:', citation);
       const { data, error } = await supabase.functions.invoke('generate-citation', {
         body: { citation, format }
       });
 
       if (error) throw error;
 
-      console.log('Generated citation:', data.citation);
+      console.log('Generated citation response:', data);
       if (data.citation) {
         // Format the citation with proper spacing and newlines
-        const formattedCitation = `\n\n${data.citation.trim()}\n`;
-        console.log('Adding citation to document:', formattedCitation);
+        const formattedCitation = `\n\n${data.citation.trim()}\n\n`;
+        console.log('Formatted citation to be added:', formattedCitation);
         
-        // Send message to parent window to update document with the properly formatted citation
+        // Send message to parent window with the properly formatted citation
         window.parent.postMessage({ 
           type: 'UPDATE_DOCUMENT', 
           content: formattedCitation,
@@ -79,47 +79,45 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
   };
 
   return (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Type</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Publisher</TableHead>
-            <TableHead>Actions</TableHead>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Type</TableHead>
+          <TableHead>Title</TableHead>
+          <TableHead>Publisher</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {citations.map((citation) => (
+          <TableRow key={citation.id}>
+            <TableCell>{citation.type}</TableCell>
+            <TableCell>{citation.title}</TableCell>
+            <TableCell>{citation.publisher}</TableCell>
+            <TableCell className="space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedCitation(citation);
+                  setFormatDialogOpen(true);
+                }}
+                disabled={isLoading}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Citation
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => citation.id && onDelete(citation.id)}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {citations.map((citation) => (
-            <TableRow key={citation.id}>
-              <TableCell>{citation.type}</TableCell>
-              <TableCell>{citation.title}</TableCell>
-              <TableCell>{citation.publisher}</TableCell>
-              <TableCell className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedCitation(citation);
-                    setFormatDialogOpen(true);
-                  }}
-                  disabled={isLoading}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Citation
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => citation.id && onDelete(citation.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        ))}
+      </TableBody>
 
       <AlertDialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
         <AlertDialogContent>
@@ -146,6 +144,6 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </Table>
   );
 };

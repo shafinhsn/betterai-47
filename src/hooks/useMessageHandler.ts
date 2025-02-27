@@ -20,14 +20,14 @@ export const useMessageHandler = ({
         console.log('Received UPDATE_DOCUMENT message:', event.data);
         
         // Get the current content
-        const baseContent = updatedContent || content;
-        console.log('Current document content:', baseContent);
+        const currentContent = updatedContent || content;
+        console.log('Current content before update:', currentContent);
         
-        // Add the new citation with proper spacing
-        const newContent = baseContent + (baseContent.endsWith('\n\n') ? '' : '\n\n') + event.data.content.trim();
-        console.log('Updated document content:', newContent);
+        // Append the new citation
+        const newContent = currentContent + event.data.content;
+        console.log('New content after update:', newContent);
         
-        // Update the document
+        // Update the document with the combined content
         onUpdate(newContent);
         onPreviewUpdate();
       }
@@ -37,4 +37,3 @@ export const useMessageHandler = ({
     return () => window.removeEventListener('message', handleMessage);
   }, [content, updatedContent, onUpdate, onPreviewUpdate]);
 };
-
