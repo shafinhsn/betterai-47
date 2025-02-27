@@ -11,6 +11,7 @@ interface FormatToolbarProps {
   fontSize: number;
   fontFamily: string;
   alignment: 'left' | 'center' | 'right';
+  content?: string;
   setFontSize: (size: number) => void;
   setFontFamily: (font: string) => void;
   setAlignment: (align: 'left' | 'center' | 'right') => void;
@@ -27,6 +28,7 @@ export const FormatToolbar = ({
   fontSize,
   fontFamily,
   alignment,
+  content,
   setFontSize,
   setFontFamily,
   setAlignment,
@@ -68,10 +70,10 @@ export const FormatToolbar = ({
             isProcessing={isProcessing}
             onEditToggle={onEditToggle}
             onSave={onSave}
+            content={content}
           />
         </div>
       </div>
     </div>
   );
 };
-
