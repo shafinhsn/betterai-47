@@ -37,6 +37,7 @@ export const DocumentContent = ({
   const displayContent = (baseContent: string) => {
     if (!baseContent) return null;
     
+    console.log('Displaying content:', baseContent);
     const paragraphs = baseContent.split('\n');
     
     return paragraphs.map((paragraph, index) => (
@@ -50,8 +51,9 @@ export const DocumentContent = ({
     ));
   };
 
-  // Always use the most recent content as the base for comparisons
+  // Always use the most recent content
   const baseContent = editedContent || content;
+  console.log('Current document content in DocumentContent:', baseContent);
 
   return (
     <ScrollArea className="h-[calc(100vh-10rem)] overflow-y-auto">
@@ -72,3 +74,4 @@ export const DocumentContent = ({
     </ScrollArea>
   );
 };
+

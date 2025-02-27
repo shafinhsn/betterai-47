@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 
 type MessageHandlerProps = {
@@ -18,19 +19,15 @@ export const useMessageHandler = ({
       if (event.data.type === 'UPDATE_DOCUMENT') {
         console.log('Received UPDATE_DOCUMENT message:', event.data);
         
-        // If we have explicit new content, use it directly
-        if (event.data.updatedDocument) {
-          console.log('Applying new document content:', event.data.updatedDocument);
-          onUpdate(event.data.updatedDocument);
-          onPreviewUpdate();
-          return;
-        }
-        
-        // Otherwise, append the response to the existing content
+        // Get the current content
         const baseContent = updatedContent || content;
-        const newContent = baseContent + (baseContent.endsWith('\n\n') ? '' : '\n\n') + event.data.content;
+        console.log('Current document content:', baseContent);
         
-        console.log('Appending content:', newContent);
+        // Add the new citation with proper spacing
+        const newContent = baseContent + (baseContent.endsWith('\n\n') ? '' : '\n\n') + event.data.content.trim();
+        console.log('Updated document content:', newContent);
+        
+        // Update the document
         onUpdate(newContent);
         onPreviewUpdate();
       }
@@ -40,3 +37,4 @@ export const useMessageHandler = ({
     return () => window.removeEventListener('message', handleMessage);
   }, [content, updatedContent, onUpdate, onPreviewUpdate]);
 };
+
