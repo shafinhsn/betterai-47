@@ -60,7 +60,9 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
     accept: documentType === 'pdf' 
       ? { 'application/pdf': ['.pdf'] }
       : { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] },
-    maxFiles: 1
+    maxFiles: 1,
+    noClick: false,
+    noKeyboard: false
   });
 
   return (
@@ -70,7 +72,7 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
       <div
         {...getRootProps()}
         className={cn(
-          'dropzone border-2 border-dashed border-gray-600 rounded-lg p-8 cursor-pointer hover:border-gray-500 transition-colors',
+          'dropzone border-2 border-dashed border-gray-600 rounded-lg p-8 cursor-pointer transition-colors hover:border-emerald-500/50 hover:bg-emerald-950/20',
           isDragActive && 'border-emerald-500 bg-emerald-500/10'
         )}
       >
@@ -78,7 +80,9 @@ export const FileUpload = ({ onFileSelect }: FileUploadProps) => {
         <div className="flex flex-col items-center justify-center gap-4">
           <Upload className="h-10 w-10 text-muted-foreground" />
           <div className="text-center">
-            <p className="text-lg font-medium">Drop your document here</p>
+            <p className="text-lg font-medium text-emerald-50">
+              {isDragActive ? 'Drop your document here' : 'Drag & drop your document here'}
+            </p>
             <p className="text-sm text-muted-foreground">or click to select</p>
           </div>
           <p className="text-xs text-muted-foreground">

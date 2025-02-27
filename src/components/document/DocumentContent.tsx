@@ -58,18 +58,18 @@ export const DocumentContent = ({
   const baseContent = editedContent || content;
 
   return (
-    <ScrollArea className="h-[calc(100vh-6rem)]">
+    <ScrollArea className="h-[calc(100vh-10rem)] overflow-y-auto">
       {isEditing ? (
         <div className="p-4">
           <textarea
             value={editedContent}
             onChange={(e) => onEditedContentChange(e.target.value)}
-            className="w-full h-full min-h-[500px] bg-transparent text-emerald-50 border border-emerald-800/30 rounded-md p-4 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full h-full min-h-[calc(100vh-12rem)] bg-transparent text-emerald-50 border border-emerald-800/30 rounded-md p-4 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             style={commonStyles}
           />
         </div>
       ) : (
-        <div className="prose max-w-none p-4">
+        <div className="prose max-w-none p-4 pb-24">
           {baseContent.split('\n').map((paragraph, index) => (
             paragraph ? (
               <p 
@@ -86,4 +86,3 @@ export const DocumentContent = ({
     </ScrollArea>
   );
 };
-
