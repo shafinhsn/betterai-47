@@ -84,6 +84,12 @@ export const Chat = ({
           message: content,
           context: documentContent || '',
           preset: selectedPreset,
+          requestType: content.toLowerCase().includes('rewrite') || 
+                      content.toLowerCase().includes('formal') ||
+                      content.toLowerCase().includes('change') ||
+                      content.toLowerCase().includes('modify')
+                        ? 'document_update'
+                        : 'chat',
         },
       });
 
@@ -101,8 +107,6 @@ export const Chat = ({
           title: "Document Updated",
           description: "The document has been modified based on your request.",
         });
-      } else {
-        console.log('No document updates received from AI');
       }
 
       // Then show the explanation in chat
@@ -112,7 +116,7 @@ export const Chat = ({
           data.reply, 
           'ai',
           // Only include previous state if document was updated
-          data.updatedDocument ? previousState : undefined
+          data?.updatedDocument ? previousState : undefined
         );
       }
 
