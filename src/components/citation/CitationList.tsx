@@ -48,15 +48,15 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
 
       console.log('Generated citation:', data.citation);
       if (data.citation) {
-        // Add newlines to ensure proper formatting
-        const formattedCitation = `\n\n${data.citation}`;
+        // Format the citation with proper spacing and newlines
+        const formattedCitation = `\n\n${data.citation.trim()}\n`;
         console.log('Adding citation to document:', formattedCitation);
         
-        // Send message to parent window to update document
+        // Send message to parent window to update document with the properly formatted citation
         window.parent.postMessage({ 
           type: 'UPDATE_DOCUMENT', 
           content: formattedCitation,
-          timestamp: Date.now() // Add timestamp to ensure uniqueness
+          timestamp: Date.now()
         }, '*');
         
         toast({
@@ -149,4 +149,3 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
     </>
   );
 };
-
