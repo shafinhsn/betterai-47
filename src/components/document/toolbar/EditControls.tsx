@@ -79,7 +79,7 @@ export const EditControls = ({
         variant="outline"
         size="sm"
         onClick={handleAICheck}
-        disabled={isChecking || !content}
+        disabled={isChecking}
         className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
       >
         <Bot className="w-4 h-4 mr-2" />
