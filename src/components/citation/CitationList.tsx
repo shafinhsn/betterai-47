@@ -46,7 +46,9 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
       if (error) throw error;
 
       if (data.citation && onAddToDocument) {
-        onAddToDocument(data.citation);
+        // Add two newlines before the citation to ensure it appears on a new line
+        const formattedCitation = `\n\n${data.citation}`;
+        onAddToDocument(formattedCitation);
         toast({
           title: "Citation added",
           description: "The citation has been added to your document.",

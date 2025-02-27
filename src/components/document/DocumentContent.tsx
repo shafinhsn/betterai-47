@@ -54,6 +54,25 @@ export const DocumentContent = ({
     });
   };
 
+  // Handle citation additions by appending them to a new line at the end
+  const displayContent = (baseContent: string) => {
+    const paragraphs = baseContent.split('\n');
+    
+    return paragraphs.map((paragraph, index) => (
+      paragraph ? (
+        <p 
+          key={`${index}-${paragraph.substring(0, 10)}`} 
+          className="mb-4 text-emerald-50 whitespace-pre-wrap"
+          style={commonStyles}
+        >
+          {editedContent !== content && content.split('\n')[index] 
+            ? highlightChanges(content.split('\n')[index], paragraph) 
+            : paragraph}
+        </p>
+      ) : <br key={index} />
+    ));
+  };
+
   // Always use the most recent content as the base for comparisons
   const baseContent = editedContent || content;
 
@@ -70,17 +89,7 @@ export const DocumentContent = ({
         </div>
       ) : (
         <div className="prose max-w-none p-4 pb-24">
-          {baseContent.split('\n').map((paragraph, index) => (
-            paragraph ? (
-              <p 
-                key={`${index}-${paragraph.substring(0, 10)}`} 
-                className="mb-4 text-emerald-50 whitespace-pre-wrap"
-                style={commonStyles}
-              >
-                {editedContent !== content ? highlightChanges(content.split('\n')[index] || '', paragraph) : paragraph}
-              </p>
-            ) : <br key={index} />
-          ))}
+          {displayContent(baseContent)}
         </div>
       )}
     </ScrollArea>
