@@ -48,10 +48,13 @@ export const CitationList = ({ citations, onDelete, onAddToDocument }: CitationL
 
       console.log('Generated citation:', data.citation);
       if (data.citation && onAddToDocument) {
-        // Add two newlines before the citation to ensure it appears on a new line
+        // Add newlines to ensure proper formatting
         const formattedCitation = `\n\n${data.citation}`;
         console.log('Adding citation to document:', formattedCitation);
-        onAddToDocument(formattedCitation);
+        window.parent.postMessage({ 
+          type: 'UPDATE_DOCUMENT', 
+          content: formattedCitation 
+        }, '*');
         toast({
           title: "Citation added",
           description: "The citation has been added to your document.",

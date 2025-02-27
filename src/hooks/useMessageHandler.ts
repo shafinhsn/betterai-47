@@ -21,8 +21,11 @@ export const useMessageHandler = ({
         console.log('Current content:', content);
         console.log('Current updatedContent:', updatedContent);
         
+        // Use the most recent content as the base
         const baseContent = updatedContent || content;
-        const newContent = baseContent + event.data.content;
+        
+        // Ensure we're adding the citation on a new line
+        const newContent = baseContent + (baseContent.endsWith('\n\n') ? '' : '\n\n') + event.data.content;
         
         console.log('New content will be:', newContent);
         onUpdate(newContent);
