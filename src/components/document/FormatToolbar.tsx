@@ -4,6 +4,7 @@ import { FontControls } from './toolbar/FontControls';
 import { AlignmentControls } from './toolbar/AlignmentControls';
 import { FormattingControls } from './toolbar/FormattingControls';
 import { EditControls } from './toolbar/EditControls';
+import { AIDetectionButton } from './toolbar/AIDetectionButton';
 
 interface FormatToolbarProps {
   isEditing: boolean;
@@ -65,12 +66,13 @@ export const FormatToolbar = ({
             onFormatAPA={onFormatAPA}
           />
 
+          <AIDetectionButton content={content} />
+
           <EditControls
             isEditing={isEditing}
             isProcessing={isProcessing}
             onEditToggle={onEditToggle}
             onSave={onSave}
-            content={content}
           />
         </div>
       </div>
