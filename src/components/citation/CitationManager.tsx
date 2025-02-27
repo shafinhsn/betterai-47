@@ -122,16 +122,6 @@ export const CitationManager = () => {
     }
   });
 
-  const handleAddToDocument = (citation: string) => {
-    // Use window.parent.postMessage to communicate with the parent window
-    if (window.parent) {
-      window.parent.postMessage({ 
-        type: 'UPDATE_DOCUMENT', 
-        content: citation 
-      }, '*');
-    }
-  };
-
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-6">
@@ -150,7 +140,6 @@ export const CitationManager = () => {
         <CitationList 
           citations={citations || []} 
           onDelete={(id) => deleteCitation.mutate(id)}
-          onAddToDocument={handleAddToDocument}
         />
       )}
 
