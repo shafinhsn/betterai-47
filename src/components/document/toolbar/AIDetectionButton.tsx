@@ -14,6 +14,10 @@ export const AIDetectionButton = ({ content, isAIModified }: AIDetectionButtonPr
   const [isChecking, setIsChecking] = useState(false);
   const { toast } = useToast();
 
+  // Add debug logs to track content and button state
+  console.log('AIDetectionButton content:', content);
+  console.log('AIDetectionButton disabled state:', isChecking || !content);
+
   const handleAICheck = async () => {
     const trimmedContent = content?.trim();
     if (!trimmedContent) {
@@ -52,16 +56,20 @@ export const AIDetectionButton = ({ content, isAIModified }: AIDetectionButtonPr
     }
   };
 
+  const isDisabled = isChecking || !content;
+  console.log('Final button disabled state:', isDisabled);
+
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={handleAICheck}
-      disabled={isChecking || !content}
-      className={`bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30`}
+      disabled={isDisabled}
+      className="bg-emerald-900/20 border-emerald-800/30 text-emerald-50 hover:bg-emerald-800/30"
     >
       <Bot className="w-4 h-4 mr-2" />
       {isChecking ? 'Checking...' : 'Check for AI'}
     </Button>
   );
 };
+
