@@ -141,12 +141,12 @@ export const Chat = ({
   };
 
   const handleRestoreDocument = (previousContent: string) => {
-    console.log('Restoring document to specific previous state:', previousContent);
+    console.log('Restoring document to this specific message state:', previousContent);
     if (onDocumentUpdate) {
       onDocumentUpdate(previousContent);
       toast({
         title: "Document Restored",
-        description: "The document has been restored to its previous state.",
+        description: "The document has been restored to the state before this specific AI modification.",
       });
     }
   };
