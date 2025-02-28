@@ -32,8 +32,8 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
 
   return (
     <div className="flex-1 min-h-0 relative overflow-hidden">
-      <ScrollArea viewportRef={scrollRef} className="h-[calc(100vh-180px)]">
-        <div className="space-y-4 p-4">
+      <ScrollArea className="h-[calc(100vh-180px)]">
+        <div ref={scrollRef} className="space-y-4 p-4">
           {messages.map((message: Message) => (
             <div
               key={message.id}
