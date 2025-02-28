@@ -25,7 +25,7 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
 
   const handleRestore = (documentState: string | undefined) => {
     if (documentState && onRestoreDocument) {
-      console.log('Restoring document to state before this AI modification:', documentState);
+      console.log('Restoring to document state:', documentState);
       onRestoreDocument(documentState);
     }
   };
@@ -53,7 +53,7 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
                     size="icon"
                     className="h-6 w-6 rounded-full hover:bg-emerald-800/50"
                     onClick={() => handleRestore(message.documentState)}
-                    title="Restore document to state before this AI change"
+                    title="Restore document to this version"
                   >
                     <RotateCcw className="h-4 w-4" />
                   </Button>

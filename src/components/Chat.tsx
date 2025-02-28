@@ -73,8 +73,8 @@ export const Chat = ({
       setIsLoading(true);
       
       // Store the current document state before processing
-      const previousState = documentContent;
-      console.log('Current document state before AI processing:', previousState);
+      const currentState = documentContent;
+      console.log('Current document state before AI processing:', currentState);
       
       // Add user message to chat
       onSendMessage(content, 'user');
@@ -112,12 +112,12 @@ export const Chat = ({
       // Then show the explanation in chat
       if (data?.reply) {
         console.log('Adding AI reply to chat:', data.reply);
-        // Pass the previous document state when providing AI response
+        // Pass the current document state with the AI response
         onSendMessage(
           data.reply, 
           'ai',
-          // Only include previous state if document was updated
-          data?.updatedDocument ? previousState : undefined
+          // Include current state if document was updated
+          data?.updatedDocument ? currentState : undefined
         );
       }
 
@@ -141,12 +141,12 @@ export const Chat = ({
   };
 
   const handleRestoreDocument = (previousContent: string) => {
-    console.log('Restoring document to this specific message state:', previousContent);
+    console.log('Restoring document to specific message state:', previousContent);
     if (onDocumentUpdate) {
       onDocumentUpdate(previousContent);
       toast({
         title: "Document Restored",
-        description: "The document has been restored to the state before this specific AI modification.",
+        description: "The document has been restored to this version.",
       });
     }
   };
