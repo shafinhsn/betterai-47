@@ -25,7 +25,7 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
 
   const handleRestore = (documentState: string | undefined) => {
     if (documentState && onRestoreDocument) {
-      console.log('Restoring document to previous state:', documentState);
+      console.log('Restoring document to specific state:', documentState);
       onRestoreDocument(documentState);
     }
   };
@@ -53,7 +53,7 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
                     size="icon"
                     className="h-6 w-6 rounded-full hover:bg-emerald-800/50"
                     onClick={() => handleRestore(message.documentState)}
-                    title="Restore document to previous state"
+                    title="Restore document to this previous state"
                   >
                     <RotateCcw className="h-4 w-4" />
                   </Button>

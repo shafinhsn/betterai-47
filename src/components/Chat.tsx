@@ -112,6 +112,7 @@ export const Chat = ({
       // Then show the explanation in chat
       if (data?.reply) {
         console.log('Adding AI reply to chat:', data.reply);
+        // Pass the previous document state when providing AI response
         onSendMessage(
           data.reply, 
           'ai',
@@ -140,7 +141,7 @@ export const Chat = ({
   };
 
   const handleRestoreDocument = (previousContent: string) => {
-    console.log('Restoring document to previous state in Chat component:', previousContent);
+    console.log('Restoring document to specific previous state:', previousContent);
     if (onDocumentUpdate) {
       onDocumentUpdate(previousContent);
       toast({
