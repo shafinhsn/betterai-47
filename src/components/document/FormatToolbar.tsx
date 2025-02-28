@@ -22,6 +22,7 @@ interface FormatToolbarProps {
   onFormatAPA: () => Promise<void>;
   onEditToggle: () => void;
   onSave: () => void;
+  onCancel?: () => void;
 }
 
 export const FormatToolbar = ({
@@ -40,6 +41,7 @@ export const FormatToolbar = ({
   onFormatAPA,
   onEditToggle,
   onSave,
+  onCancel,
 }: FormatToolbarProps) => {
   return (
     <div className="sticky top-0 z-10 flex flex-col gap-2 p-2 bg-[#1a1a1a] border-b border-emerald-900/20">
@@ -78,6 +80,7 @@ export const FormatToolbar = ({
             isProcessing={isProcessing}
             onEditToggle={onEditToggle}
             onSave={onSave}
+            onCancel={onCancel}
           />
         </div>
       </div>

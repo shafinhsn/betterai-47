@@ -15,6 +15,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
   ({ content, style, onContentUpdate }, ref) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(content);
+    const [lastSavedContent, setLastSavedContent] = useState(content);
     const [isAIModified, setIsAIModified] = useState(false);
     const { toast } = useToast();
 
@@ -34,6 +35,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
 
     useEffect(() => {
       setEditedContent(content);
+      setLastSavedContent(content);
       if (content !== editedContent) {
         setIsAIModified(true);
       }
@@ -42,6 +44,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
     const handleSave = () => {
       if (onContentUpdate) {
         onContentUpdate(editedContent);
+        setLastSavedContent(editedContent);
         setIsEditing(false);
         toast({
           title: "Changes saved",
@@ -49,6 +52,15 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
         });
         setIsAIModified(false);
       }
+    };
+
+    const handleCancel = () => {
+      setEditedContent(lastSavedContent);
+      setIsEditing(false);
+      toast({
+        title: "Edits canceled",
+        description: "Your changes have been discarded.",
+      });
     };
 
     if (!content) {
@@ -77,6 +89,7 @@ const DocumentPreviewComponent = forwardRef<HTMLDivElement, DocumentPreviewProps
           onFormatAPA={handleFormatAPA}
           onEditToggle={() => setIsEditing(true)}
           onSave={handleSave}
+          onCancel={handleCancel}
         />
         <DocumentContent
           content={content}
