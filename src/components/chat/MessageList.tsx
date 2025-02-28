@@ -25,13 +25,14 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
 
   const handleRestore = (documentState: string | undefined) => {
     if (documentState && onRestoreDocument) {
+      console.log('Restoring document to previous state:', documentState);
       onRestoreDocument(documentState);
     }
   };
 
   return (
     <div className="flex-1 min-h-0 relative overflow-hidden">
-      <ScrollArea className="h-[calc(100vh-180px)]">
+      <ScrollArea viewportRef={scrollRef} className="h-[calc(100vh-180px)]">
         <div className="space-y-4 p-4">
           {messages.map((message: Message) => (
             <div

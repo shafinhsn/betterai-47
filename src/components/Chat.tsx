@@ -139,12 +139,23 @@ export const Chat = ({
     }
   };
 
+  const handleRestoreDocument = (previousContent: string) => {
+    console.log('Restoring document to previous state in Chat component:', previousContent);
+    if (onDocumentUpdate) {
+      onDocumentUpdate(previousContent);
+      toast({
+        title: "Document Restored",
+        description: "The document has been restored to its previous state.",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {subscription && !isAdmin && <TrialBanner subscription={subscription} />}
       <MessageList 
         messages={messages} 
-        onRestoreDocument={onDocumentUpdate}
+        onRestoreDocument={handleRestoreDocument}
       />
       
       {!isAdmin && messageCount < INITIAL_FREE_MESSAGES && !subscription && (
