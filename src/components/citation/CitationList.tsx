@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Citation } from '@/types/citation';
 import {
@@ -245,7 +244,7 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
       <Dialog open={citationListDialogOpen} onOpenChange={setCitationListDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-center">
               {citationListFormat === 'mla' ? 'Works Cited' : 'References'}
             </DialogTitle>
             <DialogDescription>
