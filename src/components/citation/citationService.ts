@@ -26,13 +26,20 @@ export const createCitationPage = (citations: string[], format: 'mla' | 'apa'): 
   let citationPage = "";
   
   if (format === 'mla') {
-    citationPage = "Works Cited\n\n";
+    citationPage = "                                Works Cited\n\n";
   } else if (format === 'apa') {
-    citationPage = "References\n\n";
+    citationPage = "                                References\n\n";
   }
   
-  // Add each citation with proper indentation
-  citationPage += citations.join('\n\n');
+  // Add each citation with proper hanging indentation
+  citationPage += citations.map(citation => {
+    // Apply hanging indent formatting by adding spaces to subsequent lines
+    const lines = citation.split('\n');
+    if (lines.length > 1) {
+      return lines[0] + '\n' + lines.slice(1).map(line => `    ${line}`).join('\n');
+    }
+    return citation;
+  }).join('\n\n');
   
   return citationPage;
 };

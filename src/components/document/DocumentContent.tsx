@@ -33,27 +33,48 @@ export const DocumentContent = ({
     textAlign: alignment,
   };
 
-  // Display content with proper paragraph handling
+  // Display content with proper paragraph and formatting handling
   const displayContent = (baseContent: string) => {
     if (!baseContent) return null;
     
-    console.log('Displaying content:', baseContent);
     const paragraphs = baseContent.split('\n');
     
-    return paragraphs.map((paragraph, index) => (
-      <p 
-        key={`${index}-${paragraph.substring(0, 10)}`} 
-        className="mb-4 text-emerald-50 whitespace-pre-wrap"
-        style={commonStyles}
-      >
-        {paragraph}
-      </p>
-    ));
+    return paragraphs.map((paragraph, index) => {
+      // Check if this is a centered title (Works Cited or References)
+      const isCenteredTitle = paragraph.trim() === "Works Cited" || 
+                             paragraph.trim() === "References" ||
+                             paragraph.includes("                                Works Cited") ||
+                             paragraph.includes("                                References");
+      
+      // Check if this paragraph should have a hanging indent (part of a citation)
+      const hasHangingIndent = paragraph.length > 0 && 
+                              (index > 0 && 
+                              (paragraphs[index-1].includes("Works Cited") || 
+                               paragraphs[index-1].includes("References") ||
+                               paragraphs[index-1].trim().length > 50));
+      
+      const paragraphStyle = {
+        ...commonStyles,
+        textAlign: isCenteredTitle ? 'center' : commonStyles.textAlign,
+        paddingLeft: hasHangingIndent ? '2em' : '0',
+        textIndent: hasHangingIndent ? '-2em' : '0',
+        fontWeight: isCenteredTitle ? 'bold' : 'normal',
+      };
+      
+      return (
+        <p 
+          key={`${index}-${paragraph.substring(0, 10)}`} 
+          className="mb-4 text-emerald-50 whitespace-pre-wrap"
+          style={paragraphStyle}
+        >
+          {paragraph}
+        </p>
+      );
+    });
   };
 
   // Always use the most recent content
   const baseContent = editedContent || content;
-  console.log('Current document content in DocumentContent:', baseContent);
 
   return (
     <ScrollArea className="h-[calc(100vh-10rem)] overflow-y-auto">
@@ -74,4 +95,3 @@ export const DocumentContent = ({
     </ScrollArea>
   );
 };
-
