@@ -87,7 +87,9 @@ export const Chat = ({
           requestType: content.toLowerCase().includes('rewrite') || 
                       content.toLowerCase().includes('formal') ||
                       content.toLowerCase().includes('change') ||
-                      content.toLowerCase().includes('modify')
+                      content.toLowerCase().includes('modify') ||
+                      content.toLowerCase().includes('write') ||
+                      content.toLowerCase().includes('haiku')
                         ? 'document_update'
                         : 'chat',
         },
@@ -112,12 +114,12 @@ export const Chat = ({
       // Then show the explanation in chat
       if (data?.reply) {
         console.log('Adding AI reply to chat:', data.reply);
-        // Pass the current document state with the AI response
+        // Store the actual updated document with the message
         onSendMessage(
           data.reply, 
           'ai',
-          // Include current state if document was updated
-          data?.updatedDocument ? currentState : undefined
+          // Store the updated content that the user would want to restore
+          data?.updatedDocument ? data.updatedDocument : undefined
         );
       }
 
@@ -140,13 +142,13 @@ export const Chat = ({
     }
   };
 
-  const handleRestoreDocument = (previousContent: string) => {
-    console.log('Restoring document to specific message state:', previousContent);
+  const handleRestoreDocument = (documentState: string) => {
+    console.log('Restoring document to the AI-generated content:', documentState);
     if (onDocumentUpdate) {
-      onDocumentUpdate(previousContent);
+      onDocumentUpdate(documentState);
       toast({
         title: "Document Restored",
-        description: "The document has been restored to this version.",
+        description: "The document has been restored to the AI-generated content.",
       });
     }
   };
