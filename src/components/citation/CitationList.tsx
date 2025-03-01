@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Citation } from '@/types/citation';
 import {
@@ -37,54 +38,12 @@ interface CitationListProps {
 }
 
 export const CitationList = ({ citations, onDelete }: CitationListProps) => {
-  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [citationListFormat, setCitationListFormat] = useState<'mla' | 'apa'>('mla');
   const [formattedCitations, setFormattedCitations] = useState<string[]>([]);
   const [citationListDialogOpen, setCitationListDialogOpen] = useState(false);
   const { toast } = useToast();
-
-  const handleAddCitation = async (citation: Citation, format: 'mla' | 'apa') => {
-    setIsLoading(true);
-    try {
-      console.log('Generating citation with format:', format, 'Citation data:', citation);
-      const { data, error } = await supabase.functions.invoke('generate-citation', {
-        body: { citation, format }
-      });
-
-      if (error) throw error;
-
-      console.log('Generated citation response:', data);
-      
-      if (data.citation) {
-        const formattedCitation = data.citation.trim();
-        console.log('Sending citation to document:', formattedCitation);
-        
-        // Send the citation to the parent window
-        window.parent.postMessage({
-          type: 'UPDATE_DOCUMENT',
-          content: formattedCitation
-        }, '*');
-        
-        toast({
-          title: "Citation added",
-          description: "The citation has been added to your document.",
-        });
-      }
-    } catch (error) {
-      console.error('Error generating citation:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate citation. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
-      setFormatDialogOpen(false);
-      setSelectedCitation(null);
-    }
-  };
 
   const generateCitationList = async (format: 'mla' | 'apa') => {
     setIsLoading(true);
@@ -189,19 +148,7 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
               <TableCell>{citation.type}</TableCell>
               <TableCell>{citation.title}</TableCell>
               <TableCell>{citation.publisher}</TableCell>
-              <TableCell className="space-x-2">
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedCitation(citation);
-                    setFormatDialogOpen(true);
-                  }}
-                  disabled={isLoading}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Citation
-                </Button>
+              <TableCell>
                 <Button
                   variant="destructive"
                   size="sm"
@@ -214,32 +161,6 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
           ))}
         </TableBody>
       </Table>
-
-      <AlertDialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Choose Citation Format</AlertDialogTitle>
-            <AlertDialogDescription>
-              Select the format for your citation
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => selectedCitation && handleAddCitation(selectedCitation, 'mla')}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              MLA
-            </AlertDialogAction>
-            <AlertDialogAction
-              onClick={() => selectedCitation && handleAddCitation(selectedCitation, 'apa')}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              APA
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <Dialog open={citationListDialogOpen} onOpenChange={setCitationListDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
@@ -258,7 +179,9 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
             ) : (
               <div className="space-y-4">
                 {formattedCitations.map((citation, index) => (
-                  <p key={index} className="text-emerald-50 font-mono text-sm">{citation}</p>
+                  <p key={index} className="text-emerald-50 font-mono text-sm pl-8 -indent-8">
+                    {citation}
+                  </p>
                 ))}
               </div>
             )}
