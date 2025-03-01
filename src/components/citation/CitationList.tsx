@@ -1,36 +1,12 @@
 
 import { useState } from 'react';
 import { Citation } from '@/types/citation';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Copy, Clipboard, ClipboardList } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { CitationListTable } from './CitationListTable';
+import { FormattedCitationDialog } from './FormattedCitationDialog';
+import { generateFormattedCitations, createCitationPage } from './citationService';
 
 interface CitationListProps {
   citations: Citation[];
@@ -38,7 +14,6 @@ interface CitationListProps {
 }
 
 export const CitationList = ({ citations, onDelete }: CitationListProps) => {
-  const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [citationListFormat, setCitationListFormat] = useState<'mla' | 'apa'>('mla');
   const [formattedCitations, setFormattedCitations] = useState<string[]>([]);
@@ -49,20 +24,7 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
     setIsLoading(true);
     setCitationListFormat(format);
     try {
-      const formattedResults: string[] = [];
-
-      // Process citations in sequence
-      for (const citation of citations) {
-        const { data, error } = await supabase.functions.invoke('generate-citation', {
-          body: { citation, format }
-        });
-
-        if (error) throw error;
-        
-        if (data.citation) {
-          formattedResults.push(data.citation.trim());
-        }
-      }
+      const formattedResults = await generateFormattedCitations(citations, format);
 
       console.log('Generated formatted citations:', formattedResults);
       setFormattedCitations(formattedResults);
@@ -80,17 +42,7 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
   };
 
   const copyToClipboard = () => {
-    // Create the formatted citation page with the proper header
-    let citationPage = "";
-    
-    if (citationListFormat === 'mla') {
-      citationPage = "Works Cited\n\n";
-    } else if (citationListFormat === 'apa') {
-      citationPage = "References\n\n";
-    }
-    
-    // Add each citation with proper indentation
-    citationPage += formattedCitations.join('\n\n');
+    const citationPage = createCitationPage(formattedCitations, citationListFormat);
     
     navigator.clipboard.writeText(citationPage)
       .then(() => {
@@ -133,68 +85,15 @@ export const CitationList = ({ citations, onDelete }: CitationListProps) => {
         </Button>
       </div>
       
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Type</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Publisher</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {citations.map((citation) => (
-            <TableRow key={citation.id}>
-              <TableCell>{citation.type}</TableCell>
-              <TableCell>{citation.title}</TableCell>
-              <TableCell>{citation.publisher}</TableCell>
-              <TableCell>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => citation.id && onDelete(citation.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <CitationListTable citations={citations} onDelete={onDelete} />
 
-      <Dialog open={citationListDialogOpen} onOpenChange={setCitationListDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="text-center">
-              {citationListFormat === 'mla' ? 'Works Cited' : 'References'}
-            </DialogTitle>
-            <DialogDescription>
-              Your formatted citation list is ready to copy
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-2 max-h-[400px] overflow-y-auto p-4 border rounded-md bg-emerald-950/30">
-            {formattedCitations.length === 0 ? (
-              <p className="text-emerald-300">No citations available</p>
-            ) : (
-              <div className="space-y-4">
-                {formattedCitations.map((citation, index) => (
-                  <p key={index} className="text-emerald-50 font-mono text-sm pl-8 -indent-8">
-                    {citation}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter className="mt-4">
-            <Button onClick={copyToClipboard} className="bg-emerald-600 hover:bg-emerald-700">
-              <Copy className="w-4 h-4 mr-2" />
-              Copy to Clipboard
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FormattedCitationDialog
+        open={citationListDialogOpen}
+        onOpenChange={setCitationListDialogOpen}
+        format={citationListFormat}
+        citations={formattedCitations}
+        onCopy={copyToClipboard}
+      />
     </div>
   );
 };
