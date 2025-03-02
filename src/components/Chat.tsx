@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,24 +73,24 @@ export const Chat = ({
       
       // Store the current document state before processing
       const currentState = documentContent;
-      console.log('Current document state before AI processing:', currentState);
       
       // Add user message to chat
       onSendMessage(content, 'user');
+      
+      // Determine the request type for better handling
+      const requestType = determineRequestType(content);
       
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           message: content,
           context: documentContent || '',
           preset: selectedPreset,
-          requestType: content.toLowerCase().includes('rewrite') || 
-                      content.toLowerCase().includes('formal') ||
-                      content.toLowerCase().includes('change') ||
-                      content.toLowerCase().includes('modify') ||
-                      content.toLowerCase().includes('write') ||
-                      content.toLowerCase().includes('haiku')
-                        ? 'document_update'
-                        : 'chat',
+          requestType: requestType,
+          // Add additional context about the request
+          requestDetails: {
+            originalContent: documentContent,
+            operation: extractOperationType(content)
+          }
         },
       });
 
@@ -101,19 +100,24 @@ export const Chat = ({
         return;
       }
 
-      // First update the document if changes were made
+      // If we have document updates, apply them intelligently based on request type
       if (data?.updatedDocument) {
         console.log('Received updated document from AI:', data.updatedDocument);
+        
+        // Store document state for restoration
+        const updatedState = data.updatedDocument;
+        
+        // Update the document while preserving formatting
         onDocumentUpdate(data.updatedDocument);
+        
         toast({
           title: "Document Updated",
-          description: "The document has been modified based on your request.",
+          description: requestTypeToMessage(requestType),
         });
       }
 
       // Then show the explanation in chat
       if (data?.reply) {
-        console.log('Adding AI reply to chat:', data.reply);
         // Store the actual updated document with the message
         onSendMessage(
           data.reply, 
@@ -131,6 +135,65 @@ export const Chat = ({
     } finally {
       setIsLoading(false);
       setSelectedPreset('');
+    }
+  };
+
+  const determineRequestType = (input: string): string => {
+    const lowerInput = input.toLowerCase();
+    
+    if (lowerInput.includes('rewrite') || lowerInput.includes('write')) {
+      return 'document_rewrite';
+    } else if (lowerInput.includes('format') || lowerInput.includes('mla') || lowerInput.includes('apa')) {
+      return 'document_format';
+    } else if (lowerInput.includes('leave only') || lowerInput.includes('keep only')) {
+      return 'document_filter';
+    } else if (lowerInput.includes('summarize') || lowerInput.includes('summary')) {
+      return 'document_summarize';
+    } else if (lowerInput.includes('add') || lowerInput.includes('insert')) {
+      return 'document_add';
+    } else if (lowerInput.includes('remove') || lowerInput.includes('delete')) {
+      return 'document_remove';
+    } else if (lowerInput.includes('change') || lowerInput.includes('modify')) {
+      return 'document_modify';
+    } else {
+      return 'chat';
+    }
+  };
+  
+  const extractOperationType = (input: string): string => {
+    const lowerInput = input.toLowerCase();
+    
+    if (lowerInput.includes('paragraph')) {
+      return 'paragraph_operation';
+    } else if (lowerInput.includes('sentence')) {
+      return 'sentence_operation';
+    } else if (lowerInput.includes('first') || lowerInput.includes('beginning')) {
+      return 'begin_operation';
+    } else if (lowerInput.includes('last') || lowerInput.includes('end')) {
+      return 'end_operation';
+    } else {
+      return 'full_document';
+    }
+  };
+  
+  const requestTypeToMessage = (requestType: string): string => {
+    switch (requestType) {
+      case 'document_rewrite':
+        return "Your document has been rewritten as requested.";
+      case 'document_format':
+        return "Your document has been reformatted.";
+      case 'document_filter':
+        return "Your document has been filtered to the specified content.";
+      case 'document_summarize':
+        return "Your document has been summarized.";
+      case 'document_add':
+        return "Content has been added to your document.";
+      case 'document_remove':
+        return "Content has been removed from your document.";
+      case 'document_modify':
+        return "Your document has been modified as requested.";
+      default:
+        return "The document has been modified based on your request.";
     }
   };
 

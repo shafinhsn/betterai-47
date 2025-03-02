@@ -46,7 +46,7 @@ export const MessageList = ({ messages, onRestoreDocument }: MessageListProps) =
               )}
             >
               <div className="flex items-start gap-2">
-                <div className="flex-1">{message.content}</div>
+                <div className="flex-1 whitespace-pre-wrap">{message.content}</div>
                 {message.sender === 'ai' && message.documentState && onRestoreDocument && (
                   <Button
                     variant="ghost"
