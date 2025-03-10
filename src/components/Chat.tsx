@@ -79,6 +79,7 @@ export const Chat = ({
       
       // Determine the request type for better handling
       const requestType = determineRequestType(content);
+      const operationType = extractOperationType(content);
       
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
@@ -89,7 +90,9 @@ export const Chat = ({
           // Add additional context about the request
           requestDetails: {
             originalContent: documentContent,
-            operation: extractOperationType(content)
+            operation: operationType,
+            // Add specific targeting information based on the request
+            targetInfo: extractTargetInfo(content, documentContent || '')
           }
         },
       });
@@ -141,19 +144,19 @@ export const Chat = ({
   const determineRequestType = (input: string): string => {
     const lowerInput = input.toLowerCase();
     
-    if (lowerInput.includes('rewrite') || lowerInput.includes('write')) {
+    if (lowerInput.includes('delete') || lowerInput.includes('remove')) {
+      return 'document_remove';
+    } else if (lowerInput.includes('keep only') || lowerInput.includes('retain only')) {
+      return 'document_filter';
+    } else if (lowerInput.includes('add') || lowerInput.includes('write') || lowerInput.includes('insert')) {
+      return 'document_add';
+    } else if (lowerInput.includes('rewrite') || lowerInput.includes('change')) {
       return 'document_rewrite';
     } else if (lowerInput.includes('format') || lowerInput.includes('mla') || lowerInput.includes('apa')) {
       return 'document_format';
-    } else if (lowerInput.includes('leave only') || lowerInput.includes('keep only')) {
-      return 'document_filter';
     } else if (lowerInput.includes('summarize') || lowerInput.includes('summary')) {
       return 'document_summarize';
-    } else if (lowerInput.includes('add') || lowerInput.includes('insert')) {
-      return 'document_add';
-    } else if (lowerInput.includes('remove') || lowerInput.includes('delete')) {
-      return 'document_remove';
-    } else if (lowerInput.includes('change') || lowerInput.includes('modify')) {
+    } else if (lowerInput.includes('modify')) {
       return 'document_modify';
     } else {
       return 'chat';
@@ -163,7 +166,11 @@ export const Chat = ({
   const extractOperationType = (input: string): string => {
     const lowerInput = input.toLowerCase();
     
-    if (lowerInput.includes('paragraph')) {
+    if (lowerInput.includes('first word') || lowerInput.includes('only the first word')) {
+      return 'keep_first_word';
+    } else if (lowerInput.includes('after') && lowerInput.includes('word')) {
+      return 'add_after_word';
+    } else if (lowerInput.includes('paragraph')) {
       return 'paragraph_operation';
     } else if (lowerInput.includes('sentence')) {
       return 'sentence_operation';
@@ -171,9 +178,46 @@ export const Chat = ({
       return 'begin_operation';
     } else if (lowerInput.includes('last') || lowerInput.includes('end')) {
       return 'end_operation';
+    } else if (lowerInput.includes('randomly') || lowerInput.includes('random')) {
+      return 'random_operation';
     } else {
       return 'full_document';
     }
+  };
+  
+  const extractTargetInfo = (input: string, documentContent: string): any => {
+    const lowerInput = input.toLowerCase();
+    const targetInfo: any = {};
+    
+    // Extract word to add content after
+    if (lowerInput.includes('after')) {
+      const afterMatch = lowerInput.match(/after\s+(?:the\s+)?(?:word\s+)?["']?(\w+)["']?/i);
+      if (afterMatch && afterMatch[1]) {
+        targetInfo.afterWord = afterMatch[1];
+      }
+    }
+    
+    // Extract content to keep
+    if (lowerInput.includes('keep') || lowerInput.includes('retain')) {
+      if (lowerInput.includes('first word')) {
+        targetInfo.keepType = 'first_word';
+      }
+    }
+    
+    // Random word generation
+    if (lowerInput.includes('random') && (lowerInput.includes('word') || lowerInput.includes('words'))) {
+      targetInfo.randomType = 'words';
+      
+      // Try to extract number of words
+      const numMatch = lowerInput.match(/(\d+)\s+(?:random\s+)?words?/i);
+      if (numMatch && numMatch[1]) {
+        targetInfo.wordCount = parseInt(numMatch[1], 10);
+      } else {
+        targetInfo.wordCount = 2; // Default to 2 words if not specified
+      }
+    }
+    
+    return targetInfo;
   };
   
   const requestTypeToMessage = (requestType: string): string => {
@@ -255,3 +299,5 @@ export const Chat = ({
     </div>
   );
 };
+
+
