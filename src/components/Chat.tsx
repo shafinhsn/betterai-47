@@ -14,6 +14,11 @@ import {
   requestTypeToMessage 
 } from '@/utils/chatRequestUtils';
 import type { ChatProps } from '@/types/chat';
+import { 
+  INITIAL_FREE_MESSAGES, 
+  DAILY_FREE_MESSAGES, 
+  DAILY_SUBSCRIPTION_LIMIT 
+} from '@/constants/subscription';
 
 export const Chat = ({ 
   onSendMessage, 
