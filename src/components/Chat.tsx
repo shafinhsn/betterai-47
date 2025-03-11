@@ -55,6 +55,60 @@ export const Chat = ({
       
       console.log('Sending message with current document content:', currentDocumentContent.substring(0, 100));
       
+      // Check if document exists in Supabase and update or create it
+      const { data: existingDocument } = await supabase
+        .from('documents')
+        .select('id, content, versions, current_version')
+        .eq('user_id', session.user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      let documentId = null;
+      
+      // If document exists, update its versions array
+      if (existingDocument) {
+        documentId = existingDocument.id;
+        
+        // Only add to versions if the content has changed
+        if (existingDocument.content !== currentDocumentContent) {
+          const newVersion = existingDocument.current_version + 1;
+          const updatedVersions = [
+            ...(existingDocument.versions || []),
+            { version: newVersion, content: existingDocument.content, timestamp: new Date().toISOString() }
+          ];
+          
+          await supabase
+            .from('documents')
+            .update({ 
+              content: currentDocumentContent, 
+              versions: updatedVersions,
+              current_version: newVersion,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', documentId);
+        }
+      } else if (currentDocumentContent) {
+        // Create new document if it doesn't exist
+        const { data: newDocument } = await supabase
+          .from('documents')
+          .insert([{ 
+            content: currentDocumentContent, 
+            content_type: 'text/plain',
+            file_path: 'document.txt',
+            filename: 'document.txt',
+            user_id: session.user.id,
+            versions: [],
+            current_version: 0
+          }])
+          .select()
+          .single();
+          
+        if (newDocument) {
+          documentId = newDocument.id;
+        }
+      }
+      
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           message: content,
@@ -64,7 +118,8 @@ export const Chat = ({
           requestDetails: {
             originalContent: documentContent,
             operation: operationType,
-            targetInfo: extractTargetInfo(content, currentDocumentContent)
+            targetInfo: extractTargetInfo(content, currentDocumentContent),
+            documentId: documentId
           }
         },
       });
@@ -77,6 +132,40 @@ export const Chat = ({
 
       if (data?.updatedDocument) {
         console.log('Received updated document from AI:', data.updatedDocument.substring(0, 100));
+        
+        // Update document in Supabase with new content
+        if (documentId) {
+          const { data: documentData } = await supabase
+            .from('documents')
+            .select('versions, current_version')
+            .eq('id', documentId)
+            .single();
+            
+          if (documentData) {
+            const newVersion = documentData.current_version + 1;
+            const updatedVersions = [
+              ...(documentData.versions || []),
+              { 
+                version: newVersion, 
+                content: currentDocumentContent, 
+                timestamp: new Date().toISOString(),
+                requestType,
+                operation: operationType
+              }
+            ];
+            
+            await supabase
+              .from('documents')
+              .update({ 
+                content: data.updatedDocument, 
+                versions: updatedVersions,
+                current_version: newVersion,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', documentId);
+          }
+        }
+        
         onDocumentUpdate(data.updatedDocument);
         
         toast({
@@ -113,8 +202,48 @@ export const Chat = ({
     }
   };
 
-  const handleRestoreDocument = (documentState: string) => {
-    console.log('Restoring document to the AI-generated content:', documentState);
+  const handleRestoreDocument = async (documentState: string) => {
+    console.log('Restoring document to the AI-generated content:', documentState.substring(0, 100));
+    
+    if (session && documentState) {
+      try {
+        // Get the latest document record
+        const { data: existingDocument } = await supabase
+          .from('documents')
+          .select('id, versions, current_version')
+          .eq('user_id', session.user.id)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (existingDocument) {
+          const newVersion = existingDocument.current_version + 1;
+          const updatedVersions = [
+            ...(existingDocument.versions || []),
+            { 
+              version: newVersion, 
+              content: documentContent || '', 
+              timestamp: new Date().toISOString(),
+              operation: 'restore'
+            }
+          ];
+          
+          // Update the document with the restored state
+          await supabase
+            .from('documents')
+            .update({ 
+              content: documentState, 
+              versions: updatedVersions,
+              current_version: newVersion,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingDocument.id);
+        }
+      } catch (error) {
+        console.error('Error saving document history:', error);
+      }
+    }
+    
     if (onDocumentUpdate) {
       onDocumentUpdate(documentState);
       toast({

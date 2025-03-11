@@ -22,6 +22,10 @@ serve(async (req) => {
     if (requestDetails && requestDetails.originalContent) {
       console.log('Original content first 100 chars:', requestDetails.originalContent?.substring(0, 100));
     }
+    
+    if (requestDetails && requestDetails.documentId) {
+      console.log('Document ID provided:', requestDetails.documentId);
+    }
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {

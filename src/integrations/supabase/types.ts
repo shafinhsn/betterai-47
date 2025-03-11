@@ -148,28 +148,37 @@ export type Database = {
           content: string | null
           content_type: string
           created_at: string | null
+          current_version: number | null
           file_path: string
           filename: string
           id: string
           updated_at: string | null
+          user_id: string | null
+          versions: Json | null
         }
         Insert: {
           content?: string | null
           content_type: string
           created_at?: string | null
+          current_version?: number | null
           file_path: string
           filename: string
           id?: string
           updated_at?: string | null
+          user_id?: string | null
+          versions?: Json | null
         }
         Update: {
           content?: string | null
           content_type?: string
           created_at?: string | null
+          current_version?: number | null
           file_path?: string
           filename?: string
           id?: string
           updated_at?: string | null
+          user_id?: string | null
+          versions?: Json | null
         }
         Relationships: []
       }
