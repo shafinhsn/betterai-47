@@ -18,24 +18,22 @@ export const useMessageHandler = ({
       if (event.data.type === 'UPDATE_DOCUMENT') {
         console.log('Received UPDATE_DOCUMENT message:', event.data);
         
-        // Get the current document content - always use most recent state
-        const currentContent = updatedContent || content || '';
+        // Always use the most recent document state
+        const currentContent = updatedContent || content;
+        console.log('Current document state before modification:', currentContent);
         
-        // Track if we've made changes to send preview update only when needed
         let documentModified = false;
+        let newContent = currentContent;
         
         // Check if we should replace only part of the document
         if (event.data.operation === 'replace_part' && event.data.range) {
           const { start, end } = event.data.range;
           const beforePart = currentContent.substring(0, start);
           const afterPart = currentContent.substring(end);
-          const newContent = beforePart + event.data.content + afterPart;
-          
-          console.log('Partial document update applied');
-          onUpdate(newContent);
+          newContent = beforePart + event.data.content + afterPart;
           documentModified = true;
         } 
-        // Handle specific word operations (like adding after a specific word)
+        // Handle adding content after specific words
         else if (event.data.operation === 'add_after_word' && event.data.word) {
           const wordToFind = event.data.word;
           const wordIndex = currentContent.indexOf(wordToFind);
@@ -44,85 +42,63 @@ export const useMessageHandler = ({
             const insertPosition = wordIndex + wordToFind.length;
             const beforePart = currentContent.substring(0, insertPosition);
             const afterPart = currentContent.substring(insertPosition);
-            const newContent = beforePart + event.data.content + afterPart;
-            
-            console.log(`Added content after word "${wordToFind}"`);
-            onUpdate(newContent);
+            newContent = beforePart + event.data.content + afterPart;
             documentModified = true;
           }
         }
-        // Check if we should keep only specific content (like first word)
+        // Handle keeping only specific content
         else if (event.data.operation === 'keep_only') {
           if (event.data.what === 'first_word') {
             const words = currentContent.trim().split(/\s+/);
             if (words.length > 0) {
-              const newContent = words[0];
-              console.log('Keeping only first word:', newContent);
-              onUpdate(newContent);
+              newContent = words[0];
               documentModified = true;
             }
           } else if (event.data.contentToKeep) {
-            const newContent = event.data.contentToKeep;
-            console.log('Keeping only specified content:', newContent);
-            onUpdate(newContent);
+            newContent = event.data.contentToKeep;
             documentModified = true;
           }
         }
-        // Check if we should replace just one paragraph or sentence
+        // Handle paragraph replacements
         else if (event.data.operation === 'replace_paragraph' && event.data.paragraphIndex !== undefined) {
           const paragraphs = currentContent.split('\n\n');
           if (event.data.paragraphIndex < paragraphs.length) {
             paragraphs[event.data.paragraphIndex] = event.data.content;
-            const newContent = paragraphs.join('\n\n');
-            
-            console.log('Paragraph replacement applied');
-            onUpdate(newContent);
+            newContent = paragraphs.join('\n\n');
             documentModified = true;
           }
         }
-        // Add citation special case
+        // Handle adding citations
         else if (event.data.operation === 'add_citation') {
-          // Format the new citation with proper spacing
           const formattedCitation = event.data.content.trim();
-          
-          // Combine the current content with the new citation
-          const newContent = currentContent.trim() + '\n\n' + formattedCitation + '\n';
-          
-          console.log('Citation added to document');
-          onUpdate(newContent);
+          newContent = currentContent.trim() + '\n\n' + formattedCitation + '\n';
           documentModified = true;
         }
-        // Add random content to the document
+        // Handle random content additions
         else if (event.data.operation === 'add_random') {
           const randomContent = event.data.content || 'Random content';
-          const newContent = currentContent.trim() + '\n\n' + randomContent;
-          
-          console.log('Random content added to document');
-          onUpdate(newContent);
+          newContent = currentContent.trim() + '\n\n' + randomContent;
           documentModified = true;
         }
-        // Default case: full replacement or append
+        // Handle full document operations
         else {
           if (event.data.operation === 'append') {
-            const newContent = currentContent.trim() + '\n\n' + event.data.content.trim();
-            console.log('Content appended to document');
-            onUpdate(newContent);
+            newContent = currentContent.trim() + '\n\n' + event.data.content.trim();
             documentModified = true;
           } else if (event.data.operation === 'prepend') {
-            const newContent = event.data.content.trim() + '\n\n' + currentContent.trim();
-            console.log('Content prepended to document');
-            onUpdate(newContent);
+            newContent = event.data.content.trim() + '\n\n' + currentContent.trim();
             documentModified = true;
           } else {
-            // Full replacement (when no specific operation is specified)
-            console.log('Full document replacement applied');
-            onUpdate(event.data.content);
+            // Full replacement or modification
+            newContent = event.data.content;
             documentModified = true;
           }
         }
         
-        // Only trigger preview update if we actually modified the document
+        // Only update if changes were made
         if (documentModified) {
+          console.log('Updated document state:', newContent);
+          onUpdate(newContent);
           onPreviewUpdate();
         }
       }
