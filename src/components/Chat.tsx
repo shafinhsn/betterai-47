@@ -56,10 +56,23 @@ export const Chat = ({
       console.log('Sending message with current document content:', currentDocumentContent.substring(0, 100));
       
       // Check if document exists in Supabase and update or create it
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to save documents",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      const userId = sessionData.session.user.id;
+      
       const { data: existingDocument } = await supabase
         .from('documents')
         .select('id, content, versions, current_version')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();
@@ -97,7 +110,7 @@ export const Chat = ({
             content_type: 'text/plain',
             file_path: 'document.txt',
             filename: 'document.txt',
-            user_id: session.user.id,
+            user_id: userId,
             versions: [],
             current_version: 0
           }])
@@ -135,34 +148,45 @@ export const Chat = ({
         
         // Update document in Supabase with new content
         if (documentId) {
-          const { data: documentData } = await supabase
-            .from('documents')
-            .select('versions, current_version')
-            .eq('id', documentId)
-            .single();
-            
-          if (documentData) {
-            const newVersion = documentData.current_version + 1;
-            const updatedVersions = [
-              ...(documentData.versions || []),
-              { 
-                version: newVersion, 
-                content: currentDocumentContent, 
-                timestamp: new Date().toISOString(),
-                requestType,
-                operation: operationType
-              }
-            ];
-            
-            await supabase
+          const { data: sessionData } = await supabase.auth.getSession();
+          
+          if (!sessionData.session) {
+            console.error("No session found when updating document");
+            toast({
+              title: "Authentication Error",
+              description: "You must be logged in to save documents",
+              variant: "destructive"
+            });
+          } else {
+            const { data: documentData } = await supabase
               .from('documents')
-              .update({ 
-                content: data.updatedDocument, 
-                versions: updatedVersions,
-                current_version: newVersion,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', documentId);
+              .select('versions, current_version')
+              .eq('id', documentId)
+              .single();
+              
+            if (documentData) {
+              const newVersion = documentData.current_version + 1;
+              const updatedVersions = [
+                ...(documentData.versions || []),
+                { 
+                  version: newVersion, 
+                  content: currentDocumentContent, 
+                  timestamp: new Date().toISOString(),
+                  requestType,
+                  operation: operationType
+                }
+              ];
+              
+              await supabase
+                .from('documents')
+                .update({ 
+                  content: data.updatedDocument, 
+                  versions: updatedVersions,
+                  current_version: newVersion,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', documentId);
+            }
           }
         }
         
@@ -205,13 +229,15 @@ export const Chat = ({
   const handleRestoreDocument = async (documentState: string) => {
     console.log('Restoring document to the AI-generated content:', documentState.substring(0, 100));
     
-    if (session && documentState) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    
+    if (sessionData.session && documentState) {
       try {
         // Get the latest document record
         const { data: existingDocument } = await supabase
           .from('documents')
           .select('id, versions, current_version')
-          .eq('user_id', session.user.id)
+          .eq('user_id', sessionData.session.user.id)
           .order('updated_at', { ascending: false })
           .limit(1)
           .single();

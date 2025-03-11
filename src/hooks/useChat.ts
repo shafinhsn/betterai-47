@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
+import type { Session } from '@supabase/supabase-js';
 
 export const useChat = (isAdmin: boolean = false) => {
-  const [session, setSession] = useState<boolean>(false);
+  const [session, setSession] = useState<Session | null>(null);
   const [chatPresets, setChatPresets] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -13,13 +14,13 @@ export const useChat = (isAdmin: boolean = false) => {
   useEffect(() => {
     const loadSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setSession(!!session);
+      setSession(session);
     };
     
     loadSession();
 
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(!!session);
+      setSession(session);
     });
 
     return () => authSubscription.unsubscribe();
