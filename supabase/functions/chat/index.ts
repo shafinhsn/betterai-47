@@ -14,9 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { message, context, preset } = await req.json();
-    console.log('Received request:', { message, preset });
+    const { message, context, preset, requestType, requestDetails } = await req.json();
+    console.log('Received request:', { message, preset, requestType });
     console.log('Current document context:', context);
+    
+    if (requestDetails && requestDetails.originalContent) {
+      console.log('Original document content provided');
+    }
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
@@ -41,9 +45,24 @@ serve(async (req) => {
          2. Follow that with "---EXPLANATION---"
          3. After the explanation marker, describe what changes were made
          4. Always build upon the previous changes - do not revert to the original document
-         5. Preserve all formatting and spacing in the modified document`;
+         5. Preserve all formatting and spacing in the modified document
+         6. IMPORTANT: Make sure to use the most recent document state (context) as your starting point, NOT the original document`;
 
     console.log('Using system prompt:', systemPrompt);
+
+    // Add an example to help clarify the expectation
+    const exampleContext = `
+When working with documents, always modify the current document state.
+
+Example:
+Original: "This is a long document with many sentences. It has multiple paragraphs. Each paragraph has its own theme."
+User request 1: "Keep only the first sentence"
+Response 1: "This is a long document with many sentences."
+User request 2: "Add a sentence about documents being important"
+Response 2: "This is a long document with many sentences. Documents are very important for communication."
+
+Notice how the second response builds upon the first modification, not the original text.
+`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -55,6 +74,7 @@ serve(async (req) => {
         model: "gpt-4o-mini",
         messages: [
           { role: 'system', content: systemPrompt },
+          { role: 'system', content: exampleContext },
           { role: 'user', content: `Current document state:\n${context}` },
           { role: 'user', content: message }
         ],
