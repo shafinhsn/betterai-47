@@ -94,6 +94,7 @@ export const Chat = ({
       console.error('Error sending message:', error);
       onSendMessage('Sorry, I encountered an error while processing your request.', 'ai');
     } finally {
+      // Ensure loading state is always reset
       setIsLoading(false);
       setSelectedPreset('');
     }
