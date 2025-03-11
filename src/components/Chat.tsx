@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { useMessageUsage } from '@/hooks/use-message-usage';
-import { INITIAL_FREE_MESSAGES, DAILY_FREE_MESSAGES, DAILY_SUBSCRIPTION_LIMIT } from '@/constants/subscription';
+import { useChat } from '@/hooks/useChat';
 import { MessageList } from './chat/MessageList';
 import { ChatInput } from './chat/ChatInput';
 import { TrialBanner } from './chat/TrialBanner';
+import { 
+  determineRequestType, 
+  extractOperationType, 
+  extractTargetInfo, 
+  requestTypeToMessage 
+} from '@/utils/chatRequestUtils';
 import type { ChatProps } from '@/types/chat';
 
 export const Chat = ({ 
@@ -18,49 +24,10 @@ export const Chat = ({
 }: ChatProps) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatPresets, setChatPresets] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>('');
-  const [session, setSession] = useState<boolean>(false);
   const { messageCount, dailyMessageCount, subscription, updateMessageCount } = useMessageUsage(isAdmin);
+  const { session, chatPresets, navigate } = useChat(isAdmin);
   const { toast } = useToast();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const loadSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(!!session);
-    };
-    
-    loadSession();
-
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(!!session);
-    });
-
-    return () => authSubscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const loadChatPresets = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from('chat_presets')
-        .select('name')
-        .eq('user_id', user.id);
-
-      if (data) {
-        setChatPresets(['summarize', 'formal', 'casual', ...(data.map(p => p.name))]);
-      } else {
-        setChatPresets(['summarize', 'formal', 'casual']);
-      }
-    };
-
-    if (subscription?.plan_type === 'Business Pro' || isAdmin) {
-      loadChatPresets();
-    }
-  }, [subscription, isAdmin]);
 
   const handleSendMessage = async (content: string) => {
     if (!session) {
@@ -71,13 +38,10 @@ export const Chat = ({
     try {
       setIsLoading(true);
       
-      // Store the current document state before processing
-      const currentState = documentContent;
-      
       // Add user message to chat
       onSendMessage(content, 'user');
       
-      // Determine the request type for better handling
+      // Determine request types and details
       const requestType = determineRequestType(content);
       const operationType = extractOperationType(content);
       
@@ -87,11 +51,9 @@ export const Chat = ({
           context: documentContent || '',
           preset: selectedPreset,
           requestType: requestType,
-          // Add additional context about the request
           requestDetails: {
             originalContent: documentContent,
             operation: operationType,
-            // Add specific targeting information based on the request
             targetInfo: extractTargetInfo(content, documentContent || '')
           }
         },
@@ -103,14 +65,8 @@ export const Chat = ({
         return;
       }
 
-      // If we have document updates, apply them intelligently based on request type
       if (data?.updatedDocument) {
         console.log('Received updated document from AI:', data.updatedDocument);
-        
-        // Store document state for restoration
-        const updatedState = data.updatedDocument;
-        
-        // Update the document while preserving formatting
         onDocumentUpdate(data.updatedDocument);
         
         toast({
@@ -119,13 +75,10 @@ export const Chat = ({
         });
       }
 
-      // Then show the explanation in chat
       if (data?.reply) {
-        // Store the actual updated document with the message
         onSendMessage(
           data.reply, 
           'ai',
-          // Store the updated content that the user would want to restore
           data?.updatedDocument ? data.updatedDocument : undefined
         );
       }
@@ -138,106 +91,6 @@ export const Chat = ({
     } finally {
       setIsLoading(false);
       setSelectedPreset('');
-    }
-  };
-
-  const determineRequestType = (input: string): string => {
-    const lowerInput = input.toLowerCase();
-    
-    if (lowerInput.includes('delete') || lowerInput.includes('remove')) {
-      return 'document_remove';
-    } else if (lowerInput.includes('keep only') || lowerInput.includes('retain only')) {
-      return 'document_filter';
-    } else if (lowerInput.includes('add') || lowerInput.includes('write') || lowerInput.includes('insert')) {
-      return 'document_add';
-    } else if (lowerInput.includes('rewrite') || lowerInput.includes('change')) {
-      return 'document_rewrite';
-    } else if (lowerInput.includes('format') || lowerInput.includes('mla') || lowerInput.includes('apa')) {
-      return 'document_format';
-    } else if (lowerInput.includes('summarize') || lowerInput.includes('summary')) {
-      return 'document_summarize';
-    } else if (lowerInput.includes('modify')) {
-      return 'document_modify';
-    } else {
-      return 'chat';
-    }
-  };
-  
-  const extractOperationType = (input: string): string => {
-    const lowerInput = input.toLowerCase();
-    
-    if (lowerInput.includes('first word') || lowerInput.includes('only the first word')) {
-      return 'keep_first_word';
-    } else if (lowerInput.includes('after') && lowerInput.includes('word')) {
-      return 'add_after_word';
-    } else if (lowerInput.includes('paragraph')) {
-      return 'paragraph_operation';
-    } else if (lowerInput.includes('sentence')) {
-      return 'sentence_operation';
-    } else if (lowerInput.includes('first') || lowerInput.includes('beginning')) {
-      return 'begin_operation';
-    } else if (lowerInput.includes('last') || lowerInput.includes('end')) {
-      return 'end_operation';
-    } else if (lowerInput.includes('randomly') || lowerInput.includes('random')) {
-      return 'random_operation';
-    } else {
-      return 'full_document';
-    }
-  };
-  
-  const extractTargetInfo = (input: string, documentContent: string): any => {
-    const lowerInput = input.toLowerCase();
-    const targetInfo: any = {};
-    
-    // Extract word to add content after
-    if (lowerInput.includes('after')) {
-      const afterMatch = lowerInput.match(/after\s+(?:the\s+)?(?:word\s+)?["']?(\w+)["']?/i);
-      if (afterMatch && afterMatch[1]) {
-        targetInfo.afterWord = afterMatch[1];
-      }
-    }
-    
-    // Extract content to keep
-    if (lowerInput.includes('keep') || lowerInput.includes('retain')) {
-      if (lowerInput.includes('first word')) {
-        targetInfo.keepType = 'first_word';
-      }
-    }
-    
-    // Random word generation
-    if (lowerInput.includes('random') && (lowerInput.includes('word') || lowerInput.includes('words'))) {
-      targetInfo.randomType = 'words';
-      
-      // Try to extract number of words
-      const numMatch = lowerInput.match(/(\d+)\s+(?:random\s+)?words?/i);
-      if (numMatch && numMatch[1]) {
-        targetInfo.wordCount = parseInt(numMatch[1], 10);
-      } else {
-        targetInfo.wordCount = 2; // Default to 2 words if not specified
-      }
-    }
-    
-    return targetInfo;
-  };
-  
-  const requestTypeToMessage = (requestType: string): string => {
-    switch (requestType) {
-      case 'document_rewrite':
-        return "Your document has been rewritten as requested.";
-      case 'document_format':
-        return "Your document has been reformatted.";
-      case 'document_filter':
-        return "Your document has been filtered to the specified content.";
-      case 'document_summarize':
-        return "Your document has been summarized.";
-      case 'document_add':
-        return "Content has been added to your document.";
-      case 'document_remove':
-        return "Content has been removed from your document.";
-      case 'document_modify':
-        return "Your document has been modified as requested.";
-      default:
-        return "The document has been modified based on your request.";
     }
   };
 
@@ -299,5 +152,3 @@ export const Chat = ({
     </div>
   );
 };
-
-
