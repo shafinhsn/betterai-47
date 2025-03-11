@@ -16,10 +16,11 @@ serve(async (req) => {
   try {
     const { message, context, preset, requestType, requestDetails } = await req.json();
     console.log('Received request:', { message, preset, requestType });
-    console.log('Current document context:', context);
+    console.log('Current document context length:', context?.length);
+    console.log('Current document first 100 chars:', context?.substring(0, 100));
     
     if (requestDetails && requestDetails.originalContent) {
-      console.log('Original document content provided');
+      console.log('Original content first 100 chars:', requestDetails.originalContent?.substring(0, 100));
     }
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -46,7 +47,8 @@ serve(async (req) => {
          3. After the explanation marker, describe what changes were made
          4. Always build upon the previous changes - do not revert to the original document
          5. Preserve all formatting and spacing in the modified document
-         6. IMPORTANT: Make sure to use the most recent document state (context) as your starting point, NOT the original document`;
+         6. IMPORTANT: Make sure to use the most recent document state (context) as your starting point, NOT the original document
+         7. When user asks to keep only certain parts, remove everything else from the current document state`;
 
     console.log('Using system prompt:', systemPrompt);
 
@@ -93,6 +95,8 @@ Notice how the second response builds upon the first modification, not the origi
 
     if (aiResponse.includes('---EXPLANATION---')) {
       const [updatedDocument, explanation] = aiResponse.split('---EXPLANATION---').map(text => text.trim());
+      console.log('Updated document length:', updatedDocument.length);
+      console.log('Updated document first 100 chars:', updatedDocument.substring(0, 100));
       console.log('Sending response with document update');
       return new Response(
         JSON.stringify({ 

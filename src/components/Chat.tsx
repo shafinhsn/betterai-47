@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
@@ -49,10 +50,10 @@ export const Chat = ({
       const requestType = determineRequestType(content);
       const operationType = extractOperationType(content);
       
-      // Get the current document content
+      // Get the current document content - this is crucial for maintaining state
       const currentDocumentContent = documentContent || '';
       
-      console.log('Sending message with current document content:', currentDocumentContent);
+      console.log('Sending message with current document content:', currentDocumentContent.substring(0, 100));
       
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
@@ -75,7 +76,7 @@ export const Chat = ({
       }
 
       if (data?.updatedDocument) {
-        console.log('Received updated document from AI:', data.updatedDocument);
+        console.log('Received updated document from AI:', data.updatedDocument.substring(0, 100));
         onDocumentUpdate(data.updatedDocument);
         
         toast({

@@ -16,6 +16,8 @@ export const determineRequestType = (input: string): string => {
     return 'document_summarize';
   } else if (lowerInput.includes('modify')) {
     return 'document_modify';
+  } else if (lowerInput.includes('keep') || lowerInput.includes('only')) {
+    return 'document_filter';
   } else {
     return 'chat';
   }
@@ -38,6 +40,8 @@ export const extractOperationType = (input: string): string => {
     return 'end_operation';
   } else if (lowerInput.includes('randomly') || lowerInput.includes('random')) {
     return 'random_operation';
+  } else if (lowerInput.includes('keep') || lowerInput.includes('only')) {
+    return 'keep_operation';
   } else {
     return 'full_document';
   }
@@ -57,6 +61,10 @@ export const extractTargetInfo = (input: string, documentContent: string): any =
   if (lowerInput.includes('keep') || lowerInput.includes('retain')) {
     if (lowerInput.includes('first word')) {
       targetInfo.keepType = 'first_word';
+    } else if (lowerInput.includes('first sentence')) {
+      targetInfo.keepType = 'first_sentence';
+    } else if (lowerInput.includes('first')) {
+      targetInfo.keepType = 'first';
     }
   }
   
